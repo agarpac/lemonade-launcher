@@ -47,9 +47,9 @@ secretProperties.setProperty("signing_key_alias", "${System.getenv('FLAUNCHER_SI
 android {
     defaultConfig {
         applicationId "me.efesser.flauncher"
-        compileSdk 34
+        compileSdk 35
         minSdk 21
-        targetSdk 34
+        targetSdk 35
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
     }
