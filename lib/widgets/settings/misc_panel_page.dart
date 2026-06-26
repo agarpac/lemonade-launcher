@@ -55,6 +55,12 @@ class MiscPanelPage extends StatelessWidget {
                 secondary: Icon(Icons.blur_off),
               ),
               RoundedSwitchListTile(
+                value: settingsService.dockDarkBackground,
+                onChanged: (value) => settingsService.setDockDarkBackground(value),
+                title: Text("Dark Dock Background", style: Theme.of(context).textTheme.bodyMedium),
+                secondary: Icon(Icons.dark_mode),
+              ),
+              RoundedSwitchListTile(
                 value: settingsService.showWatchNextSection,
                 onChanged: (value) => settingsService.setShowWatchNextSection(value),
                 title: Text("Show Watch Next Section", style: Theme.of(context).textTheme.bodyMedium),
