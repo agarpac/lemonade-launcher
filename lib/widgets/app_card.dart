@@ -186,51 +186,56 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
                       duration: const Duration(milliseconds: 150),
                       alignment: Alignment.center,
                       curve: Curves.easeInOut,
-                      child: Material(
-                        borderRadius: BorderRadius.circular(12),
-                        clipBehavior: Clip.antiAlias,
-                        elevation: shouldHighlight ? 8 : 4,
-                        shadowColor: Colors.black,
-                        child: Stack(
-                          fit: StackFit.expand,
-                          children: [
-                            InkWell(
-                              focusNode: _focusNode,
-                              autofocus: widget.autofocus,
-                              focusColor: Colors.transparent,
-                              child: appImageWidget,
-                              onTap: () => _onPressed(LogicalKeyboardKey.enter),
-                              onLongPress: () => _onLongPress(LogicalKeyboardKey.enter),
-                              onFocusChange: (focused) {
-                                _handleFocusChange(context, focused);
-                              },
-                            ),
-                            if (_moving) ..._arrows(),
-                            IgnorePointer(
-                              child: AnimatedOpacity(
-                                duration: const Duration(milliseconds: 200),
-                                curve: Curves.easeInOut,
-                                opacity: shouldHighlight ? 0.0 : 1.0,
-                                child: const ColoredBox(color: Color(0x1A000000)),
-                              ),
-                            ),
-                            if (shouldHighlight)
-                              if (animationEnabled)
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          Material(
+                            borderRadius: BorderRadius.circular(12),
+                            clipBehavior: Clip.antiAlias,
+                            elevation: shouldHighlight ? 8 : 4,
+                            shadowColor: Colors.black,
+                            child: Stack(
+                              fit: StackFit.expand,
+                              children: [
+                                InkWell(
+                                  focusNode: _focusNode,
+                                  autofocus: widget.autofocus,
+                                  focusColor: Colors.transparent,
+                                  child: appImageWidget,
+                                  onTap: () => _onPressed(LogicalKeyboardKey.enter),
+                                  onLongPress: () => _onLongPress(LogicalKeyboardKey.enter),
+                                  onFocusChange: (focused) {
+                                    _handleFocusChange(context, focused);
+                                  },
+                                ),
+                                if (_moving) ..._arrows(),
                                 IgnorePointer(
-                                  child: RepaintBoundary(
-                                    child: AnimatedBuilder(
-                                      animation: _curvedAnimation,
-                                      builder: (context, _) {
-                                        final alpha = 0.4 + (_animation.value * 0.6);
-                                        return _HighlightOutline(color: _accentColor.withValues(alpha: alpha));
-                                      },
-                                    ),
+                                  child: AnimatedOpacity(
+                                    duration: const Duration(milliseconds: 200),
+                                    curve: Curves.easeInOut,
+                                    opacity: shouldHighlight ? 0.0 : 1.0,
+                                    child: const ColoredBox(color: Color(0x1A000000)),
                                   ),
-                                )
-                              else
-                                IgnorePointer(child: RepaintBoundary(child: _HighlightOutline(color: _accentColor))),
-                          ],
-                        ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (shouldHighlight)
+                            if (animationEnabled)
+                              IgnorePointer(
+                                child: RepaintBoundary(
+                                  child: AnimatedBuilder(
+                                    animation: _curvedAnimation,
+                                    builder: (context, _) {
+                                      final alpha = 0.4 + (_animation.value * 0.6);
+                                      return _HighlightOutline(color: _accentColor.withValues(alpha: alpha));
+                                    },
+                                  ),
+                                ),
+                              )
+                            else
+                              IgnorePointer(child: RepaintBoundary(child: _HighlightOutline(color: _accentColor))),
+                        ],
                       ),
                     ),
                   ),
