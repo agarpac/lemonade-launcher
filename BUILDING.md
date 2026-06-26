@@ -30,6 +30,22 @@ The project supports two flavors:
 fvm flutter build apk --debug --flavor github
 ```
 
+### Release APK (all ABIs + universal)
+
+```bash
+fvm flutter build apk --release --flavor github
+```
+
+### Release APK (single ABI)
+
+```bash
+# armeabi-v7a (32-bit devices)
+fvm flutter build apk --release --flavor github --target-platform android-arm
+
+# arm64-v8a (most modern TVs / boxes)
+fvm flutter build apk --release --flavor github --target-platform android-arm64
+```
+
 ### Release App Bundle
 
 ```bash
@@ -47,5 +63,7 @@ fvm flutter build appbundle --release --flavor play \
 | Artifact                        | Path                                                  |
 |---------------------------------|-------------------------------------------------------|
 | Debug APK                       | `build/app/outputs/flutter-apk/app-github-debug.apk`  |
+| Release APK (per ABI)           | `build/app/outputs/flutter-apk/app-<abi>-github-release.apk` |
+| Release APK (universal)         | `build/app/outputs/flutter-apk/app-github-release.apk` |
 | GitHub Release AAB              | `build/app/outputs/bundle/githubRelease/app-github-release.aab` |
 | Play Release AAB                | `build/app/outputs/bundle/playRelease/app-play-release.aab` |
