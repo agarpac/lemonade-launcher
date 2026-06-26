@@ -280,6 +280,7 @@ class _FLauncherState extends State<FLauncher> {
   Widget _dock(BuildContext context, Category category, List<App> apps, AppsService appsService) {
     final backdropDisabled = context.select<SettingsService, bool>((s) => s.dockBackdropFilterDisabled);
     final darkBackground = context.select<SettingsService, bool>((s) => s.dockDarkBackground);
+    final shadowEnabled = context.select<SettingsService, bool>((s) => s.dockShadowEnabled);
 
     final content = Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 18),
@@ -290,23 +291,22 @@ class _FLauncherState extends State<FLauncher> {
           color: darkBackground ? Colors.black.withOpacity(0.15) : Colors.white.withOpacity(0.15),
           width: 1.5,
         ),
-        //boxShadow: [
-        //  BoxShadow(
-        //    color: Colors.black.withOpacity(0.3),
-        //    blurRadius: 20,
-        //    offset: const Offset(0, 10),
-        //  )
-        //],
       ),
       child: CategoryCleanRow(category: category, applications: apps, isFirstSection: false, scrollAlignment: 1.0),
     );
 
     return Center(
-      //child: RepaintBoundary(
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(32),
-        child: backdropDisabled ? content : CachedBlurBackdrop(sigma: 5, child: content),
-        //),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(32),
+          boxShadow: shadowEnabled
+              ? [BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 20, offset: const Offset(0, 10))]
+              : null,
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(32),
+          child: backdropDisabled ? content : CachedBlurBackdrop(sigma: 5, child: content),
+        ),
       ),
     );
   }
