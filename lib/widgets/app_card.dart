@@ -60,6 +60,7 @@ class AppCard extends StatefulWidget {
   final VoidCallback onMoveEnd;
   final bool handleUpNavigationToSettings;
   final double scrollAlignment;
+  final bool enforceAspectRatio;
 
   const AppCard({
     super.key,
@@ -70,6 +71,7 @@ class AppCard extends StatefulWidget {
     required this.onMoveEnd,
     this.handleUpNavigationToSettings = false,
     this.scrollAlignment = 0.5,
+    this.enforceAspectRatio = true,
   });
 
   @override
@@ -196,9 +198,7 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
             mainAxisSize: MainAxisSize.min,
             children: [
               Flexible(
-                child: AspectRatio(
-                  aspectRatio: kAppCardAspectRatio,
-                  child: RepaintBoundary(
+                child: _wrapAspectRatio(RepaintBoundary(
                     child: AnimatedScale(
                       scale: !_moving && shouldHighlight ? 1.10 : 1.0,
                       duration: const Duration(milliseconds: 150),
@@ -288,6 +288,13 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
         setState(() => _imageLoadError = true);
       }
     }
+  }
+
+  Widget _wrapAspectRatio(Widget child) {
+    if (widget.enforceAspectRatio) {
+      return AspectRatio(aspectRatio: kAppCardAspectRatio, child: child);
+    }
+    return child;
   }
 
   Widget _appImage() {

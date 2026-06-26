@@ -78,6 +78,7 @@ class AppsGrid extends StatelessWidget
                     application: applications[index],
                     autofocus: index == 0,
                     handleUpNavigationToSettings: isFirstSection && index < category.columnsCount,
+                    enforceAspectRatio: false,
                     onMove: (direction) => _onMove(context, direction, index),
                     onMoveEnd: () => _saveOrder(context)
                 ),

@@ -244,6 +244,7 @@ class _FLauncherState extends State<FLauncher> {
                       application: filteredApps[index],
                       autofocus: index == 0,
                       handleUpNavigationToSettings: isFirstSection && index < category.columnsCount,
+                      enforceAspectRatio: false,
                       onMove: (direction) => _onGridMove(context, category, index, direction, filteredApps),
                       onMoveEnd: () => context.read<AppsService>().saveApplicationOrderInCategory(category),
                     ),

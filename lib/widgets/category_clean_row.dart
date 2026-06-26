@@ -72,6 +72,7 @@ class CategoryCleanRow extends StatelessWidget
                         autofocus: index == 0,
                         handleUpNavigationToSettings: isFirstSection,
                         scrollAlignment: scrollAlignment,
+                        enforceAspectRatio: false,
                         onMove: (direction) => _onMove(context, direction, index),
                         onMoveEnd: () => _onMoveEnd(context),
                       ),
