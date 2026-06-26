@@ -34,6 +34,17 @@ import '../models/category.dart';
 
 const _validationKeys = [LogicalKeyboardKey.select, LogicalKeyboardKey.enter, LogicalKeyboardKey.gameButtonA];
 
+const kAppCardAspectRatio = 16 / 9;
+const kAppCardHorizontalPadding = 12.0;
+const kAppCardVerticalPadding = 9.0;
+const kLauncherSectionHorizontalPadding = 24.0;
+
+/// Row extent for a grid/dock line given the content width between section paddings.
+double appCardRowExtentFromContentWidth(double contentWidth, {int columnCount = Category.ColumnsCount}) {
+  final slotWidth = contentWidth / columnCount;
+  return slotWidth / kAppCardAspectRatio;
+}
+
 class AppCard extends StatefulWidget {
   final App application;
   final Category category;
@@ -179,7 +190,7 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
             children: [
               Flexible(
                 child: AspectRatio(
-                  aspectRatio: 16 / 9,
+                  aspectRatio: kAppCardAspectRatio,
                   child: RepaintBoundary(
                     child: AnimatedScale(
                       scale: !_moving && shouldHighlight ? 1.10 : 1.0,

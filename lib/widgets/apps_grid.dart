@@ -59,7 +59,10 @@ class AppsGrid extends StatelessWidget
           findChildIndexCallback: _findChildIndex,
           (context, index) => Padding(
             key: Key(applications[index].packageName),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+            padding: const EdgeInsets.symmetric(
+              horizontal: kAppCardHorizontalPadding,
+              vertical: kAppCardVerticalPadding,
+            ),
             child: AppCard(
                 category: category,
                 application: applications[index],
@@ -156,7 +159,7 @@ class AppsGrid extends StatelessWidget
 
   SliverGridDelegate _buildSliverGridDelegate() => SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: category.columnsCount,
-        childAspectRatio: 16 / 9,
+        childAspectRatio: kAppCardAspectRatio,
         mainAxisSpacing: 12,
         crossAxisSpacing: 0,
       );

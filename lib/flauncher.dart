@@ -41,7 +41,11 @@ import 'package:flauncher/l10n/app_localizations.dart';
 import 'models/app.dart';
 import 'models/category.dart';
 
-const _kDockOuterPadding = EdgeInsets.only(left: 18, right: 18, bottom: 6);
+const _kDockOuterPadding = EdgeInsets.only(
+  left: kLauncherSectionHorizontalPadding,
+  right: kLauncherSectionHorizontalPadding,
+  bottom: 6,
+);
 
 class FLauncher extends StatefulWidget {
   const FLauncher({super.key});
@@ -184,7 +188,11 @@ class _FLauncherState extends State<FLauncher> {
           slivers.add(
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.only(left: 24, right: 24, bottom: 8),
+                padding: const EdgeInsets.only(
+                  left: kLauncherSectionHorizontalPadding,
+                  right: kLauncherSectionHorizontalPadding,
+                  bottom: 8,
+                ),
                 child: CategoryRow(
                   key: sectionKey,
                   category: category,
@@ -199,12 +207,16 @@ class _FLauncherState extends State<FLauncher> {
         case CategoryType.grid:
           slivers.add(
             SliverPadding(
-              padding: const EdgeInsets.only(left: 24, right: 24, bottom: 8),
+              padding: const EdgeInsets.only(
+                left: kLauncherSectionHorizontalPadding,
+                right: kLauncherSectionHorizontalPadding,
+                bottom: 8,
+              ),
               sliver: SliverGrid(
                 key: sectionKey,
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: category.columnsCount,
-                  childAspectRatio: 16 / 9,
+                  childAspectRatio: kAppCardAspectRatio,
                   mainAxisSpacing: 12,
                   crossAxisSpacing: 0,
                 ),
@@ -217,7 +229,10 @@ class _FLauncherState extends State<FLauncher> {
                   },
                   (context, index) => Padding(
                     key: Key(filteredApps[index].packageName),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: kAppCardHorizontalPadding,
+                      vertical: kAppCardVerticalPadding,
+                    ),
                     child: AppCard(
                       category: category,
                       application: filteredApps[index],
@@ -283,7 +298,7 @@ class _FLauncherState extends State<FLauncher> {
     final shadowEnabled = context.select<SettingsService, bool>((s) => s.dockShadowEnabled);
 
     final content = Container(
-      padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 10),
+      padding: const EdgeInsets.symmetric(vertical: 5),
       decoration: BoxDecoration(
         color: darkBackground ? Colors.black.withOpacity(0.3) : Colors.white.withOpacity(0.1),
         borderRadius: BorderRadius.circular(20),
