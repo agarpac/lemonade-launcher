@@ -17,6 +17,7 @@
  */
 
 import 'package:flauncher/providers/apps_service.dart';
+import 'package:flauncher/providers/settings_service.dart';
 import 'package:flauncher/widgets/app_card.dart';
 import 'package:flauncher/widgets/category_container_common.dart';
 import 'package:flutter/material.dart';
@@ -43,6 +44,7 @@ class CategoryCleanRow extends StatelessWidget
 
   @override
   Widget build(BuildContext context) {
+    final showAppNames = context.select<SettingsService, bool>((s) => s.showAppNamesBelowIcons);
     Widget categoryContent;
     if (applications.isEmpty) {
       categoryContent = categoryContainerEmptyState(context);
@@ -50,7 +52,8 @@ class CategoryCleanRow extends StatelessWidget
     else {
       categoryContent = LayoutBuilder(
         builder: (context, constraints) {
-          final rowHeight = appCardRowExtentFromContentWidth(constraints.maxWidth);
+          final rowHeight = appCardRowExtentFromContentWidth(constraints.maxWidth)
+              + (showAppNames ? kAppNameLabelHeight : 0);
           return SizedBox(
             height: rowHeight,
             child: Row(

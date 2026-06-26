@@ -83,11 +83,13 @@ class _FLauncherState extends State<FLauncher> {
             child: Scaffold(
               backgroundColor: Colors.transparent,
               appBar: FocusAwareAppBar(key: _appBarKey),
-              body: Selector<AppsService, (bool, int)>(
-                selector: (_, service) => (service.initialized, service.layoutVersion),
+              // (initialized (data.$1), layoutVersion (data.$2), showAppNamesBelowIcons (data.$3))
+              body: Selector2<AppsService, SettingsService, (bool, int, bool)>(
+                selector: (_, appsService, settingsService) =>
+                    (appsService.initialized, appsService.layoutVersion, settingsService.showAppNamesBelowIcons),
                 builder: (context, data, _) {
                   if (data.$1) {
-                    return _tvOSLayout(context, context.read<AppsService>());
+                    return _tvOSLayout(context, context.read<AppsService>(), showAppNames: data.$3);
                   } else {
                     return _emptyState(context);
                   }
@@ -100,7 +102,7 @@ class _FLauncherState extends State<FLauncher> {
     ),
   );
 
-  Widget _tvOSLayout(BuildContext context, AppsService appsService) {
+  Widget _tvOSLayout(BuildContext context, AppsService appsService, {required bool showAppNames}) {
     final favoritesCategory = appsService.categories.firstWhereOrNull((c) => c.name == 'Favorites');
     final favoriteApps = favoritesCategory?.applications ?? const [];
 
@@ -136,13 +138,13 @@ class _FLauncherState extends State<FLauncher> {
               ),
             ),
         ],
-        ..._buildSectionSlivers(otherSections, firstCategoryAlreadyFound: favoriteApps.isNotEmpty),
+        ..._buildSectionSlivers(otherSections, firstCategoryAlreadyFound: favoriteApps.isNotEmpty, showAppNames: showAppNames),
         const SliverToBoxAdapter(child: SizedBox(height: 64)),
       ],
     );
   }
 
-  List<Widget> _buildSectionSlivers(List<LauncherSection> sections, {bool firstCategoryAlreadyFound = false}) {
+  List<Widget> _buildSectionSlivers(List<LauncherSection> sections, {bool firstCategoryAlreadyFound = false, required bool showAppNames}) {
     final List<Widget> slivers = [];
     bool firstCategoryFound = firstCategoryAlreadyFound;
 
@@ -205,6 +207,10 @@ class _FLauncherState extends State<FLauncher> {
           );
           break;
         case CategoryType.grid:
+          final gridContentWidth = MediaQuery.sizeOf(context).width - 2 * kLauncherSectionHorizontalPadding;
+          final gridAspectRatio = showAppNames
+              ? appCardGridAspectRatio(gridContentWidth, category.columnsCount)
+              : kAppCardAspectRatio;
           slivers.add(
             SliverPadding(
               padding: const EdgeInsets.only(
@@ -216,7 +222,7 @@ class _FLauncherState extends State<FLauncher> {
                 key: sectionKey,
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: category.columnsCount,
-                  childAspectRatio: kAppCardAspectRatio,
+                  childAspectRatio: gridAspectRatio,
                   mainAxisSpacing: 12,
                   crossAxisSpacing: 0,
                 ),

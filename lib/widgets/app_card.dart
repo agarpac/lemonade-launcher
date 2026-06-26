@@ -38,11 +38,18 @@ const kAppCardAspectRatio = 16 / 9;
 const kAppCardHorizontalPadding = 12.0;
 const kAppCardVerticalPadding = 9.0;
 const kLauncherSectionHorizontalPadding = 24.0;
+const kAppNameLabelHeight = 24.0;
 
 /// Row extent for a grid/dock line given the content width between section paddings.
 double appCardRowExtentFromContentWidth(double contentWidth, {int columnCount = Category.ColumnsCount}) {
   final slotWidth = contentWidth / columnCount;
   return slotWidth / kAppCardAspectRatio;
+}
+
+/// Adjusted aspect ratio for grid cells that includes space for the app name label.
+double appCardGridAspectRatio(double crossAxisExtent, int columnsCount) {
+  final cellWidth = crossAxisExtent / columnsCount;
+  return cellWidth / (cellWidth / kAppCardAspectRatio + kAppNameLabelHeight);
 }
 
 class AppCard extends StatefulWidget {
