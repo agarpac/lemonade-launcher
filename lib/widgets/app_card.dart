@@ -182,7 +182,7 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
                   aspectRatio: 16 / 9,
                   child: RepaintBoundary(
                     child: AnimatedScale(
-                      scale: !_moving && shouldHighlight ? 1.2 : 1.0,
+                      scale: !_moving && shouldHighlight ? 1.10 : 1.0,
                       duration: const Duration(milliseconds: 150),
                       alignment: Alignment.center,
                       curve: Curves.easeInOut,

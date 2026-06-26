@@ -41,7 +41,7 @@ import 'package:flauncher/l10n/app_localizations.dart';
 import 'models/app.dart';
 import 'models/category.dart';
 
-const _kDockOuterPadding = EdgeInsets.only(left: 12, right: 12, bottom: 6);
+const _kDockOuterPadding = EdgeInsets.only(left: 18, right: 18, bottom: 6);
 
 class FLauncher extends StatefulWidget {
   const FLauncher({super.key});
@@ -283,10 +283,10 @@ class _FLauncherState extends State<FLauncher> {
     final shadowEnabled = context.select<SettingsService, bool>((s) => s.dockShadowEnabled);
 
     final content = Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 18),
+      padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 10),
       decoration: BoxDecoration(
         color: darkBackground ? Colors.black.withOpacity(0.3) : Colors.white.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(32),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: darkBackground ? Colors.black.withOpacity(0.15) : Colors.white.withOpacity(0.15),
           width: 1.5,
@@ -298,13 +298,13 @@ class _FLauncherState extends State<FLauncher> {
     return Center(
       child: Container(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(32),
+          borderRadius: BorderRadius.circular(20),
           boxShadow: shadowEnabled
-              ? [BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 20, offset: const Offset(0, 10))]
+              ? [BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 20, spreadRadius: 2)]
               : null,
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(32),
+          borderRadius: BorderRadius.circular(20),
           child: backdropDisabled ? content : CachedBlurBackdrop(sigma: 5, child: content),
         ),
       ),
