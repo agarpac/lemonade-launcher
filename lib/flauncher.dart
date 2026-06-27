@@ -36,6 +36,7 @@ import 'package:flauncher/widgets/focus_aware_app_bar.dart';
 import 'package:flauncher/widgets/wallpaper_video_background.dart';
 import 'package:flauncher/widgets/watch_next_row.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:provider/provider.dart';
 import 'package:flauncher/l10n/app_localizations.dart';
 
@@ -57,6 +58,8 @@ class FLauncher extends StatefulWidget {
 
 class _FLauncherState extends State<FLauncher> with WidgetsBindingObserver {
   final GlobalKey<FocusAwareAppBarState> _appBarKey = GlobalKey();
+  final ScrollController _scrollController = ScrollController();
+  final GlobalKey _dockKey = GlobalKey();
 
   @override
   void initState() {
@@ -67,6 +70,7 @@ class _FLauncherState extends State<FLauncher> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -137,6 +141,7 @@ class _FLauncherState extends State<FLauncher> with WidgetsBindingObserver {
     if (favoriteApps.isEmpty && otherSections.isEmpty) return _emptyState(context);
 
     return CustomScrollView(
+      controller: _scrollController,
       slivers: [
         if (favoriteApps.isNotEmpty || showWatchNextSection) ...[
           SliverToBoxAdapter(
@@ -152,21 +157,42 @@ class _FLauncherState extends State<FLauncher> with WidgetsBindingObserver {
             const SliverToBoxAdapter(child: WatchNextRow(isFirstSection: false, isAboveDock: true)),
           if (favoriteApps.isNotEmpty)
             SliverToBoxAdapter(
-              child: Padding(
-                padding: _kDockOuterPadding,
-                child: _dock(context, favoritesCategory!, favoriteApps, appsService),
+              child: KeyedSubtree(
+                key: _dockKey,
+                child: Padding(
+                  padding: _kDockOuterPadding,
+                  child: _dock(context, favoritesCategory!, favoriteApps, appsService),
+                ),
               ),
             ),
         ],
-        ..._buildSectionSlivers(otherSections, firstCategoryAlreadyFound: favoriteApps.isNotEmpty, showAppNames: showAppNames),
-        const SliverToBoxAdapter(child: SizedBox(height: 64)),
+        ..._buildSectionSlivers(
+          otherSections,
+          firstCategoryAlreadyFound: favoriteApps.isNotEmpty,
+          showAppNames: showAppNames,
+          onFirstSectionFocused: favoriteApps.isNotEmpty ? _scrollDockToTop : null,
+        ),
+        SliverToBoxAdapter(child: SizedBox(height: _bottomScrollPadding(context, hasDock: favoriteApps.isNotEmpty))),
       ],
     );
   }
 
-  List<Widget> _buildSectionSlivers(List<LauncherSection> sections, {bool firstCategoryAlreadyFound = false, required bool showAppNames}) {
+  double _bottomScrollPadding(BuildContext context, {required bool hasDock}) {
+    if (!hasDock) {
+      return 64;
+    }
+    return MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top - kToolbarHeight;
+  }
+
+  List<Widget> _buildSectionSlivers(
+    List<LauncherSection> sections, {
+    bool firstCategoryAlreadyFound = false,
+    required bool showAppNames,
+    VoidCallback? onFirstSectionFocused,
+  }) {
     final List<Widget> slivers = [];
     bool firstCategoryFound = firstCategoryAlreadyFound;
+    bool firstBuiltSectionFound = false;
 
     for (final section in sections) {
       final Key sectionKey = Key(section.id.toString());
@@ -182,6 +208,8 @@ class _FLauncherState extends State<FLauncher> with WidgetsBindingObserver {
 
       final bool isFirstSection = !firstCategoryFound;
       if (isFirstSection) firstCategoryFound = true;
+      final onAppFocused = !firstBuiltSectionFound ? onFirstSectionFocused : null;
+      firstBuiltSectionFound = true;
 
       slivers.add(
         SliverToBoxAdapter(
@@ -221,6 +249,7 @@ class _FLauncherState extends State<FLauncher> with WidgetsBindingObserver {
                   applications: filteredApps,
                   isFirstSection: isFirstSection,
                   showTitle: false,
+                  onAppFocused: onAppFocused,
                 ),
               ),
             ),
@@ -265,6 +294,8 @@ class _FLauncherState extends State<FLauncher> with WidgetsBindingObserver {
                       autofocus: index == 0,
                       handleUpNavigationToSettings: isFirstSection && index < category.columnsCount,
                       enforceAspectRatio: false,
+                      onFocused: index < category.columnsCount ? onAppFocused : null,
+                      ensureVisibleOnFocus: onAppFocused == null || index >= category.columnsCount,
                       onMove: (direction) => _onGridMove(context, category, index, direction, filteredApps),
                       onMoveEnd: () => context.read<AppsService>().saveApplicationOrderInCategory(category),
                     ),
@@ -278,6 +309,36 @@ class _FLauncherState extends State<FLauncher> with WidgetsBindingObserver {
     }
 
     return slivers;
+  }
+
+  Future<void> _scrollDockToTop() async {
+    final targetOffset = _dockTopScrollOffset();
+    if (targetOffset == null) {
+      return;
+    }
+
+    final position = _scrollController.position;
+    if ((targetOffset - position.pixels).abs() < 16) {
+      return;
+    }
+
+    await _scrollController.animateTo(
+      targetOffset,
+      duration: const Duration(milliseconds: 260),
+      curve: Curves.easeInOutCubic,
+    );
+  }
+
+  double? _dockTopScrollOffset() {
+    final dockContext = _dockKey.currentContext;
+    final renderObject = dockContext?.findRenderObject();
+    if (!_scrollController.hasClients || renderObject == null) {
+      return null;
+    }
+
+    final viewport = RenderAbstractViewport.of(renderObject);
+    final position = _scrollController.position;
+    return viewport.getOffsetToReveal(renderObject, 0).offset.clamp(position.minScrollExtent, position.maxScrollExtent);
   }
 
   // TO DO : refractor duplicate _onMove code

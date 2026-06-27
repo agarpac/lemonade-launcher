@@ -33,6 +33,7 @@ class CategoryRow extends StatelessWidget
 
   final bool isFirstSection;
   final bool showTitle;
+  final VoidCallback? onAppFocused;
 
   CategoryRow({
     Key? key,
@@ -40,6 +41,7 @@ class CategoryRow extends StatelessWidget
     required this.applications,
     this.isFirstSection = false,
     this.showTitle = true,
+    this.onAppFocused,
   }) : super(key: key);
 
   @override
@@ -66,6 +68,7 @@ class CategoryRow extends StatelessWidget
                   application: applications[index],
                   autofocus: index == 0,
                   handleUpNavigationToSettings: isFirstSection,
+                  onFocused: onAppFocused,
                   onMove: (direction) => _onMove(context, direction, index),
                   onMoveEnd: () => _onMoveEnd(context)
                 )

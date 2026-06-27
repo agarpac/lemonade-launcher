@@ -61,6 +61,8 @@ class AppCard extends StatefulWidget {
   final bool handleUpNavigationToSettings;
   final double scrollAlignment;
   final bool enforceAspectRatio;
+  final VoidCallback? onFocused;
+  final bool ensureVisibleOnFocus;
 
   const AppCard({
     super.key,
@@ -72,6 +74,8 @@ class AppCard extends StatefulWidget {
     this.handleUpNavigationToSettings = false,
     this.scrollAlignment = 0.5,
     this.enforceAspectRatio = true,
+    this.onFocused,
+    this.ensureVisibleOnFocus = true,
   });
 
   @override
@@ -390,16 +394,19 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
       return;
     }
     _lastEnsureVisibleAt = now;
-    _ensureVisibleIfNeeded(
-      context,
-      // This specific alignment value is not only
-      // to center the focused card in the row while
-      // scrolling, but to prevent the topmost category
-      // title to be hidden by the content above it when
-      // scrolling from the app bar. How it relates to this,
-      // I don't know
-      alignment: widget.scrollAlignment,
-    );
+    if (widget.ensureVisibleOnFocus) {
+      _ensureVisibleIfNeeded(
+        context,
+        // This specific alignment value is not only
+        // to center the focused card in the row while
+        // scrolling, but to prevent the topmost category
+        // title to be hidden by the content above it when
+        // scrolling from the app bar. How it relates to this,
+        // I don't know
+        alignment: widget.scrollAlignment,
+      );
+    }
+    widget.onFocused?.call();
   }
 
   void _updateHighlightAnimation() {
