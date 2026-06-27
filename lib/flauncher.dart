@@ -161,7 +161,13 @@ class _FLauncherState extends State<FLauncher> with WidgetsBindingObserver {
                 key: _dockKey,
                 child: Padding(
                   padding: _kDockOuterPadding,
-                  child: _dock(context, favoritesCategory!, favoriteApps, appsService),
+                  child: _dock(
+                    context,
+                    favoritesCategory!,
+                    favoriteApps,
+                    appsService,
+                    handleUpNavigationToSettings: !showWatchNextSection,
+                  ),
                 ),
               ),
             ),
@@ -381,7 +387,13 @@ class _FLauncherState extends State<FLauncher> with WidgetsBindingObserver {
     }
   }
 
-  Widget _dock(BuildContext context, Category category, List<App> apps, AppsService appsService) {
+  Widget _dock(
+    BuildContext context,
+    Category category,
+    List<App> apps,
+    AppsService appsService, {
+    required bool handleUpNavigationToSettings,
+  }) {
     final backdropDisabled = context.select<SettingsService, bool>((s) => s.dockBackdropFilterDisabled);
     final darkBackground = context.select<SettingsService, bool>((s) => s.dockDarkBackground);
     final shadowEnabled = context.select<SettingsService, bool>((s) => s.dockShadowEnabled);
@@ -396,7 +408,12 @@ class _FLauncherState extends State<FLauncher> with WidgetsBindingObserver {
           width: 1.5,
         ),
       ),
-      child: CategoryCleanRow(category: category, applications: apps, isFirstSection: false, scrollAlignment: 1.0),
+      child: CategoryCleanRow(
+        category: category,
+        applications: apps,
+        isFirstSection: handleUpNavigationToSettings,
+        scrollAlignment: 1.0,
+      ),
     );
 
     return Center(

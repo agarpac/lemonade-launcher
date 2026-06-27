@@ -17,6 +17,7 @@
  */
 
 import 'package:flauncher/models/watch_next_item.dart';
+import 'package:flauncher/actions.dart';
 import 'package:flauncher/providers/settings_service.dart';
 import 'package:flauncher/providers/watch_next_service.dart';
 import 'package:flauncher/l10n/app_localizations.dart';
@@ -96,6 +97,7 @@ class WatchNextRow extends StatelessWidget {
             _WatchNextCleanRow(
               items: data.items,
               isFirstSection: isFirstSection,
+              handleUpNavigationToSettings: isAboveDock,
             ),
             const SizedBox(height: 12),
           ],
@@ -198,10 +200,12 @@ class _WatchNextPermissionBanner extends StatelessWidget {
 class _WatchNextCleanRow extends StatefulWidget {
   final List<WatchNextItem> items;
   final bool isFirstSection;
+  final bool handleUpNavigationToSettings;
 
   const _WatchNextCleanRow({
     required this.items,
     this.isFirstSection = false,
+    this.handleUpNavigationToSettings = false,
   });
 
   @override
@@ -301,6 +305,7 @@ class _WatchNextCleanRowState extends State<_WatchNextCleanRow> {
             autofocus: widget.isFirstSection && index == 0,
             onFocusChanged: (focused) => _onFocusChanged(index, focused),
             onNavigationKey: (key) => _handleNavigationKey(index, key),
+            handleUpNavigationToSettings: widget.handleUpNavigationToSettings,
           );
         },
       ),
@@ -314,6 +319,7 @@ class _WatchNextCard extends StatefulWidget {
   final bool autofocus;
   final ValueChanged<bool> onFocusChanged;
   final KeyEventResult Function(LogicalKeyboardKey key) onNavigationKey;
+  final bool handleUpNavigationToSettings;
 
   const _WatchNextCard({
     required this.item,
@@ -321,6 +327,7 @@ class _WatchNextCard extends StatefulWidget {
     this.autofocus = false,
     required this.onFocusChanged,
     required this.onNavigationKey,
+    this.handleUpNavigationToSettings = false,
   });
 
   @override
@@ -358,6 +365,12 @@ class _WatchNextCardState extends State<_WatchNextCard> {
         case LogicalKeyboardKey.arrowLeft:
         case LogicalKeyboardKey.arrowRight:
           return widget.onNavigationKey(event.logicalKey);
+        case LogicalKeyboardKey.arrowUp:
+          if (widget.handleUpNavigationToSettings) {
+            Actions.invoke(context, const MoveFocusToSettingsIntent());
+            return KeyEventResult.handled;
+          }
+          break;
         case LogicalKeyboardKey.select:
         case LogicalKeyboardKey.enter:
           _triggerLaunchWithFeedback();

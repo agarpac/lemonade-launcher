@@ -441,17 +441,31 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
     const minDeltaToScroll = 24.0;
     if (onlyWhenNearBottom &&
         (position.axisDirection == AxisDirection.down || position.axisDirection == AxisDirection.up)) {
+      const topEdgePadding = kToolbarHeight + 24.0;
       const bottomEdgePadding = 96.0;
-      final targetOffset = (viewport.getOffsetToReveal(renderObject, 1).offset + bottomEdgePadding).clamp(
+      final topTargetOffset = (viewport.getOffsetToReveal(renderObject, 0).offset - topEdgePadding).clamp(
         position.minScrollExtent,
         position.maxScrollExtent,
       );
-      if (targetOffset - position.pixels < minDeltaToScroll) {
+      if (position.pixels - topTargetOffset >= minDeltaToScroll) {
+        position.animateTo(
+          topTargetOffset,
+          curve: Curves.easeInOut,
+          duration: const Duration(milliseconds: 220),
+        );
+        return;
+      }
+
+      final bottomTargetOffset = (viewport.getOffsetToReveal(renderObject, 1).offset + bottomEdgePadding).clamp(
+        position.minScrollExtent,
+        position.maxScrollExtent,
+      );
+      if (bottomTargetOffset - position.pixels < minDeltaToScroll) {
         return;
       }
 
       position.animateTo(
-        targetOffset,
+        bottomTargetOffset,
         curve: Curves.easeInOut,
         duration: const Duration(milliseconds: 220),
       );
