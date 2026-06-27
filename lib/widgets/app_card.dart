@@ -63,6 +63,7 @@ class AppCard extends StatefulWidget {
   final bool enforceAspectRatio;
   final VoidCallback? onFocused;
   final bool ensureVisibleOnFocus;
+  final bool onlyScrollWhenNearBottom;
 
   const AppCard({
     super.key,
@@ -76,6 +77,7 @@ class AppCard extends StatefulWidget {
     this.enforceAspectRatio = true,
     this.onFocused,
     this.ensureVisibleOnFocus = true,
+    this.onlyScrollWhenNearBottom = false,
   });
 
   @override
@@ -404,6 +406,7 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
         // scrolling from the app bar. How it relates to this,
         // I don't know
         alignment: widget.scrollAlignment,
+        onlyWhenNearBottom: widget.onlyScrollWhenNearBottom,
       );
     }
     widget.onFocused?.call();
@@ -425,7 +428,7 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
     }
   }
 
-  void _ensureVisibleIfNeeded(BuildContext context, {required double alignment}) {
+  void _ensureVisibleIfNeeded(BuildContext context, {required double alignment, bool onlyWhenNearBottom = false}) {
     final renderObject = context.findRenderObject();
     final scrollable = Scrollable.maybeOf(context);
     if (renderObject == null || scrollable == null) {
@@ -435,8 +438,27 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
     final viewport = RenderAbstractViewport.of(renderObject);
 
     final position = scrollable.position;
-    final targetOffset = viewport.getOffsetToReveal(renderObject, alignment).offset;
     const minDeltaToScroll = 24.0;
+    if (onlyWhenNearBottom &&
+        (position.axisDirection == AxisDirection.down || position.axisDirection == AxisDirection.up)) {
+      const bottomEdgePadding = 96.0;
+      final targetOffset = (viewport.getOffsetToReveal(renderObject, 1).offset + bottomEdgePadding).clamp(
+        position.minScrollExtent,
+        position.maxScrollExtent,
+      );
+      if (targetOffset - position.pixels < minDeltaToScroll) {
+        return;
+      }
+
+      position.animateTo(
+        targetOffset,
+        curve: Curves.easeInOut,
+        duration: const Duration(milliseconds: 220),
+      );
+      return;
+    }
+
+    final targetOffset = viewport.getOffsetToReveal(renderObject, alignment).offset;
     if ((targetOffset - position.pixels).abs() < minDeltaToScroll) {
       return;
     }

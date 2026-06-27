@@ -296,6 +296,7 @@ class _FLauncherState extends State<FLauncher> with WidgetsBindingObserver {
                       enforceAspectRatio: false,
                       onFocused: index < category.columnsCount ? onAppFocused : null,
                       ensureVisibleOnFocus: onAppFocused == null || index >= category.columnsCount,
+                      onlyScrollWhenNearBottom: true,
                       onMove: (direction) => _onGridMove(context, category, index, direction, filteredApps),
                       onMoveEnd: () => context.read<AppsService>().saveApplicationOrderInCategory(category),
                     ),
@@ -389,7 +390,7 @@ class _FLauncherState extends State<FLauncher> with WidgetsBindingObserver {
       padding: const EdgeInsets.symmetric(vertical: 5),
       decoration: BoxDecoration(
         color: darkBackground ? Colors.black.withOpacity(0.3) : Colors.white.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(24),
         border: Border.all(
           color: darkBackground ? Colors.black.withOpacity(0.15) : Colors.white.withOpacity(0.15),
           width: 1.5,
