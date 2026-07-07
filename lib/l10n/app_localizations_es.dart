@@ -24,6 +24,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get appCardHighlightAnimation => 'Resaltar aplicaciones';
 
   @override
+  String get showFocusBorders => 'Mostrar bordes de enfoque';
+
+  @override
   String get appInfo => 'Datos de la aplicación';
 
   @override

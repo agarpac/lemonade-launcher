@@ -97,7 +97,6 @@ class WatchNextRow extends StatelessWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _WatchNextSectionTitle(title: localizations.watchNextSectionTitle),
             _WatchNextCleanRow(
               items: data.items,
               isFirstSection: isFirstSection,
@@ -418,6 +417,7 @@ class _WatchNextCardState extends State<_WatchNextCard> {
     final posterLoadFailed = context.select<WatchNextService, bool>(
       (service) => service.hasPosterLoadFailed(widget.item.posterUri),
     );
+    final showFocusBorders = context.select<SettingsService, bool>((s) => s.showFocusBorders);
 
 
     return Padding(
@@ -455,9 +455,14 @@ class _WatchNextCardState extends State<_WatchNextCard> {
                     fit: StackFit.expand,
                     children: [
                       _buildPoster(posterData, posterLoadFailed),
-                      if (_isHovered) _buildOverlay(),
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        child: _buildCardLabels(showDescription: _isHovered),
+                      ),
                       if (_isHovered) _buildProgressIndicator(),
-                      if (_isHovered)
+                      if (_isHovered && showFocusBorders)
                         IgnorePointer(
                           child: DecoratedBox(
                             decoration: BoxDecoration(
@@ -503,6 +508,8 @@ class _WatchNextCardState extends State<_WatchNextCard> {
   }
 
   Widget _buildFallbackWidget() {
+    final localizations = AppLocalizations.of(context)!;
+
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -514,22 +521,40 @@ class _WatchNextCardState extends State<_WatchNextCard> {
         const SizedBox(height: 8),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 8),
-          child: Text(
-            widget.item.title,
-            textAlign: TextAlign.center,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 12,
-            ),
+          child: Column(
+            children: [
+              Text(
+                widget.item.title,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                localizations.watchNextSectionTitle,
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.8),
+                  fontSize: 10,
+                ),
+              ),
+            ],
           ),
         ),
       ],
     );
   }
 
-  Widget _buildOverlay() {
+  Widget _buildCardLabels({required bool showDescription}) {
+    final localizations = AppLocalizations.of(context)!;
+
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -537,14 +562,14 @@ class _WatchNextCardState extends State<_WatchNextCard> {
           end: Alignment.bottomCenter,
           colors: [
             Colors.black.withOpacity(0.0),
-            Colors.black.withOpacity(0.7),
+            Colors.black.withOpacity(_isHovered ? 0.7 : 0.55),
           ],
         ),
       ),
-      padding: const EdgeInsets.all(8),
+      padding: const EdgeInsets.fromLTRB(8, 16, 8, 8),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.end,
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Text(
             widget.item.title,
@@ -556,14 +581,27 @@ class _WatchNextCardState extends State<_WatchNextCard> {
               fontWeight: FontWeight.bold,
             ),
           ),
-          if (widget.item.description != null)
-            Text(
-              widget.item.description!,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: Colors.white.withOpacity(0.8),
-                fontSize: 10,
+          const SizedBox(height: 2),
+          Text(
+            localizations.watchNextSectionTitle,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: Colors.white.withOpacity(0.8),
+              fontSize: 10,
+            ),
+          ),
+          if (showDescription && widget.item.description != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                widget.item.description!,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.8),
+                  fontSize: 10,
+                ),
               ),
             ),
         ],

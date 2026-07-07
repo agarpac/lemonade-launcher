@@ -178,6 +178,8 @@ class _FocusableIconButtonState extends State<_FocusableIconButton> {
 
   @override
   Widget build(BuildContext context) {
+    final showFocusBorders = context.select<SettingsService, bool>((s) => s.showFocusBorders);
+
     return Actions(
       actions: <Type, Action<Intent>>{
         ActivateIntent: CallbackAction<ActivateIntent>(onInvoke: (_) => widget.onPressed()),
@@ -193,10 +195,10 @@ class _FocusableIconButtonState extends State<_FocusableIconButton> {
             padding: const EdgeInsets.all(4),  // Match network indicator padding
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(8),
-              border: _focused
+              border: _focused && showFocusBorders
                 ? Border.all(color: Theme.of(context).colorScheme.primary, width: 2)
                 : null,
-              boxShadow: _focused
+              boxShadow: _focused && showFocusBorders
                 ? const [BoxShadow(color: Colors.black54, blurRadius: 8, spreadRadius: 1)]
                 : null,
             ),
@@ -223,15 +225,17 @@ class _FocusableNetworkWidgetState extends State<_FocusableNetworkWidget> {
 
   @override
   Widget build(BuildContext context) {
+    final showFocusBorders = context.select<SettingsService, bool>((s) => s.showFocusBorders);
+
     return Focus(
       onFocusChange: (hasFocus) => setState(() => _focused = hasFocus),
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(8),
-          border: _focused
+          border: _focused && showFocusBorders
             ? Border.all(color: Theme.of(context).colorScheme.primary, width: 2)
             : null,
-          boxShadow: _focused
+          boxShadow: _focused && showFocusBorders
             ? const [BoxShadow(color: Colors.black54, blurRadius: 8, spreadRadius: 1)]
             : null,
         ),

@@ -24,6 +24,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appCardHighlightAnimation => 'App card highlight animation';
 
   @override
+  String get showFocusBorders => 'Show focus borders';
+
+  @override
   String get appInfo => 'Application info';
 
   @override

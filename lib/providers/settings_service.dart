@@ -43,6 +43,7 @@ const String _dockBackdropFilterDisabled = "dock_backdrop_filter_disabled";
 const String _showWatchNextSection = "show_watch_next_section";
 const String _dockDarkBackground = "dock_dark_background";
 const String _dockShadowEnabled = "dock_shadow_enabled";
+const String _showFocusBorders = "show_focus_borders";
 
 // WiFi usage period options
 const String WIFI_USAGE_DAILY = "daily";
@@ -111,6 +112,8 @@ class SettingsService extends ChangeNotifier {
   bool get dockDarkBackground => _sharedPreferences.getBool(_dockDarkBackground) ?? false;
 
   bool get dockShadowEnabled => _sharedPreferences.getBool(_dockShadowEnabled) ?? false;
+
+  bool get showFocusBorders => _sharedPreferences.getBool(_showFocusBorders) ?? true;
 
   Color get accentColor {
     final hex = accentColorHex;
@@ -209,6 +212,10 @@ class SettingsService extends ChangeNotifier {
 
   Future<void> setDockShadowEnabled(bool value) async {
     return set(_dockShadowEnabled, value);
+  }
+
+  Future<void> setShowFocusBorders(bool value) async {
+    return set(_showFocusBorders, value);
   }
 
   bool get timeBasedWallpaperEnabled => _sharedPreferences.getBool("time_based_wallpaper_enabled") ?? false;
