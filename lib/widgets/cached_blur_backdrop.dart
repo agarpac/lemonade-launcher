@@ -34,6 +34,31 @@ import 'package:provider/provider.dart';
 ///
 /// Falls back to a live [BackdropFilter] while the snapshot is being prepared
 /// or when the wallpaper is a video (which is not static).
+///
+/// Full-screen blurred wallpaper layer (no foreground content).
+class CachedBlurLayer extends StatefulWidget {
+  final double sigma;
+
+  const CachedBlurLayer({super.key, required this.sigma});
+
+  @override
+  State<CachedBlurLayer> createState() => _CachedBlurLayerState();
+}
+
+class _CachedBlurLayerState extends _CachedBlurBackgroundState<CachedBlurLayer> {
+  @override
+  double get sigma => widget.sigma;
+
+  @override
+  Widget buildBlurContent(Widget blurBackground) => blurBackground;
+
+  @override
+  Widget buildLiveBlur() => BackdropFilter(
+    filter: ui.ImageFilter.blur(sigmaX: sigma, sigmaY: sigma),
+    child: const SizedBox.expand(),
+  );
+}
+
 class CachedBlurBackdrop extends StatefulWidget {
   final double sigma;
   final Widget child;
@@ -44,7 +69,26 @@ class CachedBlurBackdrop extends StatefulWidget {
   State<CachedBlurBackdrop> createState() => _CachedBlurBackdropState();
 }
 
-class _CachedBlurBackdropState extends State<CachedBlurBackdrop> {
+class _CachedBlurBackdropState extends _CachedBlurBackgroundState<CachedBlurBackdrop> {
+  @override
+  double get sigma => widget.sigma;
+
+  @override
+  Widget buildBlurContent(Widget blurBackground) {
+    return Stack(
+      fit: StackFit.passthrough,
+      children: [Positioned.fill(child: blurBackground), widget.child],
+    );
+  }
+
+  @override
+  Widget buildLiveBlur() => BackdropFilter(
+    filter: ui.ImageFilter.blur(sigmaX: sigma, sigmaY: sigma),
+    child: widget.child,
+  );
+}
+
+abstract class _CachedBlurBackgroundState<T extends StatefulWidget> extends State<T> {
   ui.Image? _blurred;
   Size _builtSize = Size.zero;
   int _builtRevision = -1;
@@ -58,8 +102,11 @@ class _CachedBlurBackdropState extends State<CachedBlurBackdrop> {
     super.dispose();
   }
 
-  Widget _liveBlur() =>
-      BackdropFilter(filter: ui.ImageFilter.blur(sigmaX: widget.sigma, sigmaY: widget.sigma), child: widget.child);
+  double get sigma;
+
+  Widget buildBlurContent(Widget blurBackground);
+
+  Widget buildLiveBlur();
 
   Future<void> _build(WallpaperService service, Size size, double dpr) async {
     if (_building) return;
@@ -80,8 +127,8 @@ class _CachedBlurBackdropState extends State<CachedBlurBackdrop> {
       final blurPaint =
           Paint()
             ..imageFilter = ui.ImageFilter.blur(
-              sigmaX: widget.sigma * dpr,
-              sigmaY: widget.sigma * dpr,
+              sigmaX: sigma * dpr,
+              sigmaY: sigma * dpr,
               tileMode: TileMode.clamp,
             );
       canvas.saveLayer(rect, blurPaint);
@@ -105,7 +152,7 @@ class _CachedBlurBackdropState extends State<CachedBlurBackdrop> {
         _builtSize = size;
         _builtRevision = service.wallpaperRevision;
         _builtGradientId = provider == null ? service.gradient.uuid : null;
-        _builtSigma = widget.sigma;
+        _builtSigma = sigma;
       });
     } finally {
       _building = false;
@@ -135,7 +182,7 @@ class _CachedBlurBackdropState extends State<CachedBlurBackdrop> {
     final service = context.watch<WallpaperService>();
     // Video wallpapers are not static: keep the live blur.
     if (service.wallpaperVideoFile != null) {
-      return _liveBlur();
+      return buildLiveBlur();
     }
 
     return LayoutBuilder(
@@ -148,7 +195,7 @@ class _CachedBlurBackdropState extends State<CachedBlurBackdrop> {
             _builtSize != screen ||
             _builtRevision != service.wallpaperRevision ||
             _builtGradientId != gradientId ||
-            _builtSigma != widget.sigma;
+            _builtSigma != sigma;
         if (stale && screen.width > 0 && screen.height > 0) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted) _build(service, screen, dpr);
@@ -157,12 +204,9 @@ class _CachedBlurBackdropState extends State<CachedBlurBackdrop> {
         final image = _blurred;
         if (image == null || stale) {
           // Snapshot not ready: fall back to the live blur for correctness.
-          return _liveBlur();
+          return buildLiveBlur();
         }
-        return Stack(
-          fit: StackFit.passthrough,
-          children: [Positioned.fill(child: _BlurBlit(image: image, screenSize: screen)), widget.child],
-        );
+        return buildBlurContent(_BlurBlit(image: image, screenSize: screen));
       },
     );
   }

@@ -98,6 +98,22 @@ class _FLauncherState extends State<FLauncher> with WidgetsBindingObserver {
               builder: (_, wallpaperService, __) => _wallpaper(context, wallpaperService),
             ),
           ),
+          Selector2<LauncherState, SettingsService, (bool, bool)>(
+            selector: (_, launcherState, settings) => (launcherState.appGridFocused, settings.backgroundBlurDisabled),
+            builder: (_, data, __) {
+              final (appGridFocused, blurDisabled) = data;
+              return Positioned.fill(
+                child: IgnorePointer(
+                  child: AnimatedOpacity(
+                    opacity: appGridFocused && !blurDisabled ? 1 : 0,
+                    duration: const Duration(milliseconds: 250),
+                    curve: Curves.easeInOut,
+                    child: const CachedBlurLayer(sigma: 10),
+                  ),
+                ),
+              );
+            },
+          ),
           Consumer<LauncherState>(
             builder:
                 (_, state, child) => Visibility(
@@ -126,6 +142,19 @@ class _FLauncherState extends State<FLauncher> with WidgetsBindingObserver {
       ),
     ),
   );
+
+  void _setAppGridFocused(bool focused) {
+    context.read<LauncherState>().setAppGridFocused(focused);
+  }
+
+  void _onAppGridFocused({VoidCallback? onFirstSectionFocused}) {
+    _setAppGridFocused(true);
+    onFirstSectionFocused?.call();
+  }
+
+  void _onHomeSectionFocused() {
+    _setAppGridFocused(false);
+  }
 
   Widget _tvOSLayout(BuildContext context, AppsService appsService, {required bool showAppNames}) {
     final favoritesCategory = appsService.categories.firstWhereOrNull((c) => c.name == 'Favorites');
@@ -157,7 +186,13 @@ class _FLauncherState extends State<FLauncher> with WidgetsBindingObserver {
             ),
           ),
           if (showWatchNextSection)
-            const SliverToBoxAdapter(child: WatchNextRow(isFirstSection: false, isAboveDock: true)),
+            SliverToBoxAdapter(
+              child: WatchNextRow(
+                isFirstSection: false,
+                isAboveDock: true,
+                onItemFocused: _onHomeSectionFocused,
+              ),
+            ),
           if (favoriteApps.isNotEmpty)
             SliverToBoxAdapter(
               child: KeyedSubtree(
@@ -217,7 +252,9 @@ class _FLauncherState extends State<FLauncher> with WidgetsBindingObserver {
 
       final bool isFirstSection = !firstCategoryFound;
       if (isFirstSection) firstCategoryFound = true;
-      final onAppFocused = !firstBuiltSectionFound ? onFirstSectionFocused : null;
+      final onAppFocused = !firstBuiltSectionFound
+          ? () => _onAppGridFocused(onFirstSectionFocused: onFirstSectionFocused)
+          : () => _onAppGridFocused();
       firstBuiltSectionFound = true;
 
       slivers.add(
@@ -419,6 +456,7 @@ class _FLauncherState extends State<FLauncher> with WidgetsBindingObserver {
         applications: apps,
         isFirstSection: handleUpNavigationToSettings,
         scrollAlignment: 1.0,
+        onAppFocused: _onHomeSectionFocused,
       ),
     );
 

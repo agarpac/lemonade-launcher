@@ -33,6 +33,21 @@ class AppLocalizationsEs extends AppLocalizations {
   String get appKeyClick => 'Sonido al presionar una tecla';
 
   @override
+  String get appearanceSettings => 'Apariencia';
+
+  @override
+  String get backgroundBlur => 'Desenfoque de fondo';
+
+  @override
+  String get dockBlur => 'Desenfoque del dock';
+
+  @override
+  String get dockDarkBackground => 'Fondo oscuro del dock';
+
+  @override
+  String get dockShadow => 'Sombra del dock';
+
+  @override
   String get applications => 'Aplicaciones';
 
   @override

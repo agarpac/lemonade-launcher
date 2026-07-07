@@ -40,6 +40,7 @@ const String _showNetworkIndicatorInStatusBar = "show_network_indicator_in_statu
 const String _accentColor = "accent_color";
 const String _screensaverClockStyle = "screensaver_clock_style";
 const String _dockBackdropFilterDisabled = "dock_backdrop_filter_disabled";
+const String _backgroundBlurDisabled = "background_blur_disabled";
 const String _showWatchNextSection = "show_watch_next_section";
 const String _dockDarkBackground = "dock_dark_background";
 const String _dockShadowEnabled = "dock_shadow_enabled";
@@ -106,6 +107,8 @@ class SettingsService extends ChangeNotifier {
   String get screensaverClockStyle => _sharedPreferences.getString(_screensaverClockStyle) ?? "minimal";
 
   bool get dockBackdropFilterDisabled => _sharedPreferences.getBool(_dockBackdropFilterDisabled) ?? false;
+
+  bool get backgroundBlurDisabled => _sharedPreferences.getBool(_backgroundBlurDisabled) ?? false;
 
   bool get showWatchNextSection => _sharedPreferences.getBool(_showWatchNextSection) ?? false;
 
@@ -200,6 +203,10 @@ class SettingsService extends ChangeNotifier {
 
   Future<void> setDockBackdropFilterDisabled(bool value) async {
     return set(_dockBackdropFilterDisabled, value);
+  }
+
+  Future<void> setBackgroundBlurDisabled(bool value) async {
+    return set(_backgroundBlurDisabled, value);
   }
 
   Future<void> setShowWatchNextSection(bool value) async {

@@ -46,11 +46,13 @@ const double _kWatchNextHorizontalPadding =
 class WatchNextRow extends StatelessWidget {
   final bool isFirstSection;
   final bool isAboveDock;
+  final VoidCallback? onItemFocused;
 
   const WatchNextRow({
     super.key,
     this.isFirstSection = false,
     this.isAboveDock = false,
+    this.onItemFocused,
   });
 
   @override
@@ -100,6 +102,7 @@ class WatchNextRow extends StatelessWidget {
               items: data.items,
               isFirstSection: isFirstSection,
               handleUpNavigationToSettings: isAboveDock,
+              onItemFocused: onItemFocused,
             ),
             const SizedBox(height: 12),
           ],
@@ -203,11 +206,13 @@ class _WatchNextCleanRow extends StatefulWidget {
   final List<WatchNextItem> items;
   final bool isFirstSection;
   final bool handleUpNavigationToSettings;
+  final VoidCallback? onItemFocused;
 
   const _WatchNextCleanRow({
     required this.items,
     this.isFirstSection = false,
     this.handleUpNavigationToSettings = false,
+    this.onItemFocused,
   });
 
   @override
@@ -268,6 +273,7 @@ class _WatchNextCleanRowState extends State<_WatchNextCleanRow> {
 
   void _onFocusChanged(int index, bool focused) {
     if (focused) {
+      widget.onItemFocused?.call();
       _scrollToIndex(index);
     }
   }
