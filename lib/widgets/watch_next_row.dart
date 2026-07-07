@@ -40,7 +40,6 @@ const double _kWatchNextItemWidth = 360;
 const double _kWatchNextItemHeight = 200;
 const double _kWatchNextItemSpacing = 24;
 const double _kWatchNextRowVerticalSlack = 8;
-const double kWatchNextDockGap = 10;
 const double _kWatchNextHorizontalPadding =
     kLauncherSectionHorizontalPadding + kAppCardHorizontalPadding;
 
@@ -102,7 +101,6 @@ class WatchNextRow extends StatelessWidget {
               isFirstSection: isFirstSection,
               handleUpNavigationToSettings: isAboveDock,
             ),
-            if (isAboveDock) const SizedBox(height: kWatchNextDockGap),
             const SizedBox(height: 12),
           ],
         );

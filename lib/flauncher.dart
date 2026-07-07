@@ -46,7 +46,8 @@ import 'models/category.dart';
 const _kDockOuterPadding = EdgeInsets.only(
   left: kLauncherSectionHorizontalPadding,
   right: kLauncherSectionHorizontalPadding,
-  bottom: 6,
+  top: 10,
+  bottom: 16,
 );
 
 class FLauncher extends StatefulWidget {
@@ -152,7 +153,7 @@ class _FLauncherState extends State<FLauncher> with WidgetsBindingObserver {
                   MediaQuery.of(context).size.height -
                   MediaQuery.of(context).padding.top -
                   kToolbarHeight -
-                  (reserveWatchNextSpace ? 450 : 150),
+                  (reserveWatchNextSpace ? 410 : 150),
             ),
           ),
           if (showWatchNextSection)
@@ -400,11 +401,14 @@ class _FLauncherState extends State<FLauncher> with WidgetsBindingObserver {
     final darkBackground = context.select<SettingsService, bool>((s) => s.dockDarkBackground);
     final shadowEnabled = context.select<SettingsService, bool>((s) => s.dockShadowEnabled);
 
+    const dockBorderRadius = 24.0;
+    final borderRadius = BorderRadius.circular(dockBorderRadius);
+
     final content = Container(
       padding: const EdgeInsets.symmetric(vertical: 5),
       decoration: BoxDecoration(
         color: darkBackground ? Colors.black.withOpacity(0.3) : Colors.white.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: borderRadius,
         border: Border.all(
           color: darkBackground ? Colors.black.withOpacity(0.15) : Colors.white.withOpacity(0.15),
           width: 1.5,
@@ -419,15 +423,16 @@ class _FLauncherState extends State<FLauncher> with WidgetsBindingObserver {
     );
 
     return Center(
-      child: Container(
+      child: DecoratedBox(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: borderRadius,
           boxShadow: shadowEnabled
               ? [BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 20, spreadRadius: 2)]
               : null,
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: borderRadius,
+          clipBehavior: Clip.antiAlias,
           child: backdropDisabled ? content : CachedBlurBackdrop(sigma: 5, child: content),
         ),
       ),
