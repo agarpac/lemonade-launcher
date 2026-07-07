@@ -40,7 +40,7 @@ const double _kWatchNextItemWidth = 360;
 const double _kWatchNextItemHeight = 200;
 const double _kWatchNextItemSpacing = 24;
 const double _kWatchNextRowVerticalSlack = 8;
-const double kWatchNextDockGap = 20;
+const double kWatchNextDockGap = 10;
 const double _kWatchNextHorizontalPadding =
     kLauncherSectionHorizontalPadding + kAppCardHorizontalPadding;
 
@@ -278,14 +278,23 @@ class _WatchNextCleanRowState extends State<_WatchNextCleanRow> {
   void _scrollToIndex(int index) {
     if (!_scrollController.hasClients) return;
 
-    final itemWidth = _kWatchNextItemWidth + _kWatchNextItemSpacing;
-    final scrollOffset = (index * itemWidth) - _kWatchNextHorizontalPadding;
-    final targetOffset = scrollOffset.clamp(0.0, _scrollController.position.maxScrollExtent);
-    if ((_scrollController.offset - targetOffset).abs() < 8) {
+    final position = _scrollController.position;
+    final viewportWidth = position.viewportDimension;
+    final slotWidth = _kWatchNextItemWidth + _kWatchNextItemSpacing;
+
+    final cardStart = _kWatchNextHorizontalPadding + index * slotWidth;
+    final cardCenter = cardStart + _kWatchNextItemWidth / 2;
+    final targetOffset = (cardCenter - viewportWidth / 2).clamp(
+      position.minScrollExtent,
+      position.maxScrollExtent,
+    );
+
+    const minDelta = 8.0;
+    if ((position.pixels - targetOffset).abs() < minDelta) {
       return;
     }
 
-    _scrollController.animateTo(
+    position.animateTo(
       targetOffset,
       duration: const Duration(milliseconds: 200),
       curve: Curves.easeInOut,
