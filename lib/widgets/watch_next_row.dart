@@ -20,6 +20,7 @@ import 'package:flauncher/models/watch_next_item.dart';
 import 'package:flauncher/actions.dart';
 import 'package:flauncher/providers/settings_service.dart';
 import 'package:flauncher/providers/watch_next_service.dart';
+import 'package:flauncher/widgets/app_card.dart';
 import 'package:flauncher/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
@@ -35,10 +36,12 @@ void _playFocusSound(BuildContext context) {
   }
 }
 
-const double _kWatchNextItemWidth = 400;
-const double _kWatchNextItemHeight = 220;
-const double _kWatchNextItemSpacing = 16;
+const double _kWatchNextItemWidth = 360;
+const double _kWatchNextItemHeight = 200;
+const double _kWatchNextItemSpacing = 24;
 const double _kWatchNextRowVerticalSlack = 8;
+const double _kWatchNextHorizontalPadding =
+    kLauncherSectionHorizontalPadding + kAppCardHorizontalPadding;
 
 class WatchNextRow extends StatelessWidget {
   final bool isFirstSection;
@@ -93,7 +96,6 @@ class WatchNextRow extends StatelessWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _WatchNextSectionTitle(title: localizations.watchNextSectionTitle),
             _WatchNextCleanRow(
               items: data.items,
               isFirstSection: isFirstSection,
@@ -273,14 +275,23 @@ class _WatchNextCleanRowState extends State<_WatchNextCleanRow> {
   void _scrollToIndex(int index) {
     if (!_scrollController.hasClients) return;
 
-    final itemWidth = _kWatchNextItemWidth + _kWatchNextItemSpacing;
-    final scrollOffset = (index * itemWidth) - 24;
-    final targetOffset = scrollOffset.clamp(0.0, _scrollController.position.maxScrollExtent);
-    if ((_scrollController.offset - targetOffset).abs() < 8) {
+    final position = _scrollController.position;
+    final viewportWidth = position.viewportDimension;
+    final slotWidth = _kWatchNextItemWidth + _kWatchNextItemSpacing;
+
+    final cardStart = _kWatchNextHorizontalPadding + index * slotWidth;
+    final cardCenter = cardStart + _kWatchNextItemWidth / 2;
+    final targetOffset = (cardCenter - viewportWidth / 2).clamp(
+      position.minScrollExtent,
+      position.maxScrollExtent,
+    );
+
+    const minDelta = 8.0;
+    if ((position.pixels - targetOffset).abs() < minDelta) {
       return;
     }
 
-    _scrollController.animateTo(
+    position.animateTo(
       targetOffset,
       duration: const Duration(milliseconds: 200),
       curve: Curves.easeInOut,
@@ -294,7 +305,7 @@ class _WatchNextCleanRowState extends State<_WatchNextCleanRow> {
       child: ListView.builder(
         controller: _scrollController,
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        padding: EdgeInsets.symmetric(horizontal: _kWatchNextHorizontalPadding, vertical: 12),
         itemExtent: _kWatchNextItemWidth + _kWatchNextItemSpacing,
         itemCount: widget.items.length,
         itemBuilder: (context, index) {
@@ -404,6 +415,7 @@ class _WatchNextCardState extends State<_WatchNextCard> {
     final posterLoadFailed = context.select<WatchNextService, bool>(
       (service) => service.hasPosterLoadFailed(widget.item.posterUri),
     );
+    final showFocusBorders = context.select<SettingsService, bool>((s) => s.showFocusBorders);
 
 
     return Padding(
@@ -441,9 +453,14 @@ class _WatchNextCardState extends State<_WatchNextCard> {
                     fit: StackFit.expand,
                     children: [
                       _buildPoster(posterData, posterLoadFailed),
-                      if (_isHovered) _buildOverlay(),
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        child: _buildCardLabels(showDescription: _isHovered),
+                      ),
                       if (_isHovered) _buildProgressIndicator(),
-                      if (_isHovered)
+                      if (_isHovered && showFocusBorders)
                         IgnorePointer(
                           child: DecoratedBox(
                             decoration: BoxDecoration(
@@ -489,6 +506,8 @@ class _WatchNextCardState extends State<_WatchNextCard> {
   }
 
   Widget _buildFallbackWidget() {
+    final localizations = AppLocalizations.of(context)!;
+
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -500,22 +519,40 @@ class _WatchNextCardState extends State<_WatchNextCard> {
         const SizedBox(height: 8),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 8),
-          child: Text(
-            widget.item.title,
-            textAlign: TextAlign.center,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 12,
-            ),
+          child: Column(
+            children: [
+              Text(
+                widget.item.title,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                localizations.watchNextSectionTitle,
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.8),
+                  fontSize: 10,
+                ),
+              ),
+            ],
           ),
         ),
       ],
     );
   }
 
-  Widget _buildOverlay() {
+  Widget _buildCardLabels({required bool showDescription}) {
+    final localizations = AppLocalizations.of(context)!;
+
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -523,14 +560,14 @@ class _WatchNextCardState extends State<_WatchNextCard> {
           end: Alignment.bottomCenter,
           colors: [
             Colors.black.withOpacity(0.0),
-            Colors.black.withOpacity(0.7),
+            Colors.black.withOpacity(_isHovered ? 0.7 : 0.55),
           ],
         ),
       ),
-      padding: const EdgeInsets.all(8),
+      padding: const EdgeInsets.fromLTRB(8, 16, 8, 8),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.end,
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Text(
             widget.item.title,
@@ -542,14 +579,27 @@ class _WatchNextCardState extends State<_WatchNextCard> {
               fontWeight: FontWeight.bold,
             ),
           ),
-          if (widget.item.description != null)
-            Text(
-              widget.item.description!,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: Colors.white.withOpacity(0.8),
-                fontSize: 10,
+          const SizedBox(height: 2),
+          Text(
+            localizations.watchNextSectionTitle,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: Colors.white.withOpacity(0.8),
+              fontSize: 10,
+            ),
+          ),
+          if (showDescription && widget.item.description != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                widget.item.description!,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.8),
+                  fontSize: 10,
+                ),
               ),
             ),
         ],

@@ -50,6 +50,12 @@ class MiscPanelPage extends StatelessWidget {
                 secondary: Icon(Icons.subtitles),
               ),
               RoundedSwitchListTile(
+                value: settingsService.showFocusBorders,
+                onChanged: (value) => settingsService.setShowFocusBorders(value),
+                title: Text(localizations.showFocusBorders, style: Theme.of(context).textTheme.bodyMedium),
+                secondary: Icon(Icons.border_outer),
+              ),
+              RoundedSwitchListTile(
                 value: settingsService.dockBackdropFilterDisabled,
                 onChanged: (value) => settingsService.setDockBackdropFilterDisabled(value),
                 title: Text("Disable Dock Backdrop Blur", style: Theme.of(context).textTheme.bodyMedium),

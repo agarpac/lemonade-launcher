@@ -174,8 +174,8 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     final bool showAppNames = context.select<SettingsService, bool>((s) => s.showAppNamesBelowIcons);
-    final (bool animationEnabled, String accentColorHex) = context.select<SettingsService, (bool, String)>(
-      (s) => (s.appHighlightAnimationEnabled, s.accentColorHex),
+    final (bool animationEnabled, String accentColorHex, bool showFocusBorders) = context.select<SettingsService, (bool, String, bool)>(
+      (s) => (s.appHighlightAnimationEnabled, s.accentColorHex, s.showFocusBorders),
     );
     if (accentColorHex != _accentColorHex) {
       _accentColorHex = accentColorHex;
@@ -244,7 +244,7 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
                               ],
                             ),
                           ),
-                          if (shouldHighlight)
+                          if (shouldHighlight && showFocusBorders)
                             if (animationEnabled)
                               IgnorePointer(
                                 child: RepaintBoundary(

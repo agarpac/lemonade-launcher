@@ -128,6 +128,12 @@ abstract class AppLocalizations {
   /// **'App card highlight animation'**
   String get appCardHighlightAnimation;
 
+  /// No description provided for @showFocusBorders.
+  ///
+  /// In en, this message translates to:
+  /// **'Show focus borders'**
+  String get showFocusBorders;
+
   /// No description provided for @appInfo.
   ///
   /// In en, this message translates to:
