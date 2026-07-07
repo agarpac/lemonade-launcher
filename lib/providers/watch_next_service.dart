@@ -40,6 +40,7 @@ class WatchNextService extends ChangeNotifier {
   bool get isLoading => _isLoading;
   bool get hasPermission => _hasPermission;
   bool get hasItems => _items.isNotEmpty;
+  bool get hasVisibleSection => !_isLoading && (!_hasPermission || _items.isNotEmpty);
 
   WatchNextService(this._fLauncherChannel) {
     _init();

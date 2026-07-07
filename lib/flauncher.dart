@@ -137,6 +137,8 @@ class _FLauncherState extends State<FLauncher> with WidgetsBindingObserver {
         }).toList();
 
     final showWatchNextSection = context.select<SettingsService, bool>((s) => s.showWatchNextSection);
+    final watchNextVisible = context.select<WatchNextService, bool>((s) => s.hasVisibleSection);
+    final reserveWatchNextSpace = showWatchNextSection && watchNextVisible;
 
     if (favoriteApps.isEmpty && otherSections.isEmpty) return _emptyState(context);
 
@@ -150,7 +152,7 @@ class _FLauncherState extends State<FLauncher> with WidgetsBindingObserver {
                   MediaQuery.of(context).size.height -
                   MediaQuery.of(context).padding.top -
                   kToolbarHeight -
-                  (showWatchNextSection ? 450 : 150),
+                  (reserveWatchNextSpace ? 450 : 150),
             ),
           ),
           if (showWatchNextSection)
@@ -166,7 +168,7 @@ class _FLauncherState extends State<FLauncher> with WidgetsBindingObserver {
                     favoritesCategory!,
                     favoriteApps,
                     appsService,
-                    handleUpNavigationToSettings: !showWatchNextSection,
+                    handleUpNavigationToSettings: !reserveWatchNextSpace,
                   ),
                 ),
               ),
