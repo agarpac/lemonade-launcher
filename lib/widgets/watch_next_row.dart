@@ -20,6 +20,7 @@ import 'package:flauncher/models/watch_next_item.dart';
 import 'package:flauncher/actions.dart';
 import 'package:flauncher/providers/settings_service.dart';
 import 'package:flauncher/providers/watch_next_service.dart';
+import 'package:flauncher/widgets/app_card.dart';
 import 'package:flauncher/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
@@ -35,10 +36,13 @@ void _playFocusSound(BuildContext context) {
   }
 }
 
-const double _kWatchNextItemWidth = 400;
-const double _kWatchNextItemHeight = 220;
-const double _kWatchNextItemSpacing = 16;
+const double _kWatchNextItemWidth = 360;
+const double _kWatchNextItemHeight = 200;
+const double _kWatchNextItemSpacing = 24;
 const double _kWatchNextRowVerticalSlack = 8;
+const double kWatchNextDockGap = 20;
+const double _kWatchNextHorizontalPadding =
+    kLauncherSectionHorizontalPadding + kAppCardHorizontalPadding;
 
 class WatchNextRow extends StatelessWidget {
   final bool isFirstSection;
@@ -99,6 +103,7 @@ class WatchNextRow extends StatelessWidget {
               isFirstSection: isFirstSection,
               handleUpNavigationToSettings: isAboveDock,
             ),
+            if (isAboveDock) const SizedBox(height: kWatchNextDockGap),
             const SizedBox(height: 12),
           ],
         );
@@ -274,7 +279,7 @@ class _WatchNextCleanRowState extends State<_WatchNextCleanRow> {
     if (!_scrollController.hasClients) return;
 
     final itemWidth = _kWatchNextItemWidth + _kWatchNextItemSpacing;
-    final scrollOffset = (index * itemWidth) - 24;
+    final scrollOffset = (index * itemWidth) - _kWatchNextHorizontalPadding;
     final targetOffset = scrollOffset.clamp(0.0, _scrollController.position.maxScrollExtent);
     if ((_scrollController.offset - targetOffset).abs() < 8) {
       return;
@@ -294,7 +299,7 @@ class _WatchNextCleanRowState extends State<_WatchNextCleanRow> {
       child: ListView.builder(
         controller: _scrollController,
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        padding: EdgeInsets.symmetric(horizontal: _kWatchNextHorizontalPadding, vertical: 12),
         itemExtent: _kWatchNextItemWidth + _kWatchNextItemSpacing,
         itemCount: widget.items.length,
         itemBuilder: (context, index) {
