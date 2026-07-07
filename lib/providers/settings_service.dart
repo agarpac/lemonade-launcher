@@ -74,7 +74,8 @@ class SettingsService extends ChangeNotifier {
   final SharedPreferences _sharedPreferences;
 
 
-  bool get appHighlightAnimationEnabled => _sharedPreferences.getBool(_appHighlightAnimationEnabledKey) ?? false;
+  bool get appHighlightAnimationEnabled =>
+      showFocusBorders && (_sharedPreferences.getBool(_appHighlightAnimationEnabledKey) ?? false);
 
   bool get appKeyClickEnabled => _sharedPreferences.getBool(_appKeyClickEnabledKey) ?? true;
 
@@ -133,6 +134,9 @@ class SettingsService extends ChangeNotifier {
   }
 
   Future<void> setAppHighlightAnimationEnabled(bool value) async {
+    if (value && !showFocusBorders) {
+      return;
+    }
     return set(_appHighlightAnimationEnabledKey, value);
   }
 
@@ -222,7 +226,10 @@ class SettingsService extends ChangeNotifier {
   }
 
   Future<void> setShowFocusBorders(bool value) async {
-    return set(_showFocusBorders, value);
+    await set(_showFocusBorders, value);
+    if (!value) {
+      await setAppHighlightAnimationEnabled(false);
+    }
   }
 
   bool get timeBasedWallpaperEnabled => _sharedPreferences.getBool("time_based_wallpaper_enabled") ?? false;
