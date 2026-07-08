@@ -67,22 +67,25 @@ class AppsGrid extends StatelessWidget
             childrenDelegate: SliverChildBuilderDelegate(
               childCount: applications.length,
               findChildIndexCallback: _findChildIndex,
-              (context, index) => Padding(
-                key: Key(applications[index].packageName),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: kAppCardHorizontalPadding,
-                  vertical: kAppCardVerticalPadding,
-                ),
-                child: AppCard(
+              addSemanticIndexes: false,
+              (context, index) => RepaintBoundary(
+                child: Padding(
+                  key: ValueKey<String>(applications[index].packageName),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: kAppCardHorizontalPadding,
+                    vertical: kAppCardVerticalPadding,
+                  ),
+                  child: AppCard(
                     category: category,
                     application: applications[index],
                     autofocus: index == 0,
                     handleUpNavigationToSettings: isFirstSection && index < category.columnsCount,
                     enforceAspectRatio: false,
                     onMove: (direction) => _onMove(context, direction, index),
-                    onMoveEnd: () => _saveOrder(context)
+                    onMoveEnd: () => _saveOrder(context),
+                  ),
                 ),
-              )
+              ),
             )
           );
         },
