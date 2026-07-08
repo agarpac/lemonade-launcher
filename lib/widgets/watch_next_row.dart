@@ -307,6 +307,8 @@ class _WatchNextCleanRowState extends State<_WatchNextCleanRow> {
         scrollDirection: Axis.horizontal,
         padding: EdgeInsets.symmetric(horizontal: _kWatchNextHorizontalPadding, vertical: 12),
         itemExtent: _kWatchNextItemWidth + _kWatchNextItemSpacing,
+        addSemanticIndexes: false,
+        addRepaintBoundaries: true,
         itemCount: widget.items.length,
         itemBuilder: (context, index) {
           final item = widget.items[index];
