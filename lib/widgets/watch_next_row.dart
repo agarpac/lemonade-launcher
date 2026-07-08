@@ -217,6 +217,7 @@ class _WatchNextCleanRow extends StatefulWidget {
 class _WatchNextCleanRowState extends State<_WatchNextCleanRow> {
   final ScrollController _scrollController = ScrollController();
   final List<FocusNode> _focusNodes = [];
+  double? _lastScrollTarget;
 
   @override
   void initState() {
@@ -290,7 +291,11 @@ class _WatchNextCleanRowState extends State<_WatchNextCleanRow> {
     if ((position.pixels - targetOffset).abs() < minDelta) {
       return;
     }
+    if (_lastScrollTarget != null && (_lastScrollTarget! - targetOffset).abs() < minDelta) {
+      return;
+    }
 
+    _lastScrollTarget = targetOffset;
     position.animateTo(
       targetOffset,
       duration: const Duration(milliseconds: 200),
@@ -409,14 +414,13 @@ class _WatchNextCardState extends State<_WatchNextCard> {
 
   @override
   Widget build(BuildContext context) {
-    final posterData = context.select<WatchNextService, Uint8List?>(
-      (service) => service.getCachedPoster(widget.item.posterUri),
+    final (posterData, posterLoadFailed) = context.select<WatchNextService, (Uint8List?, bool)>(
+      (service) => (
+        service.getCachedPoster(widget.item.posterUri),
+        service.hasPosterLoadFailed(widget.item.posterUri),
+      ),
     );
     final targetScale = _clicked ? 0.94 : (_isHovered ? 1.06 : 1.0);
-
-    final posterLoadFailed = context.select<WatchNextService, bool>(
-      (service) => service.hasPosterLoadFailed(widget.item.posterUri),
-    );
     final showFocusBorders = context.select<SettingsService, bool>((s) => s.showFocusBorders);
 
 
