@@ -2,6 +2,7 @@ import 'package:flauncher/widgets/settings/settings_panel.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../providers/launcher_state.dart';
 import '../providers/settings_service.dart';
 import 'daily_wifi_usage_widget.dart';
 import 'date_time_widget.dart';
@@ -56,6 +57,9 @@ class FocusAwareAppBarState extends State<FocusAwareAppBar>
               child: widget!
             ),
             onFocusChange: (hasFocus) {
+              if (hasFocus) {
+                context.read<LauncherState>().setAppGridFocused(false);
+              }
               this.setState(() {
                 focused = hasFocus;
               });
@@ -185,7 +189,12 @@ class _FocusableIconButtonState extends State<_FocusableIconButton> {
       },
       child: Focus(
         focusNode: widget.focusNode,
-        onFocusChange: (hasFocus) => setState(() => _focused = hasFocus),
+        onFocusChange: (hasFocus) {
+          if (hasFocus) {
+            context.read<LauncherState>().setAppGridFocused(false);
+          }
+          setState(() => _focused = hasFocus);
+        },
         child: InkWell(
           onTap: widget.onPressed,
           borderRadius: BorderRadius.circular(8),
@@ -224,7 +233,12 @@ class _FocusableNetworkWidgetState extends State<_FocusableNetworkWidget> {
   @override
   Widget build(BuildContext context) {
     return Focus(
-      onFocusChange: (hasFocus) => setState(() => _focused = hasFocus),
+      onFocusChange: (hasFocus) {
+        if (hasFocus) {
+          context.read<LauncherState>().setAppGridFocused(false);
+        }
+        setState(() => _focused = hasFocus);
+      },
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(8),

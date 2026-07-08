@@ -33,6 +33,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appKeyClick => 'Click sound on key press';
 
   @override
+  String get appearanceSettings => 'Appearance';
+
+  @override
+  String get backgroundBlur => 'Background blur';
+
+  @override
+  String get dockBlur => 'Dock blur';
+
+  @override
+  String get dockDarkBackground => 'Dark dock background';
+
+  @override
+  String get dockShadow => 'Dock shadow';
+
+  @override
   String get applications => 'Applications';
 
   @override

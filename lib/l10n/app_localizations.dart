@@ -146,6 +146,36 @@ abstract class AppLocalizations {
   /// **'Click sound on key press'**
   String get appKeyClick;
 
+  /// No description provided for @appearanceSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Appearance'**
+  String get appearanceSettings;
+
+  /// No description provided for @backgroundBlur.
+  ///
+  /// In en, this message translates to:
+  /// **'Background blur'**
+  String get backgroundBlur;
+
+  /// No description provided for @dockBlur.
+  ///
+  /// In en, this message translates to:
+  /// **'Dock blur'**
+  String get dockBlur;
+
+  /// No description provided for @dockDarkBackground.
+  ///
+  /// In en, this message translates to:
+  /// **'Dark dock background'**
+  String get dockDarkBackground;
+
+  /// No description provided for @dockShadow.
+  ///
+  /// In en, this message translates to:
+  /// **'Dock shadow'**
+  String get dockShadow;
+
   /// No description provided for @applications.
   ///
   /// In en, this message translates to:
