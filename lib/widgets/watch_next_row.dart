@@ -361,6 +361,8 @@ class _WatchNextCard extends StatefulWidget {
 class _WatchNextCardState extends State<_WatchNextCard> {
   bool _isHovered = false;
   bool _clicked = false;
+  static const double _focusedScale = 1.06;
+  static const double _focusedLift = -4.0;
 
   @override
   void initState() {
@@ -426,7 +428,8 @@ class _WatchNextCardState extends State<_WatchNextCard> {
         service.hasPosterLoadFailed(widget.item.posterUri),
       ),
     );
-    final targetScale = _clicked ? 0.94 : (_isHovered ? 1.06 : 1.0);
+    final targetScale = _clicked ? 0.97 : (_isHovered ? _focusedScale : 1.0);
+    final targetLift = _isHovered && !_clicked ? _focusedLift : 0.0;
     final showFocusBorders = context.select<SettingsService, bool>((s) => s.showFocusBorders);
 
 
@@ -447,45 +450,53 @@ class _WatchNextCardState extends State<_WatchNextCard> {
           },
           child: GestureDetector(
             onTap: _handleTap,
-            child: AnimatedScale(
-              scale: targetScale,
-              duration: const Duration(milliseconds: 90),
+            child: TweenAnimationBuilder<double>(
+              tween: Tween<double>(begin: 0, end: targetLift),
+              duration: const Duration(milliseconds: 180),
               curve: Curves.easeOutCubic,
-              child: Card(
-                margin: EdgeInsets.zero,
-                elevation: _isHovered ? 4 : 2,
-                clipBehavior: Clip.antiAlias,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: SizedBox(
-                  width: _kWatchNextItemWidth,
-                  height: _kWatchNextItemHeight,
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      _buildPoster(posterData, posterLoadFailed),
-                      Positioned(
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        child: _buildCardLabels(showDescription: _isHovered),
-                      ),
-                      if (_isHovered) _buildProgressIndicator(),
-                      if (_isHovered && showFocusBorders)
-                        IgnorePointer(
-                          child: DecoratedBox(
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                color: Theme.of(context).colorScheme.primary,
-                                width: 2,
+              builder: (context, lift, child) {
+                return Transform.translate(offset: Offset(0, lift), child: child);
+              },
+              child: AnimatedScale(
+                scale: targetScale,
+                duration: const Duration(milliseconds: 180),
+                curve: Curves.easeOutCubic,
+                child: Card(
+                  margin: EdgeInsets.zero,
+                  elevation: _isHovered ? 6 : 2,
+                  clipBehavior: Clip.antiAlias,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: SizedBox(
+                    width: _kWatchNextItemWidth,
+                    height: _kWatchNextItemHeight,
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        _buildPoster(posterData, posterLoadFailed),
+                        Positioned(
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                          child: _buildCardLabels(showDescription: _isHovered),
+                        ),
+                        if (_isHovered) _buildProgressIndicator(),
+                        if (_isHovered && showFocusBorders)
+                          IgnorePointer(
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: Theme.of(context).colorScheme.primary,
+                                  width: 2,
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                      if (!_isHovered) const IgnorePointer(child: ColoredBox(color: Color(0x1A000000))),
-                    ],
+                        if (!_isHovered) const IgnorePointer(child: ColoredBox(color: Color(0x1A000000))),
+                      ],
+                    ),
                   ),
                 ),
               ),

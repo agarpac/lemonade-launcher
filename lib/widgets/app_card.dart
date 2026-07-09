@@ -103,6 +103,7 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
   late final AnimationController _animation;
 
   late final CurvedAnimation _curvedAnimation;
+  static const double _focusedScale = 1.06;
 
   @override
   void initState() {
@@ -204,19 +205,20 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
             mainAxisSize: MainAxisSize.min,
             children: [
               Flexible(
-                child: _wrapAspectRatio(RepaintBoundary(
+                child: _wrapAspectRatio(
+                  RepaintBoundary(
                     child: AnimatedScale(
-                      scale: !_moving && shouldHighlight ? 1.10 : 1.0,
-                      duration: const Duration(milliseconds: 150),
+                      scale: !_moving && shouldHighlight ? _focusedScale : 1.0,
+                      duration: const Duration(milliseconds: 180),
                       alignment: Alignment.center,
-                      curve: Curves.easeInOut,
+                      curve: Curves.easeOutCubic,
                       child: Stack(
                         fit: StackFit.expand,
                         children: [
                           Material(
                             borderRadius: BorderRadius.circular(12),
                             clipBehavior: Clip.antiAlias,
-                            elevation: shouldHighlight ? 8 : 4,
+                            elevation: shouldHighlight ? 7 : 4,
                             shadowColor: Colors.black,
                             child: Stack(
                               fit: StackFit.expand,
@@ -262,7 +264,7 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
                         ],
                       ),
                     ),
-                  ),
+                ),
                 ),
               ),
               if (showAppNames)
