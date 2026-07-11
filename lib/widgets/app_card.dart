@@ -104,6 +104,7 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
 
   late final CurvedAnimation _curvedAnimation;
   static const double _focusedScale = 1.07;
+  static const Duration _focusAnimationDuration = Duration(milliseconds: 180);
 
   @override
   void initState() {
@@ -209,7 +210,7 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
                   RepaintBoundary(
                     child: AnimatedScale(
                       scale: !_moving && shouldHighlight ? _focusedScale : 1.0,
-                      duration: const Duration(milliseconds: 180),
+                      duration: _focusAnimationDuration,
                       alignment: Alignment.center,
                       curve: Curves.easeOutCubic,
                       child: Stack(
@@ -237,7 +238,7 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
                                 if (_moving) ..._arrows(),
                                 IgnorePointer(
                                   child: AnimatedOpacity(
-                                    duration: const Duration(milliseconds: 200),
+                                    duration: _focusAnimationDuration,
                                     curve: Curves.easeInOut,
                                     opacity: shouldHighlight ? 0.0 : 1.0,
                                     child: const ColoredBox(color: Color(0x1A000000)),
