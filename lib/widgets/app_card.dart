@@ -103,6 +103,8 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
   late final AnimationController _animation;
 
   late final CurvedAnimation _curvedAnimation;
+  static const double _focusedScale = 1.07;
+  static const Duration _focusAnimationDuration = Duration(milliseconds: 180);
 
   @override
   void initState() {
@@ -204,19 +206,20 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
             mainAxisSize: MainAxisSize.min,
             children: [
               Flexible(
-                child: _wrapAspectRatio(RepaintBoundary(
+                child: _wrapAspectRatio(
+                  RepaintBoundary(
                     child: AnimatedScale(
-                      scale: !_moving && shouldHighlight ? 1.10 : 1.0,
-                      duration: const Duration(milliseconds: 150),
+                      scale: !_moving && shouldHighlight ? _focusedScale : 1.0,
+                      duration: _focusAnimationDuration,
                       alignment: Alignment.center,
-                      curve: Curves.easeInOut,
+                      curve: Curves.easeOutCubic,
                       child: Stack(
                         fit: StackFit.expand,
                         children: [
                           Material(
                             borderRadius: BorderRadius.circular(12),
                             clipBehavior: Clip.antiAlias,
-                            elevation: shouldHighlight ? 8 : 4,
+                            elevation: shouldHighlight ? 7 : 4,
                             shadowColor: Colors.black,
                             child: Stack(
                               fit: StackFit.expand,
@@ -235,7 +238,7 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
                                 if (_moving) ..._arrows(),
                                 IgnorePointer(
                                   child: AnimatedOpacity(
-                                    duration: const Duration(milliseconds: 200),
+                                    duration: _focusAnimationDuration,
                                     curve: Curves.easeInOut,
                                     opacity: shouldHighlight ? 0.0 : 1.0,
                                     child: const ColoredBox(color: Color(0x1A000000)),
@@ -262,7 +265,7 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
                         ],
                       ),
                     ),
-                  ),
+                ),
                 ),
               ),
               if (showAppNames)
