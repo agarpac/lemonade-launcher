@@ -103,7 +103,7 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
   late final AnimationController _animation;
 
   late final CurvedAnimation _curvedAnimation;
-  static const double _focusedScale = 1.06;
+  static const double _focusedScale = 1.07;
 
   @override
   void initState() {
