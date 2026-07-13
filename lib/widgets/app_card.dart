@@ -34,8 +34,25 @@ import '../models/category.dart';
 
 const _validationKeys = [LogicalKeyboardKey.select, LogicalKeyboardKey.enter, LogicalKeyboardKey.gameButtonA];
 
-class AppCard extends StatefulWidget
-{
+const kAppCardAspectRatio = 16 / 9;
+const kAppCardHorizontalPadding = 12.0;
+const kAppCardVerticalPadding = 9.0;
+const kLauncherSectionHorizontalPadding = 24.0;
+const kAppNameLabelHeight = 24.0;
+
+/// Row extent for a grid/dock line given the content width between section paddings.
+double appCardRowExtentFromContentWidth(double contentWidth, {int columnCount = Category.ColumnsCount}) {
+  final slotWidth = contentWidth / columnCount;
+  return slotWidth / kAppCardAspectRatio;
+}
+
+/// Adjusted aspect ratio for grid cells that includes space for the app name label.
+double appCardGridAspectRatio(double crossAxisExtent, int columnsCount) {
+  final cellWidth = crossAxisExtent / columnsCount;
+  return cellWidth / (cellWidth / kAppCardAspectRatio + kAppNameLabelHeight);
+}
+
+class AppCard extends StatefulWidget {
   final App application;
   final Category category;
   final bool autofocus;
@@ -43,6 +60,10 @@ class AppCard extends StatefulWidget
   final VoidCallback onMoveEnd;
   final bool handleUpNavigationToSettings;
   final double scrollAlignment;
+  final bool enforceAspectRatio;
+  final VoidCallback? onFocused;
+  final bool ensureVisibleOnFocus;
+  final bool onlyScrollWhenNearBottom;
 
   const AppCard({
     super.key,
@@ -53,6 +74,10 @@ class AppCard extends StatefulWidget
     required this.onMoveEnd,
     this.handleUpNavigationToSettings = false,
     this.scrollAlignment = 0.5,
+    this.enforceAspectRatio = true,
+    this.onFocused,
+    this.ensureVisibleOnFocus = true,
+    this.onlyScrollWhenNearBottom = false,
   });
 
   @override
@@ -65,26 +90,27 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
   bool _isFocused = false;
   bool _isTraditionalHighlightMode = false;
   bool _isHighlightAnimating = false;
+  bool _animationEnabled = false;
+  String? _accentColorHex;
+  Color _accentColor = const Color(0xFF000000);
   DateTime? _lastMoveAt;
   DateTime? _lastEnsureVisibleAt;
   late FocusNode _focusNode;
 
-  // late Future<(AppImageType, ImageProvider)> _appImageLoadFuture;
   (AppImageType, ImageProvider)? _loadedImage;
   bool _imageLoadError = false;
 
-  late final AnimationController _animation = AnimationController(
-    vsync: this,
-    duration: const Duration(
-      milliseconds: 1200,
-    ),
-  );
+  late final AnimationController _animation;
 
-  late final CurvedAnimation _curvedAnimation =  CurvedAnimation(parent: _animation, curve: Curves.easeInOut);
+  late final CurvedAnimation _curvedAnimation;
+  static const double _focusedScale = 1.07;
+  static const Duration _focusAnimationDuration = Duration(milliseconds: 180);
 
   @override
   void initState() {
     super.initState();
+    _animation = AnimationController(vsync: this, duration: const Duration(milliseconds: 1200));
+    _curvedAnimation = CurvedAnimation(parent: _animation, curve: Curves.easeInOut);
     _focusNode = FocusNode();
     _isTraditionalHighlightMode = FocusManager.instance.highlightMode == FocusHighlightMode.traditional;
 
@@ -93,16 +119,16 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
 
     // Check if we need to restore focus/reorder mode after a move
     WidgetsBinding.instance.addPostFrameCallback((_) {
-       final appsService = Provider.of<AppsService>(context, listen: false);
-       if (appsService.pendingReorderFocusPackage == widget.application.packageName &&
-           appsService.pendingReorderFocusCategoryId == widget.category.id) {
-          appsService.clearPendingReorderFocusPackage();
-          _focusNode.requestFocus();
-          
-          setState(() {
-            _moving = true;
-          });
-       }
+      final appsService = Provider.of<AppsService>(context, listen: false);
+      if (appsService.pendingReorderFocusPackage == widget.application.packageName &&
+          appsService.pendingReorderFocusCategoryId == widget.category.id) {
+        appsService.clearPendingReorderFocusPackage();
+        _focusNode.requestFocus();
+
+        setState(() {
+          _moving = true;
+        });
+      }
     });
   }
 
@@ -119,21 +145,21 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
     } else if (appsService.consumeDirtyImage(widget.application.packageName)) {
       _loadAppImage(appsService);
     }
-    
+
     // Check for pending focus on update as well
     WidgetsBinding.instance.addPostFrameCallback((_) {
-       final appsService = Provider.of<AppsService>(context, listen: false);
-       if (appsService.pendingReorderFocusPackage == widget.application.packageName &&
-           appsService.pendingReorderFocusCategoryId == widget.category.id) {
-          appsService.clearPendingReorderFocusPackage();
-          _focusNode.requestFocus();
-          
-          if (!_moving) {
-            setState(() {
-              _moving = true;
-            });
-          }
-       }
+      final appsService = Provider.of<AppsService>(context, listen: false);
+      if (appsService.pendingReorderFocusPackage == widget.application.packageName &&
+          appsService.pendingReorderFocusCategoryId == widget.category.id) {
+        appsService.clearPendingReorderFocusPackage();
+        _focusNode.requestFocus();
+
+        if (!_moving) {
+          setState(() {
+            _moving = true;
+          });
+        }
+      }
     });
   }
 
@@ -150,6 +176,19 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     final bool showAppNames = context.select<SettingsService, bool>((s) => s.showAppNamesBelowIcons);
+    final (bool animationEnabled, String accentColorHex, bool showFocusBorders) = context.select<SettingsService, (bool, String, bool)>(
+      (s) => (s.appHighlightAnimationEnabled, s.accentColorHex, s.showFocusBorders),
+    );
+    if (accentColorHex != _accentColorHex) {
+      _accentColorHex = accentColorHex;
+      _accentColor = Color(int.parse('FF$accentColorHex', radix: 16));
+    }
+    if (animationEnabled != _animationEnabled) {
+      _animationEnabled = animationEnabled;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _updateHighlightAnimation();
+      });
+    }
     final appImageWidget = _appImage();
     final bool shouldHighlight = _shouldHighlight();
 
@@ -157,28 +196,30 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
       onPressed: _onPressed,
       onLongPress: _onLongPress,
       child: AnimatedScale(
-            scale: _clicked ? 0.9 : 1.0,
-            duration: const Duration(milliseconds: 150),
-            curve: Curves.easeOutCubic,
-            child: AnimatedOpacity(
-              opacity: _clicked ? 0.85 : 1.0,
-              duration: const Duration(milliseconds: 150),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Flexible(
-                    child: AspectRatio(
-                      aspectRatio: 16 / 9,
-                      child: RepaintBoundary(
-                        child: AnimatedScale(
-                          scale: !_moving && shouldHighlight ? 1.2 : 1.0,
-                          duration: const Duration(milliseconds: 150),
-                          alignment: Alignment.center,
-                          curve: Curves.easeInOut,
-                          child: Material(
+        scale: _clicked ? 0.9 : 1.0,
+        duration: const Duration(milliseconds: 150),
+        curve: Curves.easeOutCubic,
+        child: AnimatedOpacity(
+          opacity: _clicked ? 0.85 : 1.0,
+          duration: const Duration(milliseconds: 150),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Flexible(
+                child: _wrapAspectRatio(
+                  RepaintBoundary(
+                    child: AnimatedScale(
+                      scale: !_moving && shouldHighlight ? _focusedScale : 1.0,
+                      duration: _focusAnimationDuration,
+                      alignment: Alignment.center,
+                      curve: Curves.easeOutCubic,
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          Material(
                             borderRadius: BorderRadius.circular(12),
                             clipBehavior: Clip.antiAlias,
-                            elevation: shouldHighlight ? 16 : 4,
+                            elevation: shouldHighlight ? 7 : 4,
                             shadowColor: Colors.black,
                             child: Stack(
                               fit: StackFit.expand,
@@ -197,63 +238,41 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
                                 if (_moving) ..._arrows(),
                                 IgnorePointer(
                                   child: AnimatedOpacity(
-                                    duration: const Duration(milliseconds: 200),
+                                    duration: _focusAnimationDuration,
                                     curve: Curves.easeInOut,
                                     opacity: shouldHighlight ? 0.0 : 1.0,
                                     child: const ColoredBox(color: Color(0x1A000000)),
                                   ),
                                 ),
-                                Selector<SettingsService, (bool, String)>(
-                                  selector: (_, settingsService) => (
-                                    settingsService.appHighlightAnimationEnabled,
-                                    settingsService.accentColorHex,
-                                  ),
-                                  builder: (context, settings, _) {
-                                    final (animationEnabled, accentColorHex) = settings;
-                                    final accentColor = Color(int.parse('FF$accentColorHex', radix: 16));
-                                    _setHighlightAnimation(shouldHighlight && animationEnabled);
-
-                                    if (shouldHighlight) {
-                                      if (animationEnabled) {
-                                        return AnimatedBuilder(
-                                          animation: _curvedAnimation,
-                                          child: IgnorePointer(
-                                            child: RepaintBoundary(
-                                              child: _HighlightOutline(color: accentColor),
-                                            ),
-                                          ),
-                                          builder: (context, child) {
-                                            final opacity = 0.4 + (_animation.value * 0.6);
-                                            return Opacity(opacity: opacity, child: child);
-                                          },
-                                        );
-                                      } else {
-                                        return IgnorePointer(
-                                          child: RepaintBoundary(
-                                            child: _HighlightOutline(color: accentColor),
-                                          ),
-                                        );
-                                      }
-                                    }
-
-                                    return const SizedBox();
-                                  },
-                                ),
                               ],
                             ),
                           ),
-                        ),
+                          if (shouldHighlight && showFocusBorders)
+                            if (animationEnabled)
+                              IgnorePointer(
+                                child: RepaintBoundary(
+                                  child: AnimatedBuilder(
+                                    animation: _curvedAnimation,
+                                    builder: (context, _) {
+                                      final alpha = 0.4 + (_animation.value * 0.6);
+                                      return _HighlightOutline(color: _accentColor.withValues(alpha: alpha));
+                                    },
+                                  ),
+                                ),
+                              )
+                            else
+                              IgnorePointer(child: RepaintBoundary(child: _HighlightOutline(color: _accentColor))),
+                        ],
                       ),
                     ),
-                  ),
-                  if (showAppNames)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8.0),
-                      child: _AppNameLabel(name: widget.application.name),
-                    ),
-                ],
+                ),
+                ),
               ),
-            ),
+              if (showAppNames)
+                Padding(padding: const EdgeInsets.only(top: 8.0), child: _AppNameLabel(name: widget.application.name)),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -280,27 +299,26 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
     }
   }
 
-  Widget _appImage()
-  {
+  Widget _wrapAspectRatio(Widget child) {
+    if (widget.enforceAspectRatio) {
+      return AspectRatio(aspectRatio: kAppCardAspectRatio, child: child);
+    }
+    return child;
+  }
+
+  Widget _appImage() {
     App app = widget.application;
 
-    if(_loadedImage != null) {
+    if (_loadedImage != null) {
       final (type, image) = _loadedImage!;
       if (type == AppImageType.Banner) {
         return Ink.image(image: image, fit: BoxFit.cover);
-      }
-      else {
+      } else {
         return Padding(
           padding: const EdgeInsets.all(8),
           child: Row(
             children: [
-              Expanded(
-                flex: 2,
-                child: Ink.image(
-                  image: image,
-                  height: double.maxFinite,
-                ),
-              ),
+              Expanded(flex: 2, child: Ink.image(image: image, height: double.maxFinite)),
               Flexible(
                 flex: 3,
                 child: Padding(
@@ -317,104 +335,39 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
           ),
         );
       }
-    }
-    else if (_imageLoadError) {
+    } else if (_imageLoadError) {
       return Padding(
         padding: const EdgeInsets.all(8),
         child: Center(
-            child: Text(
-              app.name,
-              style: Theme.of(context).textTheme.bodySmall,
-              overflow: TextOverflow.ellipsis,
-              maxLines: 3,
-            )
+          child: Text(
+            app.name,
+            style: Theme.of(context).textTheme.bodySmall,
+            overflow: TextOverflow.ellipsis,
+            maxLines: 3,
+          ),
         ),
       );
-    }
-    else {
+    } else {
       return const Padding(
         padding: EdgeInsets.all(8),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 0, width: 16),
-            Text("Loading")
-          ],
+        child: Center(
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2)),
+                SizedBox(width: 8),
+                Text("Loading"),
+              ],
+            ),
+          ),
         ),
       );
     }
-    // Old way to load app images
-    // return FutureBuilder(
-    //   future: _appImageLoadFuture,
-    //   builder: (context, snapshot) {
-    //     if (snapshot.hasData) {
-    //       (AppImageType, ImageProvider) record = snapshot.data!;
-    //
-    //       if (record.$1 == AppImageType.Banner) {
-    //         return Ink.image(image: record.$2, fit: BoxFit.cover);
-    //       }
-    //       else {
-    //         return Padding(
-    //           padding: const EdgeInsets.all(8),
-    //           child: Row(
-    //             children: [
-    //               Expanded(
-    //                 flex: 2,
-    //                 child: Ink.image(
-    //                   image: record.$2,
-    //                   height: double.maxFinite,
-    //                 ),
-    //               ),
-    //               Flexible(
-    //                 flex: 3,
-    //                 child: Padding(
-    //                   padding: const EdgeInsets.only(left: 8),
-    //                   child: Text(
-    //                     app.name,
-    //                     style: Theme.of(context).textTheme.bodySmall,
-    //                     overflow: TextOverflow.ellipsis,
-    //                     maxLines: 3,
-    //                   ),
-    //                 ),
-    //               ),
-    //             ],
-    //           ),
-    //         );
-    //       }
-    //     }
-    //     else if (snapshot.hasError) {
-    //       return Padding(
-    //         padding: const EdgeInsets.all(8),
-    //         child: Center(
-    //           child: Text(
-    //             app.name,
-    //             style: Theme.of(context).textTheme.bodySmall,
-    //             overflow: TextOverflow.ellipsis,
-    //             maxLines: 3,
-    //           )
-    //         ),
-    //       );
-    //     }
-    //     else {
-    //       return const Padding(
-    //         padding: EdgeInsets.all(8),
-    //         child: Row(
-    //           mainAxisAlignment: MainAxisAlignment.center,
-    //           children: [
-    //             CircularProgressIndicator(),
-    //             SizedBox(height: 0, width: 16),
-    //             Text("Loading")
-    //           ],
-    //         ),
-    //       );
-    //     }
-    //   }
-    // );
   }
 
-  void _focusHighlightModeChanged(FocusHighlightMode mode)
-  {
+  void _focusHighlightModeChanged(FocusHighlightMode mode) {
     final nextMode = mode == FocusHighlightMode.traditional;
     if (nextMode == _isTraditionalHighlightMode) {
       return;
@@ -422,6 +375,7 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
     setState(() {
       _isTraditionalHighlightMode = nextMode;
     });
+    _updateHighlightAnimation();
   }
 
   bool _shouldHighlight() {
@@ -434,6 +388,7 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
         _isFocused = focused;
       });
     }
+    _updateHighlightAnimation();
 
     if (!focused) {
       return;
@@ -444,16 +399,24 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
       return;
     }
     _lastEnsureVisibleAt = now;
-    _ensureVisibleIfNeeded(
-      context,
-      // This specific alignment value is not only
-      // to center the focused card in the row while
-      // scrolling, but to prevent the topmost category
-      // title to be hidden by the content above it when
-      // scrolling from the app bar. How it relates to this,
-      // I don't know
-      alignment: widget.scrollAlignment,
-    );
+    if (widget.ensureVisibleOnFocus) {
+      _ensureVisibleIfNeeded(
+        context,
+        // This specific alignment value is not only
+        // to center the focused card in the row while
+        // scrolling, but to prevent the topmost category
+        // title to be hidden by the content above it when
+        // scrolling from the app bar. How it relates to this,
+        // I don't know
+        alignment: widget.scrollAlignment,
+        onlyWhenNearBottom: widget.onlyScrollWhenNearBottom,
+      );
+    }
+    widget.onFocused?.call();
+  }
+
+  void _updateHighlightAnimation() {
+    _setHighlightAnimation(_shouldHighlight() && _animationEnabled);
   }
 
   void _setHighlightAnimation(bool shouldAnimate) {
@@ -468,7 +431,7 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
     }
   }
 
-  void _ensureVisibleIfNeeded(BuildContext context, {required double alignment}) {
+  void _ensureVisibleIfNeeded(BuildContext context, {required double alignment, bool onlyWhenNearBottom = false}) {
     final renderObject = context.findRenderObject();
     final scrollable = Scrollable.maybeOf(context);
     if (renderObject == null || scrollable == null) {
@@ -476,13 +439,43 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
     }
 
     final viewport = RenderAbstractViewport.of(renderObject);
-    if (viewport == null) {
+
+    final position = scrollable.position;
+    const minDeltaToScroll = 24.0;
+    if (onlyWhenNearBottom &&
+        (position.axisDirection == AxisDirection.down || position.axisDirection == AxisDirection.up)) {
+      const topEdgePadding = kToolbarHeight + 24.0;
+      const bottomEdgePadding = 96.0;
+      final topTargetOffset = (viewport.getOffsetToReveal(renderObject, 0).offset - topEdgePadding).clamp(
+        position.minScrollExtent,
+        position.maxScrollExtent,
+      );
+      if (position.pixels - topTargetOffset >= minDeltaToScroll) {
+        position.animateTo(
+          topTargetOffset,
+          curve: Curves.easeInOut,
+          duration: const Duration(milliseconds: 220),
+        );
+        return;
+      }
+
+      final bottomTargetOffset = (viewport.getOffsetToReveal(renderObject, 1).offset + bottomEdgePadding).clamp(
+        position.minScrollExtent,
+        position.maxScrollExtent,
+      );
+      if (bottomTargetOffset - position.pixels < minDeltaToScroll) {
+        return;
+      }
+
+      position.animateTo(
+        bottomTargetOffset,
+        curve: Curves.easeInOut,
+        duration: const Duration(milliseconds: 220),
+      );
       return;
     }
 
-    final position = scrollable.position;
     final targetOffset = viewport.getOffsetToReveal(renderObject, alignment).offset;
-    const minDeltaToScroll = 24.0;
     if ((targetOffset - position.pixels).abs() < minDeltaToScroll) {
       return;
     }
@@ -504,39 +497,35 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
         widget.onMove(AxisDirection.right);
       }),
     ];
-    
+
     // Only show Up/Down arrows for grid layouts
     if (widget.category.type == CategoryType.grid) {
-      arrows.add(_arrow(Alignment.topCenter, Icons.keyboard_arrow_up, () {
-        widget.onMove(AxisDirection.up);
-      }));
-      arrows.add(_arrow(Alignment.bottomCenter, Icons.keyboard_arrow_down, () {
-        widget.onMove(AxisDirection.down);
-      }));
+      arrows.add(
+        _arrow(Alignment.topCenter, Icons.keyboard_arrow_up, () {
+          widget.onMove(AxisDirection.up);
+        }),
+      );
+      arrows.add(
+        _arrow(Alignment.bottomCenter, Icons.keyboard_arrow_down, () {
+          widget.onMove(AxisDirection.down);
+        }),
+      );
     }
 
     return arrows;
   }
 
-  Widget _arrow(Alignment alignment, IconData icon, VoidCallback onTap) =>
-      Align(
-        alignment: alignment,
-        child: Ink(
-          decoration: ShapeDecoration(
-            color: Theme.of(context).primaryColor.withOpacity(0.8),
-            shape: CircleBorder()
-          ),
-          child: SizedBox(
-            height: 36,
-            width: 36,
-            child: IconButton(
-              icon: Icon(icon, size: 24),
-              onPressed: onTap,
-              padding: EdgeInsets.all(0)
-            )
-          )
-        )
-      );
+  Widget _arrow(Alignment alignment, IconData icon, VoidCallback onTap) => Align(
+    alignment: alignment,
+    child: Ink(
+      decoration: ShapeDecoration(color: Theme.of(context).primaryColor.withValues(alpha: 0.8), shape: CircleBorder()),
+      child: SizedBox(
+        height: 36,
+        width: 36,
+        child: IconButton(icon: Icon(icon, size: 24), onPressed: onTap, padding: EdgeInsets.all(0)),
+      ),
+    ),
+  );
 
   KeyEventResult _onPressed(LogicalKeyboardKey? key) {
     if (_moving) {
@@ -546,8 +535,7 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
         widget.onMoveEnd();
       } else {
         final now = DateTime.now();
-        if (_lastMoveAt != null &&
-            now.difference(_lastMoveAt!).inMilliseconds < 60) {
+        if (_lastMoveAt != null && now.difference(_lastMoveAt!).inMilliseconds < 60) {
           return KeyEventResult.handled;
         }
 
@@ -567,9 +555,7 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
         final nowForScroll = DateTime.now();
         if (_lastEnsureVisibleAt == null || nowForScroll.difference(_lastEnsureVisibleAt!).inMilliseconds >= 120) {
           _lastEnsureVisibleAt = nowForScroll;
-          WidgetsBinding.instance.addPostFrameCallback(
-            (_) => _ensureVisibleIfNeeded(context, alignment: 0.1),
-          );
+          WidgetsBinding.instance.addPostFrameCallback((_) => _ensureVisibleIfNeeded(context, alignment: 0.1));
         }
       }
 
@@ -607,10 +593,7 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
   Future<void> _showPanel() async {
     final result = await showDialog<ApplicationInfoPanelResult>(
       context: context,
-      builder: (context) => ApplicationInfoPanel(
-        category: widget.category,
-        application: widget.application,
-      ),
+      builder: (context) => ApplicationInfoPanel(category: widget.category, application: widget.application),
     );
     if (result == ApplicationInfoPanelResult.reorderApp) {
       setState(() => _moving = true);
@@ -648,10 +631,7 @@ class _HighlightOutline extends StatelessWidget {
         DecoratedBox(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: color,
-              width: 1,
-            ),
+            border: Border.all(color: color, width: 1),
           ),
         ),
       ],

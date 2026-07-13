@@ -38,8 +38,10 @@ class WallpaperService extends ChangeNotifier {
   late File _wallpaperNightVideoFile;
   bool _initialized = false;
   Timer? _timer;
+  int _wallpaperRevision = 0;
 
   ImageProvider? _wallpaper;
+  int get wallpaperRevision => _wallpaperRevision;
 
   ImageProvider? get wallpaper => _wallpaper;
 
@@ -153,6 +155,7 @@ class WallpaperService extends ChangeNotifier {
 
     if (_wallpaper != newWallpaper || videoFile != null || force) {
       _wallpaper = newWallpaper;
+      _wallpaperRevision++;
       notifyListeners();
     }
   }
@@ -202,6 +205,8 @@ class WallpaperService extends ChangeNotifier {
 
       // Evict from cache to ensure UI updates
       await FileImage(targetFile).evict();
+      PaintingBinding.instance.imageCache.clear();
+      PaintingBinding.instance.imageCache.clearLiveImages();
 
       _updateWallpaper(force: true);
     }
@@ -247,7 +252,9 @@ class WallpaperService extends ChangeNotifier {
     await cleanVideoWallpaperFiles();
 
     await _settingsService.setGradientUuid(fLauncherGradient.uuid);
-    notifyListeners();
+    // Drop the in-memory wallpaper provider so the gradient is shown instead of
+    // the (now deleted) image/video file. _updateWallpaper notifies listeners.
+    _updateWallpaper(force: true);
   }
 
   // Cleaning methods

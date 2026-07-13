@@ -17,12 +17,13 @@
  */
 
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:flauncher/l10n/app_localizations.dart';
 import 'focusable_settings_tile.dart';
 import 'launcher_sections_panel_page.dart';
 import 'wallpaper_panel_page.dart';
 import 'status_bar_panel_page.dart';
 import 'accent_color_page.dart';
+import 'appearance_panel_page.dart';
 import 'misc_panel_page.dart';
 
 class InterfaceSettingsPage extends StatelessWidget {
@@ -62,6 +63,11 @@ class InterfaceSettingsPage extends StatelessWidget {
                   leading: const Icon(Icons.palette_outlined),
                   title: Text('Accent Color', style: Theme.of(context).textTheme.bodyMedium),
                   onPressed: () => Navigator.of(context).pushNamed(AccentColorPage.routeName),
+                ),
+                FocusableSettingsTile(
+                  leading: const Icon(Icons.brush_outlined),
+                  title: Text(localizations.appearanceSettings, style: Theme.of(context).textTheme.bodyMedium),
+                  onPressed: () => Navigator.of(context).pushNamed(AppearancePanelPage.routeName),
                 ),
                 FocusableSettingsTile(
                   leading: const Icon(Icons.miscellaneous_services),
