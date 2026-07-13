@@ -1,3 +1,23 @@
+def play_tv_alpha_version_codes
+  google_play_track_version_codes(track: "tv:alpha")
+end
+
+desc "Print the latest version code on Android TV closed testing (tv:alpha)"
+lane :last_version_code do
+  last = play_tv_alpha_version_codes.max || 0
+  puts("PLAY_VERSION_CODE=#{last}")
+  last
+end
+
+desc "Print the next version code for Android TV closed testing (tv:alpha)"
+lane :next_version_code do
+  last = play_tv_alpha_version_codes.max || 0
+  next_code = last + 1
+  puts("PLAY_VERSION_CODE=#{last}")
+  puts("PLAY_NEXT_VERSION_CODE=#{next_code}")
+  next_code
+end
+
 desc "Submit a new internal build to Play Store"
 lane :deploy do
   upload_to_play_store(
