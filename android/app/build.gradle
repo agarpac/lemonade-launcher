@@ -116,7 +116,11 @@ android {
                 it.startsWith("assemble") && it.endsWith("Release")
             }
             reset()
-            include "arm64-v8a", "armeabi-v7a", "x86", "x86_64"
+            // CI publishes arm-only APKs; local release builds keep x86 for emulators.
+            def releaseAbis = System.getenv("CI") == "true"
+                ? ["arm64-v8a", "armeabi-v7a"]
+                : ["arm64-v8a", "armeabi-v7a", "x86", "x86_64"]
+            include releaseAbis
             universalApk true
         }
     }
