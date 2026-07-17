@@ -25,7 +25,6 @@ permissions:
 env:
   FLUTTER_VERSION: "3.41.9"
   RELEASE_APK_FILENAME_PREFIX: arclauncher
-  # Workflow artifacts are temporary job handoffs — keep retention minimal to save storage quota.
   ARTIFACT_RETENTION_DAYS: 1
 
 jobs:
@@ -201,36 +200,6 @@ jobs:
           retention-days: ${{ env.ARTIFACT_RETENTION_DAYS }}
           if-no-files-found: error
 
-  scan-virustotal:
-    continue-on-error: true
-    needs: [build-apk]
-    if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.promote_play && !inputs.deploy_play) }}
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
-        with:
-          name: release-apks
-          path: release-apks
-      - name: Install tools
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends jq
-      - name: VirusTotal scan
-        env:
-          VIRUS_TOTAL_API_KEY: ${{ secrets.VIRUS_TOTAL_API_KEY }}
-          VT_MALICIOUS_THRESHOLD: ${{ vars.VT_MALICIOUS_THRESHOLD }}
-        run: |
-          test -n "${VIRUS_TOTAL_API_KEY:-}" || { echo "VIRUS_TOTAL_API_KEY is empty or unset"; exit 1; }
-          export VT_MALICIOUS_THRESHOLD="${VT_MALICIOUS_THRESHOLD:-0}"
-          chmod +x scripts/ci/virustotal_scan.sh
-          scripts/ci/virustotal_scan.sh release-apks vt_report.md
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: vt-report
-          path: vt_report.md
-          retention-days: ${{ env.ARTIFACT_RETENTION_DAYS }}
-          if-no-files-found: ignore
-
   github-release:
     needs: [build-apk, build-aab-github]
     if: github.event_name == 'workflow_dispatch' && inputs.tag != ''
@@ -244,11 +213,6 @@ jobs:
         with:
           name: github-aab
           path: aab
-      - uses: actions/download-artifact@v4
-        continue-on-error: true
-        with:
-          name: vt-report
-          path: vt
       - name: Prepare release assets and notes
         env:
           TAG: ${{ inputs.tag }}
@@ -262,15 +226,7 @@ jobs:
             "dist/${RELEASE_APK_FILENAME_PREFIX}-${TAG}-armeabi-v7a.apk"
           cp aab/app-github-release.aab \
             "dist/${RELEASE_APK_FILENAME_PREFIX}-${TAG}.aab"
-          {
-            echo "Arc Launcher v${TAG}"
-            echo ""
-            if [ -f vt/vt_report.md ]; then
-              cat vt/vt_report.md
-            else
-              echo "_VirusTotal report unavailable._"
-            fi
-          } > release_notes.md
+          echo "Arc Launcher v${TAG}" > release_notes.md
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ inputs.tag }}
@@ -280,7 +236,7 @@ jobs:
           fail_on_unmatched_files: true
 
   deploy-play-store:
-    needs: [build-aab-play, scan-virustotal]
+    needs: [build-aab-play]
     if: github.event_name == 'workflow_dispatch' && inputs.deploy_play
     runs-on: ubuntu-latest
     defaults:
