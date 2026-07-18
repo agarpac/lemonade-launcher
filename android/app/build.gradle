@@ -120,7 +120,7 @@ android {
             def releaseAbis = System.getenv("CI") == "true"
                 ? ["arm64-v8a", "armeabi-v7a"]
                 : ["arm64-v8a", "armeabi-v7a", "x86", "x86_64"]
-            include releaseAbis
+            include(*releaseAbis)
             universalApk true
         }
     }
