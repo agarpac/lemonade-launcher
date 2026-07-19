@@ -19,15 +19,12 @@
 import 'dart:io';
 import 'dart:async';
 
-import 'package:flauncher/flauncher_channel.dart';
 import 'package:flauncher/gradients.dart';
 import 'package:flauncher/providers/settings_service.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 
 class WallpaperService extends ChangeNotifier {
-  final FLauncherChannel _fLauncherChannel;
   final SettingsService _settingsService;
 
   late File _wallpaperFile;
@@ -55,7 +52,7 @@ class WallpaperService extends ChangeNotifier {
         orElse: () => FLauncherGradients.saintPetersburg,
       );
 
-  WallpaperService(this._fLauncherChannel, this._settingsService) :
+  WallpaperService(this._settingsService) :
     _wallpaper = null
   {
     _settingsService.addListener(_onSettingsChanged);
@@ -160,77 +157,59 @@ class WallpaperService extends ChangeNotifier {
     }
   }
 
-  Future<void> pickWallpaper() async {
-    await _pickAndSave(_wallpaperFile);
+  Future<void> pickWallpaper(File sourceFile) async {
+    await _saveImage(sourceFile, _wallpaperFile);
   }
 
-  Future<void> pickWallpaperDay() async {
-    await _pickAndSave(_wallpaperDayFile);
+  Future<void> pickWallpaperDay(File sourceFile) async {
+    await _saveImage(sourceFile, _wallpaperDayFile);
   }
 
-  Future<void> pickWallpaperNight() async {
-    await _pickAndSave(_wallpaperNightFile);
+  Future<void> pickWallpaperNight(File sourceFile) async {
+    await _saveImage(sourceFile, _wallpaperNightFile);
   }
 
-  Future<void> pickVideoWallpaper() async {
-    await _pickAndSaveVideo(_wallpaperVideoFile);
+  Future<void> pickVideoWallpaper(File sourceFile) async {
+    await _saveVideo(sourceFile, _wallpaperVideoFile);
   }
 
-  Future<void> pickVideoWallpaperDay() async {
-    await _pickAndSaveVideo(_wallpaperDayVideoFile);
+  Future<void> pickVideoWallpaperDay(File sourceFile) async {
+    await _saveVideo(sourceFile, _wallpaperDayVideoFile);
   }
 
-  Future<void> pickVideoWallpaperNight() async {
-    await _pickAndSaveVideo(_wallpaperNightVideoFile);
+  Future<void> pickVideoWallpaperNight(File sourceFile) async {
+    await _saveVideo(sourceFile, _wallpaperNightVideoFile);
   }
 
-  Future<void> _pickAndSave(File targetFile) async {
-    if (!await _fLauncherChannel.checkForGetContentAvailability()) {
-      throw NoFileExplorerException();
+  Future<void> _saveImage(File sourceFile, File targetFile) async {
+    final pairedVideo = _pairedVideoForImage(targetFile);
+    if (pairedVideo != null && await pairedVideo.exists()) {
+      await pairedVideo.delete();
+      await cleanVideoWallpaperFiles();
     }
 
-    final imagePicker = ImagePicker();
-    final pickedFile = await imagePicker.pickImage(source: ImageSource.gallery);
-    if (pickedFile != null) {
-      final pairedVideo = _pairedVideoForImage(targetFile);
-      if (pairedVideo != null && await pairedVideo.exists()) {
-        await pairedVideo.delete();
-        await cleanVideoWallpaperFiles();
-      }
+    final readStream = sourceFile.openRead();
+    final writeStream = targetFile.openWrite();
+    await readStream.cast<List<int>>().pipe(writeStream);
 
-      // Use stream for memory efficiency
-      final readStream = pickedFile.openRead();
-      final writeStream = targetFile.openWrite();
-      await readStream.cast<List<int>>().pipe(writeStream);
+    await FileImage(targetFile).evict();
+    PaintingBinding.instance.imageCache.clear();
+    PaintingBinding.instance.imageCache.clearLiveImages();
 
-      // Evict from cache to ensure UI updates
-      await FileImage(targetFile).evict();
-      PaintingBinding.instance.imageCache.clear();
-      PaintingBinding.instance.imageCache.clearLiveImages();
-
-      _updateWallpaper(force: true);
-    }
+    _updateWallpaper(force: true);
   }
 
-  Future<void> _pickAndSaveVideo(File targetVideoFile) async {
-    if (!await _fLauncherChannel.checkForGetContentAvailability()) {
-      throw NoFileExplorerException();
+  Future<void> _saveVideo(File sourceFile, File targetVideoFile) async {
+    final pairedImage = _pairedImageForVideo(targetVideoFile);
+    if (pairedImage != null && await pairedImage.exists()) {
+      await pairedImage.delete();
     }
 
-    final imagePicker = ImagePicker();
-    final pickedFile = await imagePicker.pickVideo(source: ImageSource.gallery);
-    if (pickedFile != null) {
-      final pairedImage = _pairedImageForVideo(targetVideoFile);
-      if (pairedImage != null && await pairedImage.exists()) {
-        await pairedImage.delete();
-      }
+    final readStream = sourceFile.openRead();
+    final writeStream = targetVideoFile.openWrite();
+    await readStream.cast<List<int>>().pipe(writeStream);
 
-      final readStream = pickedFile.openRead();
-      final writeStream = targetVideoFile.openWrite();
-      await readStream.cast<List<int>>().pipe(writeStream);
-
-      _updateWallpaper(force: true);
-    }
+    _updateWallpaper(force: true);
   }
 
   File? _pairedVideoForImage(File imageFile) {
@@ -287,5 +266,3 @@ class WallpaperService extends ChangeNotifier {
     }
   }
 }
-
-class NoFileExplorerException implements Exception {}

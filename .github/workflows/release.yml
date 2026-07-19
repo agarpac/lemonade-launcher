@@ -1,8 +1,11 @@
 name: Release
 
-# Manual only — signed builds are large; avoid uploading artifacts on every branch push.
+# Tag push publishes GitHub Release APKs. workflow_dispatch also supports build-only and Play deploy/promote.
 # Workflow artifacts expire after 1 day (handoff between jobs). Published files live on GitHub Releases.
 on:
+  push:
+    tags:
+      - "*"
   workflow_dispatch:
     inputs:
       tag:
@@ -59,7 +62,11 @@ jobs:
       - name: Set build name
         id: meta
         run: |
-          TAG="${{ inputs.tag }}"
+          if [ "${{ github.event_name }}" = "push" ]; then
+            TAG="${{ github.ref_name }}"
+          else
+            TAG="${{ inputs.tag }}"
+          fi
           if [ -n "$TAG" ]; then
             echo "build_name=${TAG}" >> "$GITHUB_OUTPUT"
           else
@@ -73,6 +80,7 @@ jobs:
           SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
         run: |
           flutter build apk --release --flavor github \
+            --dart-define=ENABLE_SELF_UPDATER=true \
             --build-number=${{ github.run_number }} \
             --build-name=${{ steps.meta.outputs.build_name }}
           mkdir -p release-apks
@@ -89,60 +97,6 @@ jobs:
         with:
           name: release-apks
           path: release-apks/
-          retention-days: ${{ env.ARTIFACT_RETENTION_DAYS }}
-          if-no-files-found: error
-
-  build-aab-github:
-    if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.promote_play && !inputs.deploy_play) }}
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: "17"
-      - uses: subosito/flutter-action@v2
-        with:
-          flutter-version: ${{ env.FLUTTER_VERSION }}
-          channel: stable
-          cache: true
-      - name: Setup signing
-        env:
-          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
-          SIGNING_JKS_FILE_BASE64: ${{ secrets.SIGNING_JKS_FILE_BASE64 }}
-          SIGNING_KEYSTORE_PASSWORD: ${{ secrets.SIGNING_KEYSTORE_PASSWORD }}
-          SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
-          SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
-        run: |
-          echo "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
-          test -n "${SIGNING_JKS_FILE_BASE64:-}" || { echo "SIGNING_JKS_FILE_BASE64 is empty or unset"; exit 1; }
-          test -n "${SIGNING_KEYSTORE_PASSWORD:-}" || { echo "SIGNING_KEYSTORE_PASSWORD is empty or unset"; exit 1; }
-          test -n "${SIGNING_KEY_ALIAS:-}" || { echo "SIGNING_KEY_ALIAS is empty or unset"; exit 1; }
-          test -n "${SIGNING_KEY_PASSWORD:-}" || { echo "SIGNING_KEY_PASSWORD is empty or unset"; exit 1; }
-          echo -n "$SIGNING_JKS_FILE_BASE64" | base64 -d > android/app/upload-keystore.jks
-      - name: Set build name
-        id: meta
-        run: |
-          TAG="${{ inputs.tag }}"
-          if [ -n "$TAG" ]; then
-            echo "build_name=${TAG}" >> "$GITHUB_OUTPUT"
-          else
-            echo "build_name=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
-          fi
-      - run: flutter pub get
-      - name: Build github release AAB
-        env:
-          SIGNING_KEYSTORE_PASSWORD: ${{ secrets.SIGNING_KEYSTORE_PASSWORD }}
-          SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
-          SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
-        run: |
-          flutter build appbundle --release --flavor github \
-            --build-number=${{ github.run_number }} \
-            --build-name=${{ steps.meta.outputs.build_name }}
-      - uses: actions/upload-artifact@v4
-        with:
-          name: github-aab
-          path: build/app/outputs/bundle/githubRelease/app-github-release.aab
           retention-days: ${{ env.ARTIFACT_RETENTION_DAYS }}
           if-no-files-found: error
 
@@ -177,7 +131,11 @@ jobs:
       - name: Set build name
         id: meta
         run: |
-          TAG="${{ inputs.tag }}"
+          if [ "${{ github.event_name }}" = "push" ]; then
+            TAG="${{ github.ref_name }}"
+          else
+            TAG="${{ inputs.tag }}"
+          fi
           if [ -n "$TAG" ]; then
             echo "build_name=${TAG}" >> "$GITHUB_OUTPUT"
           else
@@ -201,21 +159,27 @@ jobs:
           if-no-files-found: error
 
   github-release:
-    needs: [build-apk, build-aab-github]
-    if: github.event_name == 'workflow_dispatch' && inputs.tag != ''
+    needs: [build-apk]
+    if: >-
+      github.event_name == 'push' ||
+      (github.event_name == 'workflow_dispatch' && inputs.tag != '')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
         with:
           name: release-apks
           path: release-apks
-      - uses: actions/download-artifact@v4
-        with:
-          name: github-aab
-          path: aab
+      - name: Resolve release tag
+        id: meta
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            echo "tag=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          fi
       - name: Prepare release assets and notes
         env:
-          TAG: ${{ inputs.tag }}
+          TAG: ${{ steps.meta.outputs.tag }}
         run: |
           mkdir -p dist
           cp release-apks/arc-launcher-universal-release.apk \
@@ -224,13 +188,11 @@ jobs:
             "dist/${RELEASE_APK_FILENAME_PREFIX}-${TAG}-arm64-v8a.apk"
           cp release-apks/arc-launcher-armeabi-v7a-release.apk \
             "dist/${RELEASE_APK_FILENAME_PREFIX}-${TAG}-armeabi-v7a.apk"
-          cp aab/app-github-release.aab \
-            "dist/${RELEASE_APK_FILENAME_PREFIX}-${TAG}.aab"
           echo "Arc Launcher v${TAG}" > release_notes.md
       - uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ inputs.tag }}
-          name: ${{ inputs.tag }}
+          tag_name: ${{ steps.meta.outputs.tag }}
+          name: ${{ steps.meta.outputs.tag }}
           body_path: release_notes.md
           files: dist/*
           fail_on_unmatched_files: true
