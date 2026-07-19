@@ -95,7 +95,7 @@ class _TvMediaPickerState extends State<TvMediaPicker> with WidgetsBindingObserv
         final path = entry['path'] as String?;
         if (path != null && await File(path).exists()) {
           items.add(_MediaItem(
-            id: entry['id'] as int,
+            id: (entry['id'] as num).toInt(),
             name: entry['name'] as String? ?? 'Unknown',
             path: path,
           ));
@@ -332,18 +332,16 @@ class _MediaTile extends StatelessWidget {
         children: [
           Expanded(
             child: isImage
-                ? Image.file(File(item.path), fit: BoxFit.cover, gaplessPlayback: true)
-                : Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      Image.file(File(item.path), fit: BoxFit.cover, gaplessPlayback: true),
-                      Container(
-                        decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
-                        padding: const EdgeInsets.all(8),
-                        child: const Icon(Icons.play_arrow, color: Colors.white, size: 24),
-                      ),
-                    ],
-                  ),
+                ? Image.file(
+                    File(item.path),
+                    fit: BoxFit.cover,
+                    gaplessPlayback: true,
+                    errorBuilder: (_, __, ___) => const ColoredBox(
+                      color: Colors.black26,
+                      child: Icon(Icons.broken_image, color: Colors.white38),
+                    ),
+                  )
+                : _VideoThumbnail(id: item.id, path: item.path, accentColor: accentColor),
           ),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -360,6 +358,60 @@ class _MediaTile extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _VideoThumbnail extends StatefulWidget {
+  final int id;
+  final String path;
+  final Color accentColor;
+
+  const _VideoThumbnail({
+    required this.id,
+    required this.path,
+    required this.accentColor,
+  });
+
+  @override
+  State<_VideoThumbnail> createState() => _VideoThumbnailState();
+}
+
+class _VideoThumbnailState extends State<_VideoThumbnail> {
+  late final Future<Uint8List?> _thumb =
+      FLauncherChannel().getMediaStoreVideoThumbnail(widget.id, path: widget.path);
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<Uint8List?>(
+      future: _thumb,
+      builder: (context, snapshot) {
+        final bytes = snapshot.data;
+        return Stack(
+          fit: StackFit.expand,
+          alignment: Alignment.center,
+          children: [
+            if (bytes != null)
+              Image.memory(bytes, fit: BoxFit.cover, gaplessPlayback: true)
+            else
+              const ColoredBox(color: Colors.black26),
+            if (snapshot.connectionState == ConnectionState.waiting)
+              const Center(
+                child: SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              )
+            else
+              Container(
+                decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
+                padding: const EdgeInsets.all(8),
+                child: const Icon(Icons.play_arrow, color: Colors.white, size: 24),
+              ),
+          ],
+        );
+      },
     );
   }
 }

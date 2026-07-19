@@ -120,6 +120,17 @@ class FLauncherChannel {
     return videos?.map((e) => e.cast<String, dynamic>()).toList() ?? [];
   }
 
+  Future<Uint8List?> getMediaStoreVideoThumbnail(int id, {String? path}) async {
+    try {
+      return await _methodChannel.invokeMethod<Uint8List>(
+        "getMediaStoreVideoThumbnail",
+        {"id": id, "path": path},
+      );
+    } on PlatformException {
+      return null;
+    }
+  }
+
   Future<bool> installApk(String apkPath) async =>
       await _methodChannel.invokeMethod("installApk", apkPath);
 

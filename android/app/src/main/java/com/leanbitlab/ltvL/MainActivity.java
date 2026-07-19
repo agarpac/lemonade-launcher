@@ -148,6 +148,12 @@ public class MainActivity extends FlutterActivity {
                 case "openWifiSettings" -> result.success(openWifiSettings());
                 case "getMediaStoreImages" -> result.success(getMediaStoreImages());
                 case "getMediaStoreVideos" -> result.success(getMediaStoreVideos());
+                case "getMediaStoreVideoThumbnail" -> {
+                    Number id = call.argument("id");
+                    String path = call.argument("path");
+                    result.success(getMediaStoreVideoThumbnail(
+                        id != null ? id.longValue() : -1, path));
+                }
                 case "checkMediaPermissions" -> result.success(checkMediaPermissions());
                 case "requestMediaPermissions" -> {
                     requestMediaPermissions();
@@ -182,7 +188,7 @@ public class MainActivity extends FlutterActivity {
                         result.success(new byte[0]);
                     }
                 }
-                default -> throw new IllegalArgumentException();
+                default -> throw new IllegalArgumentException("Unknown method: " + call.method);
             }
         });
 
@@ -1046,6 +1052,53 @@ public class MainActivity extends FlutterActivity {
         } catch (Exception ignored) {
         }
         return videos;
+    }
+
+    private byte[] getMediaStoreVideoThumbnail(long id, String path) {
+        Bitmap bitmap = null;
+        try {
+            if (id >= 0 && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                Uri uri = android.content.ContentUris.withAppendedId(
+                    MediaStore.Video.Media.EXTERNAL_CONTENT_URI, id);
+                bitmap = getContentResolver().loadThumbnail(
+                    uri, new android.util.Size(256, 256), null);
+            }
+        } catch (Exception ignored) {
+        }
+
+        if (bitmap == null && path != null && !path.isEmpty()) {
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    bitmap = android.media.ThumbnailUtils.createVideoThumbnail(
+                        new File(path), new android.util.Size(256, 256), null);
+                } else {
+                    bitmap = android.media.ThumbnailUtils.createVideoThumbnail(
+                        path, MediaStore.Images.Thumbnails.MINI_KIND);
+                }
+            } catch (Exception ignored) {
+            }
+        }
+
+        if (bitmap == null && path != null && !path.isEmpty()) {
+            android.media.MediaMetadataRetriever retriever = null;
+            try {
+                retriever = new android.media.MediaMetadataRetriever();
+                retriever.setDataSource(path);
+                bitmap = retriever.getFrameAtTime(0);
+            } catch (Exception ignored) {
+            } finally {
+                try {
+                    if (retriever != null) retriever.release();
+                } catch (Exception ignored) {
+                }
+            }
+        }
+
+        if (bitmap == null) return null;
+        ByteArrayOutputStream stream = new ByteArrayOutputStream();
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 80, stream);
+        bitmap.recycle();
+        return stream.toByteArray();
     }
 
 }
