@@ -30,6 +30,49 @@ class DownloadedApk {
   const DownloadedApk({required this.path, required this.version});
 }
 
+/// ABI-split APKs are named like `arclauncher-1.0.5-arm64-v8a.apk`.
+/// Universal builds omit the ABI suffix (`arclauncher-1.0.5.apk`).
+bool isAbiSplitApk(String name) {
+  return RegExp(
+    r"-(arm64-v8a|armeabi-v7a|armeabi|x86_64|x86)\.apk$",
+    caseSensitive: false,
+  ).hasMatch(name);
+}
+
+/// Prefers a universal APK asset; falls back to the first APK if none match.
+({String name, String url})? pickReleaseApk(List<dynamic> assets) {
+  String? fallbackName;
+  String? fallbackUrl;
+
+  for (final asset in assets) {
+    if (asset is! Map) {
+      continue;
+    }
+
+    final name = asset["name"];
+    final downloadUrl = asset["browser_download_url"];
+    if (name is! String || downloadUrl is! String) {
+      continue;
+    }
+    if (!name.toLowerCase().endsWith(".apk")) {
+      continue;
+    }
+
+    if (isAbiSplitApk(name)) {
+      fallbackName ??= name;
+      fallbackUrl ??= downloadUrl;
+      continue;
+    }
+
+    return (name: name, url: downloadUrl);
+  }
+
+  if (fallbackName != null && fallbackUrl != null) {
+    return (name: fallbackName, url: fallbackUrl);
+  }
+  return null;
+}
+
 class UpdateService {
   static const String _owner = "meddouribadis";
   static const String _repo = "arclauncher";
@@ -137,31 +180,23 @@ class UpdateService {
         }
 
         final tagName = releaseData["tag_name"] as String?;
-        final body = releaseData["body"] as String?;
+        final releaseBody = releaseData["body"] as String?;
         final assets = releaseData["assets"];
         if (tagName == null || assets is! List) {
           continue;
         }
 
-        for (final asset in assets) {
-          if (asset is! Map<String, dynamic>) {
-            continue;
-          }
-
-          final name = asset["name"] as String?;
-          final downloadUrl = asset["browser_download_url"] as String?;
-          if (name == null || downloadUrl == null) {
-            continue;
-          }
-          if (name.toLowerCase().endsWith(".apk")) {
-            return _GitHubRelease(
-              tagName: tagName,
-              body: body,
-              apkName: name,
-              apkDownloadUrl: downloadUrl,
-            );
-          }
+        final apk = pickReleaseApk(assets);
+        if (apk == null) {
+          continue;
         }
+
+        return _GitHubRelease(
+          tagName: tagName,
+          body: releaseBody,
+          apkName: apk.name,
+          apkDownloadUrl: apk.url,
+        );
       }
 
       throw StateError("No stable release with an APK asset was found.");

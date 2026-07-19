@@ -1,8 +1,11 @@
 name: Release
 
-# Manual only — signed builds are large; avoid uploading artifacts on every branch push.
+# Tag push publishes GitHub Release APKs. workflow_dispatch also supports build-only and Play deploy/promote.
 # Workflow artifacts expire after 1 day (handoff between jobs). Published files live on GitHub Releases.
 on:
+  push:
+    tags:
+      - "*"
   workflow_dispatch:
     inputs:
       tag:
@@ -59,7 +62,11 @@ jobs:
       - name: Set build name
         id: meta
         run: |
-          TAG="${{ inputs.tag }}"
+          if [ "${{ github.event_name }}" = "push" ]; then
+            TAG="${{ github.ref_name }}"
+          else
+            TAG="${{ inputs.tag }}"
+          fi
           if [ -n "$TAG" ]; then
             echo "build_name=${TAG}" >> "$GITHUB_OUTPUT"
           else
@@ -73,6 +80,7 @@ jobs:
           SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
         run: |
           flutter build apk --release --flavor github \
+            --dart-define=ENABLE_SELF_UPDATER=true \
             --build-number=${{ github.run_number }} \
             --build-name=${{ steps.meta.outputs.build_name }}
           mkdir -p release-apks
@@ -123,7 +131,11 @@ jobs:
       - name: Set build name
         id: meta
         run: |
-          TAG="${{ inputs.tag }}"
+          if [ "${{ github.event_name }}" = "push" ]; then
+            TAG="${{ github.ref_name }}"
+          else
+            TAG="${{ inputs.tag }}"
+          fi
           if [ -n "$TAG" ]; then
             echo "build_name=${TAG}" >> "$GITHUB_OUTPUT"
           else
@@ -148,16 +160,26 @@ jobs:
 
   github-release:
     needs: [build-apk]
-    if: github.event_name == 'workflow_dispatch' && inputs.tag != ''
+    if: >-
+      github.event_name == 'push' ||
+      (github.event_name == 'workflow_dispatch' && inputs.tag != '')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
         with:
           name: release-apks
           path: release-apks
+      - name: Resolve release tag
+        id: meta
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            echo "tag=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          fi
       - name: Prepare release assets and notes
         env:
-          TAG: ${{ inputs.tag }}
+          TAG: ${{ steps.meta.outputs.tag }}
         run: |
           mkdir -p dist
           cp release-apks/arc-launcher-universal-release.apk \
@@ -169,8 +191,8 @@ jobs:
           echo "Arc Launcher v${TAG}" > release_notes.md
       - uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ inputs.tag }}
-          name: ${{ inputs.tag }}
+          tag_name: ${{ steps.meta.outputs.tag }}
+          name: ${{ steps.meta.outputs.tag }}
           body_path: release_notes.md
           files: dist/*
           fail_on_unmatched_files: true
