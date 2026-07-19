@@ -16,10 +16,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import 'dart:io';
+
 import 'package:flauncher/providers/settings_service.dart';
 import 'package:flauncher/providers/wallpaper_service.dart';
 import 'package:flauncher/widgets/settings/focusable_settings_tile.dart';
 import 'package:flauncher/widgets/settings/gradient_panel_page.dart';
+import 'package:flauncher/widgets/tv_media_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flauncher/l10n/app_localizations.dart';
@@ -55,22 +58,22 @@ class WallpaperPanelPage extends StatelessWidget {
                     FocusableSettingsTile(
                       leading: Icon(Icons.wb_sunny),
                       title: Text(localizations.pickDayWallpaper),
-                      onPressed: () => _pickWallpaper(context, (s) => s.pickWallpaperDay(), localizations),
+                      onPressed: () => _pickWallpaper(context, (s, f) => s.pickWallpaperDay(f), false),
                     ),
                     FocusableSettingsTile(
                       leading: Icon(Icons.videocam_outlined),
                       title: Text(localizations.pickDayVideoWallpaper),
-                      onPressed: () => _pickWallpaper(context, (s) => s.pickVideoWallpaperDay(), localizations),
+                      onPressed: () => _pickWallpaper(context, (s, f) => s.pickVideoWallpaperDay(f), true),
                     ),
                     FocusableSettingsTile(
                       leading: Icon(Icons.nights_stay),
                       title: Text(localizations.pickNightWallpaper),
-                      onPressed: () => _pickWallpaper(context, (s) => s.pickWallpaperNight(), localizations),
+                      onPressed: () => _pickWallpaper(context, (s, f) => s.pickWallpaperNight(f), false),
                     ),
                     FocusableSettingsTile(
                       leading: Icon(Icons.videocam_outlined),
                       title: Text(localizations.pickNightVideoWallpaper),
-                      onPressed: () => _pickWallpaper(context, (s) => s.pickVideoWallpaperNight(), localizations),
+                      onPressed: () => _pickWallpaper(context, (s, f) => s.pickVideoWallpaperNight(f), true),
                     ),
                   ],
                 );
@@ -86,12 +89,12 @@ class WallpaperPanelPage extends StatelessWidget {
                     FocusableSettingsTile(
                       leading: Icon(Icons.insert_drive_file_outlined),
                       title: Text(localizations.picture, style: Theme.of(context).textTheme.bodyMedium),
-                      onPressed: () => _pickWallpaper(context, (s) => s.pickWallpaper(), localizations),
+                      onPressed: () => _pickWallpaper(context, (s, f) => s.pickWallpaper(f), false),
                     ),
                     FocusableSettingsTile(
                       leading: Icon(Icons.videocam_outlined),
                       title: Text(localizations.video, style: Theme.of(context).textTheme.bodyMedium),
-                      onPressed: () => _pickWallpaper(context, (s) => s.pickVideoWallpaper(), localizations),
+                      onPressed: () => _pickWallpaper(context, (s, f) => s.pickVideoWallpaper(f), true),
                     ),
                   ],
                 );
@@ -102,22 +105,17 @@ class WallpaperPanelPage extends StatelessWidget {
     );
   }
 
-  Future<void> _pickWallpaper(BuildContext context, Future<void> Function(WallpaperService) action, AppLocalizations localizations) async {
-    try {
-      await action(context.read<WallpaperService>());
-    } on NoFileExplorerException {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          duration: Duration(seconds: 8),
-          content: Row(
-            children: [
-              Icon(Icons.error_outline, color: Colors.red),
-              SizedBox(width: 8),
-              Text(localizations.dialogTextNoFileExplorer)
-            ],
-          ),
-        ),
-      );
+  Future<void> _pickWallpaper(
+    BuildContext context,
+    Future<void> Function(WallpaperService, File) action,
+    bool isVideo,
+  ) async {
+    final path = await TvMediaPicker.show(
+      context,
+      mode: isVideo ? TvMediaPickerMode.video : TvMediaPickerMode.image,
+    );
+    if (path != null && context.mounted) {
+      await action(context.read<WallpaperService>(), File(path));
     }
   }
 }

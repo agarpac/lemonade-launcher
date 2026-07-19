@@ -4,6 +4,7 @@
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'dart:async' as _i9;
+import 'dart:io' as _i19;
 import 'dart:typed_data' as _i13;
 import 'dart:ui' as _i4;
 
@@ -666,60 +667,60 @@ class MockWallpaperService extends _i1.Mock implements _i14.WallpaperService {
       );
 
   @override
-  _i9.Future<void> pickWallpaper() => (super.noSuchMethod(
+  _i9.Future<void> pickWallpaper(_i19.File sourceFile) => (super.noSuchMethod(
         Invocation.method(
           #pickWallpaper,
-          [],
+          [sourceFile],
         ),
         returnValue: _i9.Future<void>.value(),
         returnValueForMissingStub: _i9.Future<void>.value(),
       ) as _i9.Future<void>);
 
   @override
-  _i9.Future<void> pickWallpaperDay() => (super.noSuchMethod(
+  _i9.Future<void> pickWallpaperDay(_i19.File sourceFile) => (super.noSuchMethod(
         Invocation.method(
           #pickWallpaperDay,
-          [],
+          [sourceFile],
         ),
         returnValue: _i9.Future<void>.value(),
         returnValueForMissingStub: _i9.Future<void>.value(),
       ) as _i9.Future<void>);
 
   @override
-  _i9.Future<void> pickWallpaperNight() => (super.noSuchMethod(
+  _i9.Future<void> pickWallpaperNight(_i19.File sourceFile) => (super.noSuchMethod(
         Invocation.method(
           #pickWallpaperNight,
-          [],
+          [sourceFile],
         ),
         returnValue: _i9.Future<void>.value(),
         returnValueForMissingStub: _i9.Future<void>.value(),
       ) as _i9.Future<void>);
 
   @override
-  _i9.Future<void> pickVideoWallpaper() => (super.noSuchMethod(
+  _i9.Future<void> pickVideoWallpaper(_i19.File sourceFile) => (super.noSuchMethod(
         Invocation.method(
           #pickVideoWallpaper,
-          [],
+          [sourceFile],
         ),
         returnValue: _i9.Future<void>.value(),
         returnValueForMissingStub: _i9.Future<void>.value(),
       ) as _i9.Future<void>);
 
   @override
-  _i9.Future<void> pickVideoWallpaperDay() => (super.noSuchMethod(
+  _i9.Future<void> pickVideoWallpaperDay(_i19.File sourceFile) => (super.noSuchMethod(
         Invocation.method(
           #pickVideoWallpaperDay,
-          [],
+          [sourceFile],
         ),
         returnValue: _i9.Future<void>.value(),
         returnValueForMissingStub: _i9.Future<void>.value(),
       ) as _i9.Future<void>);
 
   @override
-  _i9.Future<void> pickVideoWallpaperNight() => (super.noSuchMethod(
+  _i9.Future<void> pickVideoWallpaperNight(_i19.File sourceFile) => (super.noSuchMethod(
         Invocation.method(
           #pickVideoWallpaperNight,
-          [],
+          [sourceFile],
         ),
         returnValue: _i9.Future<void>.value(),
         returnValueForMissingStub: _i9.Future<void>.value(),
