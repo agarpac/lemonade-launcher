@@ -53,7 +53,7 @@ Future<void> main() async {
         ChangeNotifierProvider(
             create: (context) {
               SettingsService settingsService = Provider.of(context, listen: false);
-              return WallpaperService(fLauncherChannel, settingsService);
+              return WallpaperService(settingsService);
             }
         ),
         ChangeNotifierProvider(

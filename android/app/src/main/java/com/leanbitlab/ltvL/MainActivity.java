@@ -30,10 +30,12 @@ import android.net.ConnectivityManager;
 import android.net.NetworkCapabilities;
 import android.net.Uri;
 import android.os.Build;
+import android.provider.MediaStore;
 import android.provider.Settings;
 import android.util.Pair;
 import android.media.tv.TvContract;
 import android.database.Cursor;
+import android.Manifest;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
@@ -144,6 +146,19 @@ public class MainActivity extends FlutterActivity {
                     result.success(setSystemBrightness(brightness));
                 }
                 case "openWifiSettings" -> result.success(openWifiSettings());
+                case "getMediaStoreImages" -> result.success(getMediaStoreImages());
+                case "getMediaStoreVideos" -> result.success(getMediaStoreVideos());
+                case "getMediaStoreVideoThumbnail" -> {
+                    Number id = call.argument("id");
+                    String path = call.argument("path");
+                    result.success(getMediaStoreVideoThumbnail(
+                        id != null ? id.longValue() : -1, path));
+                }
+                case "checkMediaPermissions" -> result.success(checkMediaPermissions());
+                case "requestMediaPermissions" -> {
+                    requestMediaPermissions();
+                    result.success(null);
+                }
                 case "checkWatchNextPermission" -> result.success(checkWatchNextPermission());
                 case "requestWatchNextPermission" -> {
                     requestWatchNextPermission();
@@ -173,7 +188,7 @@ public class MainActivity extends FlutterActivity {
                         result.success(new byte[0]);
                     }
                 }
-                default -> throw new IllegalArgumentException();
+                default -> throw new IllegalArgumentException("Unknown method: " + call.method);
             }
         });
 
@@ -948,6 +963,142 @@ public class MainActivity extends FlutterActivity {
         }
         android.util.Log.w("MainActivity", "Returning empty byte array for: " + contentUri);
         return new byte[0];
+    }
+
+    private static final int MEDIA_PERMISSION_REQUEST_CODE = 9001;
+
+    private boolean checkMediaPermissions() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            return checkSelfPermission(Manifest.permission.READ_MEDIA_IMAGES) == PackageManager.PERMISSION_GRANTED
+                && checkSelfPermission(Manifest.permission.READ_MEDIA_VIDEO) == PackageManager.PERMISSION_GRANTED;
+        }
+        return checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED;
+    }
+
+    private void requestMediaPermissions() {
+        String[] permissions;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            permissions = new String[]{
+                Manifest.permission.READ_MEDIA_IMAGES,
+                Manifest.permission.READ_MEDIA_VIDEO
+            };
+        } else {
+            permissions = new String[]{Manifest.permission.READ_EXTERNAL_STORAGE};
+        }
+        ActivityCompat.requestPermissions(this, permissions, MEDIA_PERMISSION_REQUEST_CODE);
+    }
+
+    private List<Map<String, Object>> getMediaStoreImages() {
+        List<Map<String, Object>> images = new ArrayList<>();
+        String[] projection = {
+            MediaStore.Images.Media._ID,
+            MediaStore.Images.Media.DISPLAY_NAME,
+            MediaStore.Images.Media.DATA,
+            MediaStore.Images.Media.DATE_ADDED
+        };
+        String sortOrder = MediaStore.Images.Media.DATE_ADDED + " DESC";
+
+        try (Cursor cursor = getContentResolver().query(
+                MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                projection, null, null, sortOrder)) {
+            if (cursor != null) {
+                int idCol = cursor.getColumnIndexOrThrow(MediaStore.Images.Media._ID);
+                int nameCol = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DISPLAY_NAME);
+                int dataCol = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
+                while (cursor.moveToNext()) {
+                    long id = cursor.getLong(idCol);
+                    Uri contentUri = Uri.withAppendedPath(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, String.valueOf(id));
+                    Map<String, Object> item = new HashMap<>();
+                    item.put("id", id);
+                    item.put("name", cursor.getString(nameCol));
+                    item.put("path", cursor.getString(dataCol));
+                    item.put("uri", contentUri.toString());
+                    images.add(item);
+                }
+            }
+        } catch (Exception ignored) {
+        }
+        return images;
+    }
+
+    private List<Map<String, Object>> getMediaStoreVideos() {
+        List<Map<String, Object>> videos = new ArrayList<>();
+        String[] projection = {
+            MediaStore.Video.Media._ID,
+            MediaStore.Video.Media.DISPLAY_NAME,
+            MediaStore.Video.Media.DATA,
+            MediaStore.Video.Media.DATE_ADDED
+        };
+        String sortOrder = MediaStore.Video.Media.DATE_ADDED + " DESC";
+
+        try (Cursor cursor = getContentResolver().query(
+                MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
+                projection, null, null, sortOrder)) {
+            if (cursor != null) {
+                int idCol = cursor.getColumnIndexOrThrow(MediaStore.Video.Media._ID);
+                int nameCol = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DISPLAY_NAME);
+                int dataCol = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DATA);
+                while (cursor.moveToNext()) {
+                    long id = cursor.getLong(idCol);
+                    Uri contentUri = Uri.withAppendedPath(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, String.valueOf(id));
+                    Map<String, Object> item = new HashMap<>();
+                    item.put("id", id);
+                    item.put("name", cursor.getString(nameCol));
+                    item.put("path", cursor.getString(dataCol));
+                    item.put("uri", contentUri.toString());
+                    videos.add(item);
+                }
+            }
+        } catch (Exception ignored) {
+        }
+        return videos;
+    }
+
+    private byte[] getMediaStoreVideoThumbnail(long id, String path) {
+        Bitmap bitmap = null;
+        try {
+            if (id >= 0 && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                Uri uri = android.content.ContentUris.withAppendedId(
+                    MediaStore.Video.Media.EXTERNAL_CONTENT_URI, id);
+                bitmap = getContentResolver().loadThumbnail(
+                    uri, new android.util.Size(256, 256), null);
+            }
+        } catch (Exception ignored) {
+        }
+
+        if (bitmap == null && path != null && !path.isEmpty()) {
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    bitmap = android.media.ThumbnailUtils.createVideoThumbnail(
+                        new File(path), new android.util.Size(256, 256), null);
+                } else {
+                    bitmap = android.media.ThumbnailUtils.createVideoThumbnail(
+                        path, MediaStore.Images.Thumbnails.MINI_KIND);
+                }
+            } catch (Exception ignored) {
+            }
+        }
+
+        if (bitmap == null && path != null && !path.isEmpty()) {
+            android.media.MediaMetadataRetriever retriever = null;
+            try {
+                retriever = new android.media.MediaMetadataRetriever();
+                retriever.setDataSource(path);
+                bitmap = retriever.getFrameAtTime(0);
+            } catch (Exception ignored) {
+            } finally {
+                try {
+                    if (retriever != null) retriever.release();
+                } catch (Exception ignored) {
+                }
+            }
+        }
+
+        if (bitmap == null) return null;
+        ByteArrayOutputStream stream = new ByteArrayOutputStream();
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 80, stream);
+        bitmap.recycle();
+        return stream.toByteArray();
     }
 
 }

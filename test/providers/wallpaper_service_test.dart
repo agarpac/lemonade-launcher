@@ -16,11 +16,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import 'package:drift/drift.dart';
+import 'dart:io';
+
 import 'package:flauncher/gradients.dart';
 import 'package:flauncher/providers/wallpaper_service.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:mockito/mockito.dart';
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
@@ -35,42 +35,31 @@ void main() {
     PathProviderPlatform.instance = pathProviderPlatform;
   });
 
-  group("pickWallpaper", () {
-    test("picks image", () async {
-      TestWidgetsFlutterBinding.ensureInitialized();
-      final pickedFile = _MockXFile();
-      when(pickedFile.readAsBytes()).thenAnswer((_) => Future.value(Uint8List.fromList([0x01])));
-      final imagePicker = _MockImagePicker();
-      final fLauncherChannel = MockFLauncherChannel();
-      final settingsService = MockSettingsService();
-      when(imagePicker.pickImage(source: ImageSource.gallery)).thenAnswer((_) => Future.value(pickedFile));
-      when(fLauncherChannel.checkForGetContentAvailability()).thenAnswer((_) => Future.value(true));
-      final wallpaperService = WallpaperService(fLauncherChannel, settingsService);
-      await untilCalled(pathProviderPlatform.getApplicationDocumentsPath());
+  test("pickWallpaper saves source file", () async {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    final settingsService = MockSettingsService();
+    when(settingsService.timeBasedWallpaperEnabled).thenReturn(false);
+    final wallpaperService = WallpaperService(settingsService);
+    await untilCalled(pathProviderPlatform.getApplicationDocumentsPath());
 
-      await wallpaperService.pickWallpaper();
-
-      //verify(imagePicker.pickImage(source: ImageSource.gallery));
-      // MissingPluginException(No implementation found for method pickImage on channel plugins.flutter.io/image_picker)
-      //
-      expect(wallpaperService.wallpaper.hashCode, 1);
-    }, skip: true);
-
-    test("throws error when no file explorer installed", () async {
-      final fLauncherChannel = MockFLauncherChannel();
-      when(fLauncherChannel.checkForGetContentAvailability()).thenAnswer((_) => Future.value(false));
-      final wallpaperService = WallpaperService(fLauncherChannel, MockSettingsService());
-      await untilCalled(pathProviderPlatform.getApplicationDocumentsPath());
-
-      expect(() async => await wallpaperService.pickWallpaper(), throwsA(isInstanceOf<NoFileExplorerException>()));
+    final source = File("test_wallpaper_src");
+    await source.writeAsBytes([0x01, 0x02]);
+    addTearDown(() async {
+      if (await source.exists()) await source.delete();
+      final dest = File("./wallpaper");
+      if (await dest.exists()) await dest.delete();
     });
+
+    await wallpaperService.pickWallpaper(source);
+
+    expect(await File("./wallpaper").exists(), isTrue);
+    expect(await File("./wallpaper").readAsBytes(), [0x01, 0x02]);
   });
 
-
   test("setGradient", () async {
-    final fLauncherChannel = MockFLauncherChannel();
     final settingsService = MockSettingsService();
-    final wallpaperService = WallpaperService(fLauncherChannel, settingsService);
+    when(settingsService.timeBasedWallpaperEnabled).thenReturn(false);
+    final wallpaperService = WallpaperService(settingsService);
 
     await untilCalled(pathProviderPlatform.getApplicationDocumentsPath());
     await wallpaperService.setGradient(FLauncherGradients.greatWhale);
@@ -81,21 +70,21 @@ void main() {
 
   group("getGradient", () {
     test("without uuid from settings", () async {
-      final fLauncherChannel = MockFLauncherChannel();
       final settingsService = MockSettingsService();
-      final wallpaperService = WallpaperService(fLauncherChannel, settingsService);
+      when(settingsService.timeBasedWallpaperEnabled).thenReturn(false);
+      final wallpaperService = WallpaperService(settingsService);
       when(settingsService.gradientUuid).thenReturn(null);
 
       await untilCalled(pathProviderPlatform.getApplicationDocumentsPath());
       final gradient = wallpaperService.gradient;
 
-      expect(gradient, FLauncherGradients.greatWhale);
+      expect(gradient, FLauncherGradients.saintPetersburg);
     });
 
     test("with uuid from settings", () async {
-      final fLauncherChannel = MockFLauncherChannel();
       final settingsService = MockSettingsService();
-      final wallpaperService = WallpaperService(fLauncherChannel, settingsService);
+      when(settingsService.timeBasedWallpaperEnabled).thenReturn(false);
+      final wallpaperService = WallpaperService(settingsService);
       when(settingsService.gradientUuid).thenReturn(FLauncherGradients.grassShampoo.uuid);
       await untilCalled(pathProviderPlatform.getApplicationDocumentsPath());
 
@@ -104,35 +93,6 @@ void main() {
       expect(gradient, FLauncherGradients.grassShampoo);
     });
   });
-}
-
-class _MockImagePicker extends Mock implements ImagePicker {
-  @override
-  Future<XFile?> pickImage({
-    required ImageSource source,
-    double? maxWidth,
-    double? maxHeight,
-    int? imageQuality,
-    CameraDevice preferredCameraDevice = CameraDevice.rear,
-    bool requestFullMetadata = true,
-  }) =>
-      super.noSuchMethod(
-          Invocation.method(#pickImage, [], {
-            #source: source,
-            #maxWidth: maxWidth,
-            #maxHeight: maxHeight,
-            #imageQuality: imageQuality,
-            #preferredCameraDevice: preferredCameraDevice,
-            #requestFullMetadata: requestFullMetadata,
-          }),
-          returnValue: Future<XFile?>.value());
-}
-
-// ignore: must_be_immutable
-class _MockXFile extends Mock implements XFile {
-  @override
-  Future<Uint8List> readAsBytes() => super
-      .noSuchMethod(Invocation.method(#readAsBytes, []), returnValue: Future<Uint8List>.value(Uint8List.fromList([])));
 }
 
 class _MockPathProviderPlatform extends Mock with MockPlatformInterfaceMixin implements PathProviderPlatform {

@@ -104,6 +104,33 @@ class FLauncherChannel {
   Future<void> startAmbientMode() async =>
       await _methodChannel.invokeMethod("startAmbientMode");
 
+  Future<bool> checkMediaPermissions() async =>
+      await _methodChannel.invokeMethod("checkMediaPermissions");
+
+  Future<void> requestMediaPermissions() async =>
+      await _methodChannel.invokeMethod("requestMediaPermissions");
+
+  Future<List<Map<String, dynamic>>> getMediaStoreImages() async {
+    List<Map<dynamic, dynamic>>? images = await _methodChannel.invokeListMethod("getMediaStoreImages");
+    return images?.map((e) => e.cast<String, dynamic>()).toList() ?? [];
+  }
+
+  Future<List<Map<String, dynamic>>> getMediaStoreVideos() async {
+    List<Map<dynamic, dynamic>>? videos = await _methodChannel.invokeListMethod("getMediaStoreVideos");
+    return videos?.map((e) => e.cast<String, dynamic>()).toList() ?? [];
+  }
+
+  Future<Uint8List?> getMediaStoreVideoThumbnail(int id, {String? path}) async {
+    try {
+      return await _methodChannel.invokeMethod<Uint8List>(
+        "getMediaStoreVideoThumbnail",
+        {"id": id, "path": path},
+      );
+    } on PlatformException {
+      return null;
+    }
+  }
+
   Future<bool> installApk(String apkPath) async =>
       await _methodChannel.invokeMethod("installApk", apkPath);
 
