@@ -179,7 +179,7 @@ class _TvMediaPickerState extends State<TvMediaPicker> with WidgetsBindingObserv
     return Dialog(
       backgroundColor: const Color(0xFF1A1A2E),
       insetPadding: const EdgeInsets.all(40),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(20))),
       child: Focus(
         autofocus: true,
         onKeyEvent: _handleKeyEvent,
@@ -310,23 +310,16 @@ class _MediaTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final s = isSelected ? 1.05 : 1.0;
     return AnimatedContainer(
       duration: const Duration(milliseconds: 150),
       curve: Curves.easeOut,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: isSelected ? accentColor : Colors.white12,
           width: isSelected ? 3 : 1,
         ),
-        boxShadow: isSelected
-            ? [BoxShadow(color: accentColor.withValues(alpha: 0.4), blurRadius: 12, spreadRadius: 2)]
-            : null,
       ),
-      transform: Matrix4.diagonal3Values(s, s, 1.0),
-      transformAlignment: Alignment.center,
-      clipBehavior: Clip.antiAlias,
+      clipBehavior: Clip.hardEdge,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
