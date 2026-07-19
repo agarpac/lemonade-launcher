@@ -17,6 +17,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       HAS_VT_KEY: ${{ secrets.VIRUS_TOTAL_API_KEY != '' }}
+      # Stable marker so re-runs replace only the VT section, not the whole release body.
+      VT_REPORT_MARKER: "<!-- virustotal-report -->"
 
     steps:
       - name: Set tag variable
@@ -26,10 +28,6 @@ jobs:
           else
             echo "TAG_NAME=${{ github.event.release.tag_name }}" >> "$GITHUB_ENV"
           fi
-
-      - name: Set report marker variable
-        run: |
-          echo -e "MARKER=\t\t\t" >> "$GITHUB_ENV"
 
       - name: Checkout code
         uses: actions/checkout@v4
@@ -58,11 +56,13 @@ jobs:
           echo "Waiting 150s for VirusTotal engines to report..."
           sleep 150
 
-          echo -e "$MARKER\n## VirusTotal Analysis" > vt_report.txt
-          echo "" >> vt_report.txt
-
-          echo "| Build Variant | VirusTotal Status | Detailed Report |" >> vt_report.txt
-          echo "| :--- | :--- | :--- |" >> vt_report.txt
+          {
+            echo "$VT_REPORT_MARKER"
+            echo "## VirusTotal Analysis"
+            echo ""
+            echo "| Build Variant | VirusTotal Status | Detailed Report |"
+            echo "| :--- | :--- | :--- |"
+          } > vt_report.txt
 
           for file in release_assets/*.apk; do
             [ -e "$file" ] || continue
@@ -85,16 +85,31 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release view "$TAG_NAME" --json body -q .body > current_notes.txt || echo "" > current_notes.txt
-
-          if grep -q "$MARKER" current_notes.txt; then
-            echo "Previous report found. Cleaning up..."
-            sed -i "/$MARKER/,\$d" current_notes.txt
+          # Preserve existing release notes; only replace a previous VT section if present.
+          gh release view "$TAG_NAME" --json body -q .body > current_notes.txt || true
+          if [ ! -s current_notes.txt ] || [ "$(cat current_notes.txt)" = "null" ]; then
+            : > current_notes.txt
           fi
 
+          if grep -Fq "$VT_REPORT_MARKER" current_notes.txt; then
+            echo "Previous VirusTotal report found; removing old section..."
+            # Delete from the marker line through end of file (old VT block).
+            awk -v marker="$VT_REPORT_MARKER" '
+              $0 == marker { exit }
+              { print }
+            ' current_notes.txt > notes_without_vt.txt
+            mv notes_without_vt.txt current_notes.txt
+          fi
+
+          # Append VT report after existing notes (keep original release body intact).
           {
-            cat current_notes.txt
+            if [ -s current_notes.txt ]; then
+              # Strip trailing blank lines from preserved notes.
+              awk 'NF { last = NR } { lines[NR] = $0 } END { for (i = 1; i <= last; i++) print lines[i] }' current_notes.txt
+              printf '\n\n'
+            fi
             cat vt_report.txt
+            printf '\n'
           } > final_notes.txt
 
           gh release edit "$TAG_NAME" --notes-file final_notes.txt
