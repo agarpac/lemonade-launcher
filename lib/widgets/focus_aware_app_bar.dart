@@ -1,8 +1,11 @@
+import 'package:flauncher/widgets/scene_picker_panel.dart';
 import 'package:flauncher/widgets/settings/settings_panel.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../l10n/app_localizations.dart';
 import '../providers/launcher_state.dart';
+import '../providers/scenes_service.dart';
 import '../providers/settings_service.dart';
 import 'daily_wifi_usage_widget.dart';
 import 'date_time_widget.dart';
@@ -25,21 +28,34 @@ class FocusAwareAppBarState extends State<FocusAwareAppBar>
 {
   bool focused = false;
   late FocusNode _settingsFocusNode;
+  late FocusNode _scenesFocusNode;
 
   @override
   void initState() {
     super.initState();
     _settingsFocusNode = FocusNode();
+    _scenesFocusNode = FocusNode();
   }
 
   @override
   void dispose() {
     _settingsFocusNode.dispose();
+    _scenesFocusNode.dispose();
     super.dispose();
   }
 
   void focusSettings() {
     _settingsFocusNode.requestFocus();
+  }
+
+  /// Opens the scene picker, then returns focus to this button once it
+  /// closes (however it closed: Back or activating a scene), so the remote
+  /// never ends up focused on a widget that's no longer on screen.
+  Future<void> _openScenePicker(BuildContext context) async {
+    await showDialog(context: context, builder: (_) => const ScenePickerPanel());
+    if (mounted) {
+      _scenesFocusNode.requestFocus();
+    }
   }
 
   @override
@@ -83,6 +99,20 @@ class FocusAwareAppBarState extends State<FocusAwareAppBar>
                 icon: Icons.settings_outlined,
                 focusNode: _settingsFocusNode,
                 onPressed: () => showDialog(context: context, builder: (_) => const SettingsPanel()),
+              ),
+              const SizedBox(width: 8),
+              // Scoped to just this icon: it must not trigger a rebuild of the whole
+              // app bar every time the active scene changes.
+              Selector<ScenesService, String>(
+                selector: (_, scenesService) => scenesService.activeSceneKey,
+                builder: (context, activeSceneKey, _) => Tooltip(
+                  message: AppLocalizations.of(context)!.scenes,
+                  child: _FocusableIconButton(
+                    icon: sceneIconFor(activeSceneKey),
+                    focusNode: _scenesFocusNode,
+                    onPressed: () => _openScenePicker(context),
+                  ),
+                ),
               ),
               const SizedBox(width: 16),
               // Network indicator (conditionally shown)

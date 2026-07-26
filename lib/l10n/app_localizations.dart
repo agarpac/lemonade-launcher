@@ -440,6 +440,54 @@ abstract class AppLocalizations {
   /// **'Save'**
   String get save;
 
+  /// No description provided for @scenes.
+  ///
+  /// In en, this message translates to:
+  /// **'Scenes'**
+  String get scenes;
+
+  /// No description provided for @sceneNormal.
+  ///
+  /// In en, this message translates to:
+  /// **'Normal'**
+  String get sceneNormal;
+
+  /// No description provided for @sceneCinema.
+  ///
+  /// In en, this message translates to:
+  /// **'Cinema'**
+  String get sceneCinema;
+
+  /// No description provided for @sceneNight.
+  ///
+  /// In en, this message translates to:
+  /// **'Night'**
+  String get sceneNight;
+
+  /// No description provided for @sceneKids.
+  ///
+  /// In en, this message translates to:
+  /// **'Kids'**
+  String get sceneKids;
+
+  /// No description provided for @sceneActiveSemanticLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Active scene'**
+  String get sceneActiveSemanticLabel;
+
+  /// No description provided for @sceneActivationFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not switch scenes.'**
+  String get sceneActivationFailed;
+
+  /// No description provided for @scenePinProtected.
+  ///
+  /// In en, this message translates to:
+  /// **'This scene requires a PIN, which isn\'t supported yet.'**
+  String get scenePinProtected;
+
   /// No description provided for @spacer.
   ///
   /// In en, this message translates to:

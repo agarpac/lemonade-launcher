@@ -192,6 +192,31 @@ class AppLocalizationsEs extends AppLocalizations {
   String get save => 'Guardar';
 
   @override
+  String get scenes => 'Escenas';
+
+  @override
+  String get sceneNormal => 'Normal';
+
+  @override
+  String get sceneCinema => 'Cine';
+
+  @override
+  String get sceneNight => 'Noche';
+
+  @override
+  String get sceneKids => 'Niños';
+
+  @override
+  String get sceneActiveSemanticLabel => 'Escena activa';
+
+  @override
+  String get sceneActivationFailed => 'No se ha podido cambiar de escena.';
+
+  @override
+  String get scenePinProtected =>
+      'Esta escena requiere un PIN, que todavía no está disponible.';
+
+  @override
   String get spacer => 'Espaciador';
 
   @override

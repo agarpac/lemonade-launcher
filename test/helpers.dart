@@ -20,3 +20,15 @@ Element? findSettingsIcon(WidgetTester tester) {
   }
   return null;
 }
+
+/// Finds the app bar's scene picker button, whose icon reflects the active scene
+/// (see `sceneIconFor` in `lib/widgets/scene_picker_panel.dart`), so [icon] must
+/// match whatever scene is active in the test.
+Element? findScenesIcon(WidgetTester tester, IconData icon) {
+  for (var val in tester.elementList(find.byIcon(icon))) {
+    if (((val as StatelessElement).widget as Icon).color == null) {
+      return val;
+    }
+  }
+  return null;
+}

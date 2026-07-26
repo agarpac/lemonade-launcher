@@ -189,6 +189,31 @@ class AppLocalizationsEn extends AppLocalizations {
   String get save => 'Save';
 
   @override
+  String get scenes => 'Scenes';
+
+  @override
+  String get sceneNormal => 'Normal';
+
+  @override
+  String get sceneCinema => 'Cinema';
+
+  @override
+  String get sceneNight => 'Night';
+
+  @override
+  String get sceneKids => 'Kids';
+
+  @override
+  String get sceneActiveSemanticLabel => 'Active scene';
+
+  @override
+  String get sceneActivationFailed => 'Could not switch scenes.';
+
+  @override
+  String get scenePinProtected =>
+      'This scene requires a PIN, which isn\'t supported yet.';
+
+  @override
   String get spacer => 'Spacer';
 
   @override

@@ -32,6 +32,7 @@ import 'package:flauncher/providers/watch_next_service.dart';
 import 'package:flauncher/widgets/app_card.dart';
 import 'package:flauncher/widgets/application_info_panel.dart';
 import 'package:flauncher/widgets/category_clean_row.dart';
+import 'package:flauncher/widgets/scene_picker_panel.dart';
 import 'package:flauncher/widgets/settings/settings_panel_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -224,6 +225,25 @@ void main() {
     await tester.pump();
 
     expect(find.byType(SettingsPanelPage), findsOneWidget);
+  });
+
+  testWidgets("Pressing select on the scenes icon opens ScenePickerPanel", (tester) async {
+    final appsService = mkAppService();
+    mockSections(appsService, [
+      fakeCategory(name: "Favorites", order: 0),
+      fakeCategory(name: "Applications", order: 1),
+    ]);
+    final scenesService = mkScenesService();
+    await _pumpWidgetWith(tester, appsService, scenesService: scenesService);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pump();
+
+    expect(find.byType(ScenePickerPanel), findsOneWidget);
   });
 
   testWidgets("Pressing select on app launches it", (tester) async {
@@ -557,8 +577,13 @@ WallpaperService mkWallpaperService([bool wallpaper = true]) {
 /// Builds a [ScenesService] stub. Defaults to a scene with no dock override,
 /// matching today's dock behavior when a test doesn't care about scenes.
 ScenesService mkScenesService({Scene? activeScene}) {
+  final scene = activeScene ?? Scene(key: SceneKeys.normal, name: "Normal");
   final scenesService = MockScenesService();
-  when(scenesService.activeScene).thenReturn(activeScene ?? Scene(key: SceneKeys.normal, name: "Normal"));
+  when(scenesService.activeScene).thenReturn(scene);
+  // Read by FocusAwareAppBar's scene icon (Selector<ScenesService, String>) on every
+  // build, regardless of whether a test cares about scenes at all.
+  when(scenesService.activeSceneKey).thenReturn(scene.key);
+  when(scenesService.scenes).thenReturn(Scene.defaults());
   return scenesService;
 }
 
