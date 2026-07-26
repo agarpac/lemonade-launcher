@@ -99,3 +99,6 @@ android/fastlane/report.xml
 android/fastlane/google_play_api_key.json
 android/fastlane/README.md
 
+# Local tooling metadata (not part of upstream, must not be committed)
+.atl/
+
