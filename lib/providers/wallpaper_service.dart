@@ -24,6 +24,21 @@ import 'package:flauncher/providers/settings_service.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:path_provider/path_provider.dart';
 
+/// The resolved wallpaper background: either a static [image], an active
+/// [videoFile], or neither (in which case the gradient is shown instead).
+///
+/// This is used both for the "user layer" (resolved purely from the user's
+/// own day/night settings and files) and for the "effective layer" (what is
+/// actually rendered on screen). Today the two are always identical; the
+/// distinction exists so a later phase can make the effective layer diverge
+/// from the user layer (see [WallpaperService._resolveEffectiveLayer]).
+class _WallpaperLayer {
+  final ImageProvider? image;
+  final File? videoFile;
+
+  const _WallpaperLayer({required this.image, required this.videoFile});
+}
+
 class WallpaperService extends ChangeNotifier {
   final SettingsService _settingsService;
 
@@ -127,35 +142,78 @@ class WallpaperService extends ChangeNotifier {
 
   bool get isInitialized => _initialized;
 
-  void _updateWallpaper({bool force = false}) {
+  // ---------------------------------------------------------------------
+  // Step 1: user layer.
+  //
+  // Resolves what the user's own preferences (day/night settings, picked
+  // files) say the wallpaper should be *right now*. Knows nothing about
+  // scenes.
+  // ---------------------------------------------------------------------
+  _WallpaperLayer _resolveUserLayer() {
     final now = DateTime.now();
     final isDay = now.hour >= 6 && now.hour < 18;
     final enabled = _settingsService.timeBasedWallpaperEnabled;
 
     final videoFile = _resolveActiveVideoFile();
 
-    ImageProvider? newWallpaper;
+    ImageProvider? image;
 
     if (videoFile != null) {
-      newWallpaper = null;
+      image = null;
     } else if (enabled) {
       if (isDay && _wallpaperDayFile.existsSync()) {
-        newWallpaper = FileImage(_wallpaperDayFile);
+        image = FileImage(_wallpaperDayFile);
       } else if (!isDay && _wallpaperNightFile.existsSync()) {
-        newWallpaper = FileImage(_wallpaperNightFile);
+        image = FileImage(_wallpaperNightFile);
       } else if (_wallpaperFile.existsSync()) {
-        newWallpaper = FileImage(_wallpaperFile); // Fallback
+        image = FileImage(_wallpaperFile); // Fallback
       }
     } else if (_wallpaperFile.existsSync()) {
-      newWallpaper = FileImage(_wallpaperFile);
+      image = FileImage(_wallpaperFile);
     }
 
-    if (_wallpaper != newWallpaper || videoFile != null || force) {
-      _wallpaper = newWallpaper;
+    return _WallpaperLayer(image: image, videoFile: videoFile);
+  }
+
+  // ---------------------------------------------------------------------
+  // Step 2: effective layer.
+  //
+  // SCENE_WALLPAPER_OVERRIDE_SEAM: this is where a later phase will let an
+  // active scene's wallpaper override take precedence over the user layer,
+  // computed at read time (never persisted). Today there is no scene layer,
+  // so this is the identity function: effective == user.
+  // ---------------------------------------------------------------------
+  _WallpaperLayer _resolveEffectiveLayer(_WallpaperLayer userLayer) => userLayer;
+
+  // ---------------------------------------------------------------------
+  // Step 3: publish + bump revision only if the effective identity changed.
+  //
+  // `image` uses FileImage's path+scale equality, so a re-resolution that
+  // lands on the same file path (e.g. a day/night tick with no actual
+  // change) does NOT bump the revision. An active video always bumps,
+  // matching the pre-refactor behaviour (video wallpapers are not static and
+  // are rendered via a live blur that does not consult the revision at all).
+  // `force` covers the case a user overwrites a fixed wallpaper path (e.g.
+  // pickWallpaper) with new file *content*: the path-based identity would
+  // otherwise be unchanged, so pick/save call sites explicitly force a bump.
+  // ---------------------------------------------------------------------
+  void _updateWallpaper({bool force = false}) {
+    final userLayer = _resolveUserLayer();
+    final effectiveLayer = _resolveEffectiveLayer(userLayer);
+
+    final identityChanged = _wallpaper != effectiveLayer.image;
+    if (identityChanged || effectiveLayer.videoFile != null || force) {
+      _wallpaper = effectiveLayer.image;
       _wallpaperRevision++;
       notifyListeners();
     }
   }
+
+  /// Test-only seam: re-resolves the wallpaper through the exact same path
+  /// [Timer.periodic] uses (see [_updateTimerState]), without waiting a full
+  /// minute. Does not exist in any production code path.
+  @visibleForTesting
+  void debugResolveNow() => _updateWallpaper();
 
   Future<void> pickWallpaper(File sourceFile) async {
     await _saveImage(sourceFile, _wallpaperFile);
