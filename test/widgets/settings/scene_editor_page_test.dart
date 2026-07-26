@@ -16,11 +16,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import 'package:flauncher/gradients.dart';
 import 'package:flauncher/l10n/app_localizations.dart';
 import 'package:flauncher/models/scene.dart';
 import 'package:flauncher/providers/scenes_service.dart';
 import 'package:flauncher/providers/settings_service.dart';
 import 'package:flauncher/widgets/settings/scene_editor_page.dart';
+import 'package:flauncher/widgets/settings/scene_gradient_page.dart';
 import 'package:flauncher/widgets/settings/scene_override_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -61,6 +63,8 @@ void main() {
     expect(find.text("Show app names below icons"), findsNothing);
     expect(find.text("Disable background blur"), findsNothing);
     expect(find.text("Show category titles"), findsNothing);
+    // Nor is the gradient override tile: it follows the exact same rule.
+    expect(find.text("Gradient"), findsNothing);
   });
 
   testWidgets("A non-normal scene shows the five override tiles with their inherited state", (tester) async {
@@ -72,6 +76,7 @@ void main() {
     when(settingsService.userShowAppNamesBelowIcons).thenReturn(false);
     when(settingsService.userBackgroundBlurDisabled).thenReturn(false);
     when(settingsService.userShowCategoryTitles).thenReturn(false);
+    when(settingsService.gradientUuid).thenReturn(FLauncherGradients.saintPetersburg.uuid);
 
     await _pumpWidgetWithProviders(
       tester,
@@ -88,6 +93,10 @@ void main() {
     // Every field is unset on this fixture, so every tile inherits; the user's
     // own setting is false for all five, so every tile reads "Inherit (off)".
     expect(find.text("Inherit (off)"), findsNWidgets(5));
+    // The gradient tile also appears, on this same "no override" fixture,
+    // naming the user's own current gradient.
+    expect(find.text("Gradient"), findsOneWidget);
+    expect(find.text("Inherit (Saint Petersburg)"), findsOneWidget);
   });
 
   testWidgets("Tapping an override tile opens SceneOverridePage", (tester) async {
@@ -99,6 +108,7 @@ void main() {
     when(settingsService.userShowAppNamesBelowIcons).thenReturn(false);
     when(settingsService.userBackgroundBlurDisabled).thenReturn(false);
     when(settingsService.userShowCategoryTitles).thenReturn(false);
+    when(settingsService.gradientUuid).thenReturn(FLauncherGradients.saintPetersburg.uuid);
 
     await _pumpWidgetWithProviders(
       tester,
@@ -111,6 +121,30 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(Key("SceneOverridePage")), findsOneWidget);
+  });
+
+  testWidgets("Tapping the gradient tile opens SceneGradientPage", (tester) async {
+    final scenesService = MockScenesService();
+    final settingsService = MockSettingsService();
+    when(scenesService.sceneByKey(any)).thenReturn(fakeScene(key: SceneKeys.cinema, name: "Cinema"));
+    when(settingsService.userAutoHideAppBarEnabled).thenReturn(false);
+    when(settingsService.userShowWatchNextSection).thenReturn(false);
+    when(settingsService.userShowAppNamesBelowIcons).thenReturn(false);
+    when(settingsService.userBackgroundBlurDisabled).thenReturn(false);
+    when(settingsService.userShowCategoryTitles).thenReturn(false);
+    when(settingsService.gradientUuid).thenReturn(FLauncherGradients.saintPetersburg.uuid);
+
+    await _pumpWidgetWithProviders(
+      tester,
+      scenesService,
+      settingsService,
+      SceneEditorPage(sceneKey: SceneKeys.cinema),
+    );
+
+    await tester.tap(find.text("Gradient"));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(Key("SceneGradientPage")), findsOneWidget);
   });
 }
 
@@ -131,6 +165,7 @@ Future<void> _pumpWidgetWithProviders(
         supportedLocales: AppLocalizations.supportedLocales,
         routes: {
           SceneOverridePage.routeName: (_) => Container(key: Key("SceneOverridePage")),
+          SceneGradientPage.routeName: (_) => Container(key: Key("SceneGradientPage")),
         },
         home: Scaffold(body: child),
       ),

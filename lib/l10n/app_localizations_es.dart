@@ -238,6 +238,11 @@ class AppLocalizationsEs extends AppLocalizations {
   String get sceneOverrideOff => 'Desactivado';
 
   @override
+  String sceneOverrideInheritGradient(String gradientName) {
+    return 'Heredar ($gradientName)';
+  }
+
+  @override
   String get sceneOverrideUpdateFailed =>
       'No se ha podido guardar este cambio.';
 

@@ -96,6 +96,12 @@
     "sceneOverrideInheritOff": "Inherit (off)",
     "sceneOverrideOn": "On",
     "sceneOverrideOff": "Off",
+    "sceneOverrideInheritGradient": "Inherit ({gradientName})",
+    "@sceneOverrideInheritGradient": {
+        "placeholders": {
+            "gradientName": { "type": "String" }
+        }
+    },
     "sceneOverrideUpdateFailed": "Could not save this change.",
     "spacer": "Spacer",
     "spacerMaxHeightRequirement": "Must be greater than 0 and less than or equal to 500",

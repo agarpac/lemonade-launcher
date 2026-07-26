@@ -524,6 +524,12 @@ abstract class AppLocalizations {
   /// **'Off'**
   String get sceneOverrideOff;
 
+  /// No description provided for @sceneOverrideInheritGradient.
+  ///
+  /// In en, this message translates to:
+  /// **'Inherit ({gradientName})'**
+  String sceneOverrideInheritGradient(String gradientName);
+
   /// No description provided for @sceneOverrideUpdateFailed.
   ///
   /// In en, this message translates to:

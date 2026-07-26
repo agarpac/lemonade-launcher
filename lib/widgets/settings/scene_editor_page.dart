@@ -1,9 +1,11 @@
+import 'package:flauncher/gradients.dart';
 import 'package:flauncher/l10n/app_localizations.dart';
 import 'package:flauncher/models/scene.dart';
 import 'package:flauncher/providers/scenes_service.dart';
 import 'package:flauncher/providers/settings_service.dart';
 import 'package:flauncher/widgets/scene_picker_panel.dart';
 import 'package:flauncher/widgets/settings/focusable_settings_tile.dart';
+import 'package:flauncher/widgets/settings/scene_gradient_page.dart';
 import 'package:flauncher/widgets/settings/scene_override_page.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -122,9 +124,12 @@ String sceneOverrideStateLabel(AppLocalizations localizations, bool? override, b
 /// shows an explanation instead of any override control, not even disabled
 /// ones.
 ///
-/// The five override tiles are a plain [Column] inside a scrollable body, so
-/// a future gradient picker, accent picker or scene image control can be
-/// added as further items without restructuring this page.
+/// The override tiles are a plain [Column] inside a scrollable body, so a
+/// future accent picker or scene image control can be added as further items
+/// without restructuring this page. The gradient override tile is the first
+/// of those: unlike the five boolean ones, it opens [SceneGradientPage]
+/// rather than [SceneOverridePage], since it has around a dozen options
+/// instead of three.
 class SceneEditorPage extends StatelessWidget {
   static const String routeName = "scene_editor_panel";
 
@@ -160,11 +165,12 @@ class SceneEditorPage extends StatelessWidget {
                   : SingleChildScrollView(
                       child: Column(
                         children: [
+                          _GradientOverrideTile(sceneKey: sceneKey, autofocus: true),
                           for (final field in _fields)
                             _SceneOverrideTile(
                               sceneKey: sceneKey,
                               field: field,
-                              autofocus: field == _fields.first,
+                              autofocus: false,
                             ),
                         ],
                       ),
@@ -241,4 +247,66 @@ class _SceneOverrideTile extends StatelessWidget {
       },
     );
   }
+}
+
+/// Compact tile for the scene's gradient override, opening
+/// [SceneGradientPage] on selection.
+///
+/// Unlike [_SceneOverrideTile]'s five boolean fields, there is no shared
+/// [SceneOverrideField] entry for the gradient: it has around a dozen
+/// options (every [FLauncherGradients.all] entry plus "no override"), not
+/// three, so it gets its own tile and its own sub-page instead of slotting
+/// into that enum.
+class _GradientOverrideTile extends StatelessWidget {
+  final String sceneKey;
+  final bool autofocus;
+
+  const _GradientOverrideTile({required this.sceneKey, this.autofocus = false});
+
+  @override
+  Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
+
+    return Selector2<ScenesService, SettingsService, (String?, String?)>(
+      selector: (_, scenesService, settingsService) => (
+        scenesService.sceneByKey(sceneKey)?.gradientUuid,
+        // The user's own, raw gradient — never an effective/resolved one,
+        // for the same reason [SceneOverrideField.inheritedValue] never
+        // reads an effective getter: this label describes what "no
+        // override" resolves to right now, not what this scene already
+        // shows.
+        settingsService.gradientUuid,
+      ),
+      builder: (context, data, _) {
+        final (override, userGradientUuid) = data;
+        final label = override == null
+            ? localizations.sceneOverrideInheritGradient(_gradientName(userGradientUuid))
+            : _gradientName(override);
+        return FocusableSettingsTile(
+          autofocus: autofocus,
+          leading: const Icon(Icons.gradient),
+          title: Text(localizations.gradient, style: Theme.of(context).textTheme.bodyMedium),
+          trailing: Text(
+            label,
+            style: Theme.of(context)
+                .textTheme
+                .bodyMedium
+                ?.copyWith(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.primary),
+          ),
+          onPressed: () => Navigator.of(context).pushNamed(
+            SceneGradientPage.routeName,
+            arguments: sceneKey,
+          ),
+        );
+      },
+    );
+  }
+
+  /// The display name of the gradient identified by [uuid], falling back to
+  /// [FLauncherGradients.saintPetersburg] exactly like
+  /// `WallpaperService._resolveUserGradient` does for an absent or unknown
+  /// uuid.
+  String _gradientName(String? uuid) => FLauncherGradients.all
+      .firstWhere((candidate) => candidate.uuid == uuid, orElse: () => FLauncherGradients.saintPetersburg)
+      .name;
 }

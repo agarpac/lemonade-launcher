@@ -233,6 +233,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sceneOverrideOff => 'Off';
 
   @override
+  String sceneOverrideInheritGradient(String gradientName) {
+    return 'Inherit ($gradientName)';
+  }
+
+  @override
   String get sceneOverrideUpdateFailed => 'Could not save this change.';
 
   @override
