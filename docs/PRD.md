@@ -140,7 +140,7 @@ Notas de implementación:
 - ✅ Título de la app Flutter y locale por defecto es-ES.
 - ✅ README en español de España.
 - ⬜ **Pendiente:** el `name: flauncher` de `pubspec.yaml` **no se cambia**: es el identificador del paquete Dart y romper eso obligaría a reescribir los 71 imports `package:flauncher/...` sin ganar nada.
-- ⬜ **Pendiente:** cadenas «Arc Launcher» en `lib/l10n/app_en.arb`, `lib/l10n/app_es.arb` y `lib/widgets/settings/flauncher_about_dialog.dart`.
+- ✅ Cadenas de marca limpiadas, conservando la cadena de atribución GPL: el diálogo «Acerca de» declara que Lemonade Launcher es un fork de Arc Launcher de Meddouri Badis, basado a su vez en FLauncher de Étienne Fesser. El `applicationLegalese` tenía el mismo defecto de atribución y no lo detectaba ninguna búsqueda de «Arc Launcher».
 - ✅ **Autoactualizador propio.** El repositorio de origen ya no está incrustado en el código: se pasa en tiempo de compilación con `--dart-define=UPDATE_REPO_OWNER` y `--dart-define=UPDATE_REPO_NAME` (ver `lib/build_flags.dart`). Sin ambos valores, `kSelfUpdaterAvailable` es `false` y la opción no aparece en los ajustes. Requisitos de publicación documentados en el README.
 - ⬜ **Pendiente:** cuando exista el repositorio propio en GitHub, publicar la primera *release* con etiqueta semántica y un APK universal adjunto, y compilar con el flavor `github` (el único que declara `REQUEST_INSTALL_PACKAGES`).
 - ⬜ **Pendiente:** el `applicationId` sigue siendo `com.omeda.arc` (`android/app/build.gradle`, `namespace` incluido), y las clases nativas viven en el paquete Java `com.leanbitlab.ltvL`, con restos de `me.efesser.flauncher` en `android/app/src/main/java/`. Cambiar el `applicationId` implica que el sistema lo trate como una app distinta: hay que desinstalar antes de instalar, y se pierden los ajustes y la base de datos.
@@ -368,3 +368,13 @@ Si algún día se retoma, el orden correcto es: primero arreglar el `catch` que 
 Además solo existen instantáneas de la v1 a la v5, mientras el esquema vivo va por la **v10**: los pasos de la v6 en adelante no tienen ninguna verificación automática. Las instantáneas de v6 a v9 ya no se pueden generar honestamente, porque de esas versiones solo queda el esquema actual.
 
 Arreglo posible: regenerar las instantáneas v1-v5 desde los JSON, que sí son correctos.
+
+### 13.3 Un fondo de vídeo recrea su widget cada 60 segundos
+
+`lib/providers/wallpaper_service.dart` sube `_wallpaperRevision` de forma incondicional mientras hay un fondo de vídeo activo, porque la condición incluye «hay vídeo» sin comprobar si el fichero ha cambiado. El temporizador de día/noche se dispara cada minuto, así que la revisión avanza cada minuto aunque nada haya cambiado.
+
+Para el desenfoque es inocuo: `cached_blur_backdrop.dart` esquiva la ruta de caché cuando hay vídeo. **No es inocuo para `lib/flauncher.dart:495`**, que identifica el widget del fondo de vídeo con `ValueKey("background_video_${wallpaperRevision}")`: al cambiar la clave, Flutter descarta el widget y crea uno nuevo, reinicializando el reproductor **una vez por minuto** mientras el fondo de vídeo esté activo.
+
+Verificado al hacer la fase 0 del fondo por escena. No se arregló ahí porque esa fase tenía como contrato no alterar ningún comportamiento observable.
+
+Arreglo: comparar el fichero de vídeo efectivo con el anterior en lugar de dar por cambiado cualquier vídeo. Es un cambio pequeño y localizado, y afecta a quien use fondo de vídeo — precisamente la funcionalidad que el propio README advierte que consume RAM y puede dar tirones.
