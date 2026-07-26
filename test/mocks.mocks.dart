@@ -756,6 +756,15 @@ class MockWallpaperService extends _i1.Mock implements _i15.WallpaperService {
       );
 
   @override
+  void debugResolveNow() => super.noSuchMethod(
+        Invocation.method(
+          #debugResolveNow,
+          [],
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
   _i10.Future<void> pickWallpaper(_i16.File? sourceFile) => (super.noSuchMethod(
         Invocation.method(
           #pickWallpaper,

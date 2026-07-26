@@ -20,27 +20,34 @@ import 'dart:io';
 import 'dart:async';
 
 import 'package:flauncher/gradients.dart';
+import 'package:flauncher/providers/scenes_service.dart';
 import 'package:flauncher/providers/settings_service.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:path_provider/path_provider.dart';
 
-/// The resolved wallpaper background: either a static [image], an active
-/// [videoFile], or neither (in which case the gradient is shown instead).
+/// The resolved wallpaper background: a static [image], an active
+/// [videoFile], and/or a [gradient] fallback shown when neither is present.
 ///
 /// This is used both for the "user layer" (resolved purely from the user's
 /// own day/night settings and files) and for the "effective layer" (what is
-/// actually rendered on screen). Today the two are always identical; the
-/// distinction exists so a later phase can make the effective layer diverge
-/// from the user layer (see [WallpaperService._resolveEffectiveLayer]).
+/// actually rendered on screen). [gradient] is always present on both layers
+/// so it can diverge independently of [image]/[videoFile]: a scene gradient
+/// override replaces the whole layer (see
+/// [WallpaperService._resolveEffectiveLayer]) so image, video and gradient
+/// are resolved and cached together, in a single pass, and can never disagree
+/// between the two widgets that read them (`lib/flauncher.dart` and
+/// `lib/widgets/cached_blur_backdrop.dart`).
 class _WallpaperLayer {
   final ImageProvider? image;
   final File? videoFile;
+  final FLauncherGradient gradient;
 
-  const _WallpaperLayer({required this.image, required this.videoFile});
+  const _WallpaperLayer({required this.image, required this.videoFile, required this.gradient});
 }
 
 class WallpaperService extends ChangeNotifier {
   final SettingsService _settingsService;
+  final ScenesService _scenesService;
 
   late File _wallpaperFile;
   late File _wallpaperDayFile;
@@ -57,20 +64,70 @@ class WallpaperService extends ChangeNotifier {
 
   ImageProvider? get wallpaper => _wallpaper;
 
+  /// The active video, or `null` when there is none *or* the active scene
+  /// overrides the background with a gradient. A scene override takes
+  /// precedence over everything the user has configured (see
+  /// [_resolveEffectiveLayer]); without this check here too, an active user
+  /// video would keep showing through the override, since `flauncher.dart`
+  /// consults this getter directly rather than the cached effective layer.
+  ///
+  /// Deliberately does not go through [_resolveUserLayer]: that also resolves
+  /// the image, which touches file fields not yet set before [_init]
+  /// completes. [_resolveActiveVideoFile] already guards on [isInitialized],
+  /// so this getter stays safe to call at any time, exactly as before.
   File? get wallpaperVideoFile {
+    if (_sceneGradientOverride() != null) return null;
     final f = _resolveActiveVideoFile();
     return f != null && f.existsSync() ? f : null;
   }
 
-  FLauncherGradient get gradient => FLauncherGradients.all.firstWhere(
-        (gradient) => gradient.uuid == _settingsService.gradientUuid,
+  /// The effective gradient: the active scene's override if it has one and it
+  /// resolves to a known gradient, otherwise the user's own gradient.
+  ///
+  /// Computed live rather than cached, unlike [wallpaper]: unlike image/video
+  /// resolution, this never touches the file system or [isInitialized], so
+  /// there is no benefit to caching and no risk in always resolving fresh.
+  FLauncherGradient get gradient => _sceneGradientOverride() ?? _resolveUserGradient();
+
+  /// The user's own gradient, ignoring any scene override: `SettingsService`'s
+  /// `gradientUuid`, or [FLauncherGradients.saintPetersburg] when it is unset
+  /// or unknown.
+  FLauncherGradient _resolveUserGradient() => FLauncherGradients.all.firstWhere(
+        (candidate) => candidate.uuid == _settingsService.gradientUuid,
         orElse: () => FLauncherGradients.saintPetersburg,
       );
 
-  WallpaperService(this._settingsService) :
+  /// The active scene's gradient override, or `null` when the scene has none
+  /// or its `gradientUuid` does not match any known [FLauncherGradient].
+  ///
+  /// An unknown uuid (e.g. a scene restored from a different build's
+  /// payload, where a gradient may since have been removed) must never
+  /// resolve to an arbitrary gradient: it degrades to "no override", so the
+  /// user's own background is what's shown.
+  FLauncherGradient? _sceneGradientOverride() {
+    final uuid = _scenesService.activeScene.gradientUuid;
+    if (uuid == null) return null;
+    for (final candidate in FLauncherGradients.all) {
+      if (candidate.uuid == uuid) return candidate;
+    }
+    return null;
+  }
+
+  /// Bookkeeping only, for the revision-bump comparison in [_updateWallpaper].
+  /// Not the value returned by [gradient], which is always computed live.
+  /// `null` means "not resolved yet", which [_updateWallpaper] treats as
+  /// always changed, exactly like [_wallpaper] starting out `null`. Left
+  /// unresolved here (rather than eagerly reading [gradient]) so construction
+  /// itself never touches `_settingsService`/`_scenesService` beyond
+  /// registering listeners: only [_updateWallpaper] does, once [_init] (or a
+  /// listener) actually runs it.
+  FLauncherGradient? _lastGradient;
+
+  WallpaperService(this._settingsService, this._scenesService) :
     _wallpaper = null
   {
     _settingsService.addListener(_onSettingsChanged);
+    _scenesService.addListener(_onScenesChanged);
     _init();
   }
 
@@ -85,9 +142,17 @@ class WallpaperService extends ChangeNotifier {
     }
   }
 
+  /// A scene change may change the effective gradient (or, in a later phase,
+  /// the effective wallpaper file), so always re-resolves — unlike
+  /// [_onSettingsChanged], which only cares about one specific setting.
+  void _onScenesChanged() {
+    _updateWallpaper();
+  }
+
   @override
   void dispose() {
     _settingsService.removeListener(_onSettingsChanged);
+    _scenesService.removeListener(_onScenesChanged);
     _timer?.cancel();
     super.dispose();
   }
@@ -172,18 +237,29 @@ class WallpaperService extends ChangeNotifier {
       image = FileImage(_wallpaperFile);
     }
 
-    return _WallpaperLayer(image: image, videoFile: videoFile);
+    return _WallpaperLayer(image: image, videoFile: videoFile, gradient: _resolveUserGradient());
   }
 
   // ---------------------------------------------------------------------
   // Step 2: effective layer.
   //
-  // SCENE_WALLPAPER_OVERRIDE_SEAM: this is where a later phase will let an
-  // active scene's wallpaper override take precedence over the user layer,
-  // computed at read time (never persisted). Today there is no scene layer,
-  // so this is the identity function: effective == user.
+  // A scene gradient override takes precedence over everything the user has
+  // configured, including an active video: it replaces the whole layer, not
+  // just the gradient field, so `image` and `videoFile` are also suppressed
+  // (see PRD section 9.1.4 — without suppressing the video, the override
+  // would be invisible to any user with a video wallpaper active). An unknown
+  // or absent scene gradient degrades to the user layer unchanged.
+  //
+  // PHASE2_SCENE_WALLPAPER_FILE_SEAM: this is where a later phase will let an
+  // active scene's wallpaper *file* override take precedence the same way.
   // ---------------------------------------------------------------------
-  _WallpaperLayer _resolveEffectiveLayer(_WallpaperLayer userLayer) => userLayer;
+  _WallpaperLayer _resolveEffectiveLayer(_WallpaperLayer userLayer) {
+    final sceneGradient = _sceneGradientOverride();
+    if (sceneGradient != null) {
+      return _WallpaperLayer(image: null, videoFile: null, gradient: sceneGradient);
+    }
+    return userLayer;
+  }
 
   // ---------------------------------------------------------------------
   // Step 3: publish + bump revision only if the effective identity changed.
@@ -196,14 +272,20 @@ class WallpaperService extends ChangeNotifier {
   // `force` covers the case a user overwrites a fixed wallpaper path (e.g.
   // pickWallpaper) with new file *content*: the path-based identity would
   // otherwise be unchanged, so pick/save call sites explicitly force a bump.
+  //
+  // The effective gradient (identity-compared against `FLauncherGradients.all`
+  // instances, never rebuilt, so `!=` is reference equality) is bumped the
+  // same way: a scene activation/deactivation that changes it must invalidate
+  // the cached blur exactly like an image change does.
   // ---------------------------------------------------------------------
   void _updateWallpaper({bool force = false}) {
     final userLayer = _resolveUserLayer();
     final effectiveLayer = _resolveEffectiveLayer(userLayer);
 
-    final identityChanged = _wallpaper != effectiveLayer.image;
+    final identityChanged = _wallpaper != effectiveLayer.image || _lastGradient != effectiveLayer.gradient;
     if (identityChanged || effectiveLayer.videoFile != null || force) {
       _wallpaper = effectiveLayer.image;
+      _lastGradient = effectiveLayer.gradient;
       _wallpaperRevision++;
       notifyListeners();
     }

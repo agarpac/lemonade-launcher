@@ -19,6 +19,7 @@
 import 'dart:io';
 
 import 'package:flauncher/gradients.dart';
+import 'package:flauncher/models/scene.dart';
 import 'package:flauncher/providers/wallpaper_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
@@ -26,6 +27,10 @@ import 'package:path_provider_platform_interface/path_provider_platform_interfac
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
 import '../mocks.mocks.dart';
+
+/// A scene with no wallpaper override at all: these tests are about the
+/// user's own wallpaper, not scene overrides (see wallpaper_service_scene_test.dart).
+final _sceneWithoutOverride = Scene(key: "normal", name: "Normal");
 
 void main() {
   late final _MockPathProviderPlatform pathProviderPlatform;
@@ -35,11 +40,18 @@ void main() {
     PathProviderPlatform.instance = pathProviderPlatform;
   });
 
+  MockScenesService mkScenesService() {
+    final scenesService = MockScenesService();
+    when(scenesService.activeScene).thenReturn(_sceneWithoutOverride);
+    return scenesService;
+  }
+
   test("pickWallpaper saves source file", () async {
     TestWidgetsFlutterBinding.ensureInitialized();
     final settingsService = MockSettingsService();
     when(settingsService.timeBasedWallpaperEnabled).thenReturn(false);
-    final wallpaperService = WallpaperService(settingsService);
+    when(settingsService.gradientUuid).thenReturn(null);
+    final wallpaperService = WallpaperService(settingsService, mkScenesService());
     await untilCalled(pathProviderPlatform.getApplicationDocumentsPath());
 
     final source = File("test_wallpaper_src");
@@ -59,7 +71,8 @@ void main() {
   test("setGradient", () async {
     final settingsService = MockSettingsService();
     when(settingsService.timeBasedWallpaperEnabled).thenReturn(false);
-    final wallpaperService = WallpaperService(settingsService);
+    when(settingsService.gradientUuid).thenReturn(null);
+    final wallpaperService = WallpaperService(settingsService, mkScenesService());
 
     await untilCalled(pathProviderPlatform.getApplicationDocumentsPath());
     await wallpaperService.setGradient(FLauncherGradients.greatWhale);
@@ -72,7 +85,7 @@ void main() {
     test("without uuid from settings", () async {
       final settingsService = MockSettingsService();
       when(settingsService.timeBasedWallpaperEnabled).thenReturn(false);
-      final wallpaperService = WallpaperService(settingsService);
+      final wallpaperService = WallpaperService(settingsService, mkScenesService());
       when(settingsService.gradientUuid).thenReturn(null);
 
       await untilCalled(pathProviderPlatform.getApplicationDocumentsPath());
@@ -84,7 +97,7 @@ void main() {
     test("with uuid from settings", () async {
       final settingsService = MockSettingsService();
       when(settingsService.timeBasedWallpaperEnabled).thenReturn(false);
-      final wallpaperService = WallpaperService(settingsService);
+      final wallpaperService = WallpaperService(settingsService, mkScenesService());
       when(settingsService.gradientUuid).thenReturn(FLauncherGradients.grassShampoo.uuid);
       await untilCalled(pathProviderPlatform.getApplicationDocumentsPath());
 

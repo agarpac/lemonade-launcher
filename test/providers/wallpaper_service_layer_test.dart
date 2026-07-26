@@ -29,6 +29,7 @@
 
 import 'dart:io';
 
+import 'package:flauncher/models/scene.dart';
 import 'package:flauncher/providers/wallpaper_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
@@ -36,6 +37,16 @@ import 'package:path_provider_platform_interface/path_provider_platform_interfac
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
 import '../mocks.mocks.dart';
+
+/// A scene with no wallpaper override: these tests are about the user's own
+/// image-identity/revision-bump logic, not scene overrides.
+final _sceneWithoutOverride = Scene(key: "normal", name: "Normal");
+
+MockScenesService _mkScenesService() {
+  final scenesService = MockScenesService();
+  when(scenesService.activeScene).thenReturn(_sceneWithoutOverride);
+  return scenesService;
+}
 
 void main() {
   // Own scratch directory: wallpaper_service_test.dart mocks the documents
@@ -69,7 +80,8 @@ void main() {
 
     final settingsService = MockSettingsService();
     when(settingsService.timeBasedWallpaperEnabled).thenReturn(true);
-    final wallpaperService = WallpaperService(settingsService);
+    when(settingsService.gradientUuid).thenReturn(null);
+    final wallpaperService = WallpaperService(settingsService, _mkScenesService());
 
     await untilCalled(pathProviderPlatform.getApplicationDocumentsPath());
     await Future.delayed(Duration.zero);
@@ -90,7 +102,8 @@ void main() {
 
     final settingsService = MockSettingsService();
     when(settingsService.timeBasedWallpaperEnabled).thenReturn(false);
-    final wallpaperService = WallpaperService(settingsService);
+    when(settingsService.gradientUuid).thenReturn(null);
+    final wallpaperService = WallpaperService(settingsService, _mkScenesService());
     await untilCalled(pathProviderPlatform.getApplicationDocumentsPath());
 
     final firstSource = File("${documentsDirectory.path}/src_1");
