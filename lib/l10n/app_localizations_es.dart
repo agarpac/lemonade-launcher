@@ -243,6 +243,14 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
+  String get sceneOverrideAccentColor => 'Color de acento';
+
+  @override
+  String sceneOverrideInheritAccentColor(String colorName) {
+    return 'Heredar ($colorName)';
+  }
+
+  @override
   String get sceneOverrideUpdateFailed =>
       'No se ha podido guardar este cambio.';
 

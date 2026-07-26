@@ -530,6 +530,18 @@ abstract class AppLocalizations {
   /// **'Inherit ({gradientName})'**
   String sceneOverrideInheritGradient(String gradientName);
 
+  /// No description provided for @sceneOverrideAccentColor.
+  ///
+  /// In en, this message translates to:
+  /// **'Accent color'**
+  String get sceneOverrideAccentColor;
+
+  /// No description provided for @sceneOverrideInheritAccentColor.
+  ///
+  /// In en, this message translates to:
+  /// **'Inherit ({colorName})'**
+  String sceneOverrideInheritAccentColor(String colorName);
+
   /// No description provided for @sceneOverrideUpdateFailed.
   ///
   /// In en, this message translates to:

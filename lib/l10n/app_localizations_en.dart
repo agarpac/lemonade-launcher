@@ -238,6 +238,14 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get sceneOverrideAccentColor => 'Accent color';
+
+  @override
+  String sceneOverrideInheritAccentColor(String colorName) {
+    return 'Inherit ($colorName)';
+  }
+
+  @override
   String get sceneOverrideUpdateFailed => 'Could not save this change.';
 
   @override

@@ -36,6 +36,7 @@ import 'package:flauncher/widgets/settings/interface_settings_page.dart';
 import 'package:flauncher/widgets/settings/general_settings_page.dart';
 import 'package:flauncher/widgets/settings/screensaver_clock_style_page.dart';
 import 'package:flauncher/widgets/settings/scenes_panel_page.dart';
+import 'package:flauncher/widgets/settings/scene_accent_color_page.dart';
 import 'package:flauncher/widgets/settings/scene_editor_page.dart';
 import 'package:flauncher/widgets/settings/scene_gradient_page.dart';
 import 'package:flauncher/widgets/settings/scene_override_page.dart';
@@ -126,6 +127,9 @@ class _SettingsPanelState extends State<SettingsPanel> {
                     case SceneGradientPage.routeName:
                       return _FastPageRoute(
                           builder: (_) => SceneGradientPage(sceneKey: settings.arguments as String));
+                    case SceneAccentColorPage.routeName:
+                      return _FastPageRoute(
+                          builder: (_) => SceneAccentColorPage(sceneKey: settings.arguments as String));
                     default:
                       throw ArgumentError.value(settings.name, "settings.name", "Route not supported.");
                   }

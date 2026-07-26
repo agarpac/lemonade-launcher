@@ -71,6 +71,7 @@ Scene fakeScene({
   bool? showAppNames,
   bool? disableBackgroundBlur,
   bool? showCategoryTitles,
+  String? accentColorHex,
 }) =>
     Scene(
       key: key,
@@ -81,6 +82,7 @@ Scene fakeScene({
       showAppNames: showAppNames,
       disableBackgroundBlur: disableBackgroundBlur,
       showCategoryTitles: showCategoryTitles,
+      accentColorHex: accentColorHex,
     );
 
 Category fakeCategory({

@@ -5,6 +5,7 @@ import 'package:flauncher/providers/scenes_service.dart';
 import 'package:flauncher/providers/settings_service.dart';
 import 'package:flauncher/widgets/scene_picker_panel.dart';
 import 'package:flauncher/widgets/settings/focusable_settings_tile.dart';
+import 'package:flauncher/widgets/settings/scene_accent_color_page.dart';
 import 'package:flauncher/widgets/settings/scene_gradient_page.dart';
 import 'package:flauncher/widgets/settings/scene_override_page.dart';
 import 'package:flutter/material.dart';
@@ -12,9 +13,12 @@ import 'package:provider/provider.dart';
 
 /// One of the five boolean presentation overrides a [Scene] can carry.
 ///
-/// Deliberately excludes the wallpaper overrides (file/gradient) and
-/// [Scene.accentColorHex]: those are out of scope for this editor (see the
-/// gradient/accent/image pickers planned for later).
+/// Deliberately excludes the wallpaper overrides ([Scene.wallpaperPath] and
+/// [Scene.gradientUuid]) and [Scene.accentColorHex]: the wallpaper file
+/// override is out of scope for this editor (see the scene image picker
+/// planned for later), while the gradient and accent overrides each get their
+/// own tile below instead of slotting into this enum, since both carry far
+/// more than three options.
 enum SceneOverrideField { hideAppBar, showWatchNext, showAppNames, disableBackgroundBlur, showCategoryTitles }
 
 extension SceneOverrideFieldX on SceneOverrideField {
@@ -125,11 +129,11 @@ String sceneOverrideStateLabel(AppLocalizations localizations, bool? override, b
 /// ones.
 ///
 /// The override tiles are a plain [Column] inside a scrollable body, so a
-/// future accent picker or scene image control can be added as further items
-/// without restructuring this page. The gradient override tile is the first
-/// of those: unlike the five boolean ones, it opens [SceneGradientPage]
-/// rather than [SceneOverridePage], since it has around a dozen options
-/// instead of three.
+/// future scene image control can be added as a further item without
+/// restructuring this page. The gradient and accent colour override tiles are
+/// the first two of those: unlike the five boolean ones, they open
+/// [SceneGradientPage] and [SceneAccentColorPage] respectively rather than
+/// [SceneOverridePage], since each has far more than three options.
 class SceneEditorPage extends StatelessWidget {
   static const String routeName = "scene_editor_panel";
 
@@ -166,6 +170,7 @@ class SceneEditorPage extends StatelessWidget {
                       child: Column(
                         children: [
                           _GradientOverrideTile(sceneKey: sceneKey, autofocus: true),
+                          _AccentColorOverrideTile(sceneKey: sceneKey, autofocus: false),
                           for (final field in _fields)
                             _SceneOverrideTile(
                               sceneKey: sceneKey,
@@ -309,4 +314,57 @@ class _GradientOverrideTile extends StatelessWidget {
   String _gradientName(String? uuid) => FLauncherGradients.all
       .firstWhere((candidate) => candidate.uuid == uuid, orElse: () => FLauncherGradients.saintPetersburg)
       .name;
+}
+
+/// Compact tile for the scene's accent colour override, opening
+/// [SceneAccentColorPage] on selection.
+///
+/// Unlike [_SceneOverrideTile]'s five boolean fields, there is no shared
+/// [SceneOverrideField] entry for the accent colour: it has around fifteen
+/// options (every `AccentColorPage.colorPresets` entry plus "no override"),
+/// not three, so it gets its own tile and its own sub-page instead of
+/// slotting into that enum — the same reasoning as [_GradientOverrideTile].
+class _AccentColorOverrideTile extends StatelessWidget {
+  final String sceneKey;
+  final bool autofocus;
+
+  const _AccentColorOverrideTile({required this.sceneKey, this.autofocus = false});
+
+  @override
+  Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
+
+    return Selector2<ScenesService, SettingsService, (String?, String)>(
+      selector: (_, scenesService, settingsService) => (
+        scenesService.sceneByKey(sceneKey)?.accentColorHex,
+        // The user's own, raw accent color — never an effective/resolved
+        // one, for the same reason [_GradientOverrideTile] never reads one:
+        // this label describes what "no override" resolves to right now, not
+        // what this scene already shows.
+        settingsService.userAccentColorHex,
+      ),
+      builder: (context, data, _) {
+        final (override, userAccentColorHex) = data;
+        final label = override == null
+            ? localizations.sceneOverrideInheritAccentColor(accentColorPresetNameByHex(userAccentColorHex))
+            : accentColorPresetNameByHex(override);
+        return FocusableSettingsTile(
+          autofocus: autofocus,
+          leading: const Icon(Icons.palette),
+          title: Text(localizations.sceneOverrideAccentColor, style: Theme.of(context).textTheme.bodyMedium),
+          trailing: Text(
+            label,
+            style: Theme.of(context)
+                .textTheme
+                .bodyMedium
+                ?.copyWith(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.primary),
+          ),
+          onPressed: () => Navigator.of(context).pushNamed(
+            SceneAccentColorPage.routeName,
+            arguments: sceneKey,
+          ),
+        );
+      },
+    );
+  }
 }

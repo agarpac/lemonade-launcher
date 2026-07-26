@@ -97,6 +97,8 @@
     "sceneOverrideOn": "Activado",
     "sceneOverrideOff": "Desactivado",
     "sceneOverrideInheritGradient": "Heredar ({gradientName})",
+    "sceneOverrideAccentColor": "Color de acento",
+    "sceneOverrideInheritAccentColor": "Heredar ({colorName})",
     "sceneOverrideUpdateFailed": "No se ha podido guardar este cambio.",
     "spacer": "Espaciador",
     "spacerMaxHeightRequirement": "Debe ser mayor a cero y menor o igual a 500",
