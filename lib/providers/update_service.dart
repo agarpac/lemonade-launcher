@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flauncher/build_flags.dart';
 import 'package:flauncher/flauncher_channel.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
@@ -30,8 +31,8 @@ class DownloadedApk {
   const DownloadedApk({required this.path, required this.version});
 }
 
-/// ABI-split APKs are named like `arclauncher-1.0.5-arm64-v8a.apk`.
-/// Universal builds omit the ABI suffix (`arclauncher-1.0.5.apk`).
+/// ABI-split APKs are named like `lemonade-launcher-1.0.5-arm64-v8a.apk`.
+/// Universal builds omit the ABI suffix (`lemonade-launcher-1.0.5.apk`).
 bool isAbiSplitApk(String name) {
   return RegExp(
     r"-(arm64-v8a|armeabi-v7a|armeabi|x86_64|x86)\.apk$",
@@ -74,14 +75,20 @@ bool isAbiSplitApk(String name) {
 }
 
 class UpdateService {
-  static const String _owner = "meddouribadis";
-  static const String _repo = "arclauncher";
+  static const String _owner = kUpdateRepoOwner;
+  static const String _repo = kUpdateRepoName;
   final FLauncherChannel _fLauncherChannel;
 
   UpdateService({FLauncherChannel? fLauncherChannel})
       : _fLauncherChannel = fLauncherChannel ?? FLauncherChannel();
 
   Future<UpdateResult> checkForUpdate() async {
+    if (!kSelfUpdaterAvailable) {
+      throw StateError(
+        "Self-updater is not configured. Build with "
+        "--dart-define=UPDATE_REPO_OWNER and --dart-define=UPDATE_REPO_NAME.",
+      );
+    }
     final packageInfo = await PackageInfo.fromPlatform();
     final currentVersion = packageInfo.version;
     final release = await _fetchLatestStableRelease();
@@ -109,7 +116,7 @@ class UpdateService {
     try {
       final request = await httpClient.getUrl(uri);
       request.headers.set(HttpHeaders.acceptHeader, "application/octet-stream");
-      request.headers.set(HttpHeaders.userAgentHeader, "ArcLauncher-Updater");
+      request.headers.set(HttpHeaders.userAgentHeader, kUpdaterUserAgent);
       final response = await request.close();
 
       if (response.statusCode != HttpStatus.ok) {
@@ -126,7 +133,7 @@ class UpdateService {
       }
 
       final fileName =
-          update.apkName ?? "arclauncher-${update.latestVersion}.apk";
+          update.apkName ?? "$kApkNamePrefix-${update.latestVersion}.apk";
       final file = File("${updatesDirectory.path}/$fileName");
       await response.pipe(file.openWrite());
       return DownloadedApk(path: file.path, version: update.latestVersion);
@@ -152,7 +159,7 @@ class UpdateService {
       final request = await httpClient.getUrl(uri);
       request.headers
           .set(HttpHeaders.acceptHeader, "application/vnd.github+json");
-      request.headers.set(HttpHeaders.userAgentHeader, "ArcLauncher-Updater");
+      request.headers.set(HttpHeaders.userAgentHeader, kUpdaterUserAgent);
 
       final response = await request.close();
       if (response.statusCode != HttpStatus.ok) {

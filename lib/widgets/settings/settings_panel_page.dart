@@ -68,7 +68,7 @@ class SettingsPanelPage extends StatelessWidget {
                   title: Text(localizations.systemSettings, style: Theme.of(context).textTheme.bodyMedium),
                   onPressed: () => context.read<AppsService>().openSettings(),
                 ),
-                if (kEnableSelfUpdater)
+                if (kSelfUpdaterAvailable)
                   FocusableSettingsTile(
                     leading: const Icon(Icons.system_update_alt),
                     title: Text(localizations.updateCheck, style: Theme.of(context).textTheme.bodyMedium),
@@ -91,7 +91,7 @@ class SettingsPanelPage extends StatelessWidget {
 }
 
 Future<void> _checkForUpdates(BuildContext context) async {
-  if (!kEnableSelfUpdater) {
+  if (!kSelfUpdaterAvailable) {
     return;
   }
 
