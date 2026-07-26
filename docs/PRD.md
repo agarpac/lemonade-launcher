@@ -242,6 +242,12 @@ Si algún día se retoma, esa segunda parte es imprescindible y no es negociable
 
 Consecuencia práctica: la escena «Niños» es hoy un dock filtrado sin candado. Sigue siendo útil —limita lo que se ve— pero no impide salir de ella.
 
+**Deuda de diseño consciente:** el fichero de imagen de una escena se deriva de su clave (`scene_wallpaper_<clave>` en el directorio de documentos), no de la ruta guardada en `Scene.wallpaperPath`. De ese campo solo se consulta si es nulo o no.
+
+Es deliberado: una ruta absoluta guardada al importar la imagen apuntaría al sistema de ficheros del dispositivo original, así que una copia de seguridad restaurada en otro televisor —o una reubicación del directorio de la aplicación por parte de Android— dejaría el fondo muerto en silencio aunque el fichero copiado esté justo donde se espera. La clave de la escena, en cambio, nunca cambia.
+
+El precio es que `wallpaperPath` es de facto un booleano con aspecto de ruta, lo que puede engañar a quien lo lea. La forma limpia a largo plazo sería renombrarlo a algo como `hasWallpaperImage`, pero eso implica migrar el formato persistido y subir su versión, con el coste descrito arriba. Se deja para cuando haya otro motivo para tocar el modelo.
+
 ### 9.2 Candidatas evaluadas
 
 | Candidata | Estado | Motivo |

@@ -31,8 +31,9 @@ import 'package:path_provider/path_provider.dart';
 /// This is used both for the "user layer" (resolved purely from the user's
 /// own day/night settings and files) and for the "effective layer" (what is
 /// actually rendered on screen). [gradient] is always present on both layers
-/// so it can diverge independently of [image]/[videoFile]: a scene gradient
-/// override replaces the whole layer (see
+/// so it can diverge independently of [image]/[videoFile]: an active scene's
+/// wallpaper override — a gradient or an image, the two are mutually
+/// exclusive on [Scene] — replaces the whole layer (see
 /// [WallpaperService._resolveEffectiveLayer]) so image, video and gradient
 /// are resolved and cached together, in a single pass, and can never disagree
 /// between the two widgets that read them (`lib/flauncher.dart` and
@@ -55,6 +56,12 @@ class WallpaperService extends ChangeNotifier {
   late File _wallpaperVideoFile;
   late File _wallpaperDayVideoFile;
   late File _wallpaperNightVideoFile;
+
+  /// Path of the documents directory, kept around so [_sceneWallpaperFile]
+  /// can derive a scene's image path on demand, the same way the six fields
+  /// above are built once in [_init] rather than re-resolved on every call.
+  late String _documentsPath;
+
   bool _initialized = false;
   Timer? _timer;
   int _wallpaperRevision = 0;
@@ -65,8 +72,8 @@ class WallpaperService extends ChangeNotifier {
   ImageProvider? get wallpaper => _wallpaper;
 
   /// The active video, or `null` when there is none *or* the active scene
-  /// overrides the background with a gradient. A scene override takes
-  /// precedence over everything the user has configured (see
+  /// overrides the background with a gradient or an image. A scene override
+  /// takes precedence over everything the user has configured (see
   /// [_resolveEffectiveLayer]); without this check here too, an active user
   /// video would keep showing through the override, since `flauncher.dart`
   /// consults this getter directly rather than the cached effective layer.
@@ -77,6 +84,7 @@ class WallpaperService extends ChangeNotifier {
   /// so this getter stays safe to call at any time, exactly as before.
   File? get wallpaperVideoFile {
     if (_sceneGradientOverride() != null) return null;
+    if (_sceneImageOverride() != null) return null;
     final f = _resolveActiveVideoFile();
     return f != null && f.existsSync() ? f : null;
   }
@@ -111,6 +119,40 @@ class WallpaperService extends ChangeNotifier {
       if (candidate.uuid == uuid) return candidate;
     }
     return null;
+  }
+
+  /// Path of the namespaced wallpaper image file for the scene identified by
+  /// [sceneKey]: `scene_wallpaper_<sceneKey>` in the documents directory,
+  /// alongside — never colliding with — the six fixed user wallpaper
+  /// filenames (`wallpaper`, `wallpaper_day`, `wallpaper_night` and their
+  /// `_video` variants). [cleanImageWallpaperFiles] and
+  /// [cleanVideoWallpaperFiles] enumerate exactly those six by field, so they
+  /// never touch a file built from this method.
+  ///
+  /// Deliberately derived only from [sceneKey] and the current documents
+  /// directory, never from `Scene.wallpaperPath`'s stored value: see
+  /// [importSceneWallpaper] for why.
+  File _sceneWallpaperFile(String sceneKey) => File("$_documentsPath/scene_wallpaper_$sceneKey");
+
+  /// The active scene's wallpaper image override, or `null` when the scene
+  /// has no `wallpaperPath` override, or the namespaced file is missing from
+  /// disk.
+  ///
+  /// A missing file — the app was reinstalled, a backup was restored on
+  /// another device, the file was deleted by hand — degrades to "no
+  /// override" here, exactly like [_sceneGradientOverride] degrading on an
+  /// unknown uuid: this launcher is the device's only home screen, so a scene
+  /// claiming an image it cannot find must fall through to the user's own
+  /// wallpaper rather than show nothing.
+  ///
+  /// `null` before [_init] completes, matching [_resolveActiveVideoFile]'s
+  /// [isInitialized] guard: [_documentsPath] is not set yet.
+  File? _sceneImageOverride() {
+    if (!isInitialized) return null;
+    final wallpaperPath = _scenesService.activeScene.wallpaperPath;
+    if (wallpaperPath == null) return null;
+    final file = _sceneWallpaperFile(_scenesService.activeScene.key);
+    return file.existsSync() ? file : null;
   }
 
   /// Bookkeeping only, for the revision-bump comparison in [_updateWallpaper].
@@ -157,9 +199,9 @@ class WallpaperService extends ChangeNotifier {
     }
   }
 
-  /// A scene change may change the effective gradient (or, in a later phase,
-  /// the effective wallpaper file), so always re-resolves — unlike
-  /// [_onSettingsChanged], which only cares about one specific setting.
+  /// A scene change may change the effective gradient or the effective
+  /// wallpaper image, so always re-resolves — unlike [_onSettingsChanged],
+  /// which only cares about one specific setting.
   void _onScenesChanged() {
     _updateWallpaper();
   }
@@ -174,6 +216,7 @@ class WallpaperService extends ChangeNotifier {
 
   Future<void> _init() async {
     final directory = await getApplicationDocumentsDirectory();
+    _documentsPath = directory.path;
     _wallpaperFile = File("${directory.path}/wallpaper");
     _wallpaperDayFile = File("${directory.path}/wallpaper_day");
     _wallpaperNightFile = File("${directory.path}/wallpaper_night");
@@ -258,20 +301,31 @@ class WallpaperService extends ChangeNotifier {
   // ---------------------------------------------------------------------
   // Step 2: effective layer.
   //
-  // A scene gradient override takes precedence over everything the user has
-  // configured, including an active video: it replaces the whole layer, not
-  // just the gradient field, so `image` and `videoFile` are also suppressed
-  // (see PRD section 9.1.4 — without suppressing the video, the override
-  // would be invisible to any user with a video wallpaper active). An unknown
-  // or absent scene gradient degrades to the user layer unchanged.
+  // Either a scene gradient override or a scene image override takes
+  // precedence over everything the user has configured, including an active
+  // video: it replaces the whole layer, not just one field, so `image` and
+  // `videoFile` are also suppressed (see PRD section 9.1.4 — without
+  // suppressing the video, the override would be invisible to any user with
+  // a video wallpaper active). `Scene.wallpaperPath` and `Scene.gradientUuid`
+  // are mutually exclusive (enforced in the model), so at most one of the two
+  // branches below can ever apply for a given scene. An unknown/missing
+  // scene gradient or a scene image file absent from disk both degrade to
+  // the user layer unchanged, never to a blank screen.
   //
-  // PHASE2_SCENE_WALLPAPER_FILE_SEAM: this is where a later phase will let an
-  // active scene's wallpaper *file* override take precedence the same way.
+  // The image branch reuses `userLayer.gradient`, not a scene one: a scene
+  // that overrides the image never overrides the gradient too (mutual
+  // exclusion again), so the gradient shown here — invisible behind the
+  // image, but still cached in `_lastGradient` — must match what the public
+  // `gradient` getter independently computes, which is the user's own.
   // ---------------------------------------------------------------------
   _WallpaperLayer _resolveEffectiveLayer(_WallpaperLayer userLayer) {
     final sceneGradient = _sceneGradientOverride();
     if (sceneGradient != null) {
       return _WallpaperLayer(image: null, videoFile: null, gradient: sceneGradient);
+    }
+    final sceneImageFile = _sceneImageOverride();
+    if (sceneImageFile != null) {
+      return _WallpaperLayer(image: FileImage(sceneImageFile), videoFile: null, gradient: userLayer.gradient);
     }
     return userLayer;
   }
@@ -393,6 +447,61 @@ class WallpaperService extends ChangeNotifier {
     await _settingsService.setGradientUuid(fLauncherGradient.uuid);
     // Drop the in-memory wallpaper provider so the gradient is shown instead of
     // the (now deleted) image/video file. _updateWallpaper notifies listeners.
+    _updateWallpaper(force: true);
+  }
+
+  // ---------------------------------------------------------------------
+  // Scene wallpaper image overrides (phase 2 of scene wallpaper overrides,
+  // PRD section 9.1.4). These never touch the user's own files: they read
+  // and write only [_sceneWallpaperFile], which is namespaced by scene key
+  // and lives alongside, never in place of, the six fixed user filenames.
+  // ---------------------------------------------------------------------
+
+  /// Copies [source] into the namespaced wallpaper file of the scene
+  /// identified by [sceneKey], and returns the path the caller should store
+  /// in `Scene.wallpaperPath`.
+  ///
+  /// The returned path is informational only — it records that *some* import
+  /// happened, for anyone inspecting the persisted scene — and is never read
+  /// back to locate the file: [_sceneImageOverride] only checks that
+  /// `Scene.wallpaperPath` is non-null, then re-derives the actual file from
+  /// [sceneKey] via [_sceneWallpaperFile]. An absolute path baked in here
+  /// would point nowhere after a backup is restored on another device, or
+  /// after Android relocates this app's documents directory, even though the
+  /// copied file is sitting right there under its expected namespaced name.
+  /// Deriving the file from the stable scene key instead is what survives
+  /// both cases.
+  Future<String> importSceneWallpaper(String sceneKey, File source) async {
+    final targetFile = _sceneWallpaperFile(sceneKey);
+
+    final readStream = source.openRead();
+    final writeStream = targetFile.openWrite();
+    await readStream.cast<List<int>>().pipe(writeStream);
+
+    await FileImage(targetFile).evict();
+    PaintingBinding.instance.imageCache.clear();
+    PaintingBinding.instance.imageCache.clearLiveImages();
+
+    _updateWallpaper(force: true);
+    return targetFile.path;
+  }
+
+  /// Removes the namespaced wallpaper file of the scene identified by
+  /// [sceneKey], if one exists. Touches only that one file: never another
+  /// scene's, and never any of the user's own six wallpaper files.
+  ///
+  /// Deliberately the *only* way a scene's wallpaper file is ever deleted:
+  /// there is no sweep that removes files of scenes that no longer exist.
+  /// `ScenesService` falls back to the default scenes whenever its stored
+  /// payload cannot be read, so such a sweep would treat every one of the
+  /// user's own scenes as "gone" after a single transient load failure and
+  /// delete their wallpapers. A few orphaned megabytes are an acceptable
+  /// cost; silently destroying a user's wallpaper is not.
+  Future<void> deleteSceneWallpaper(String sceneKey) async {
+    final targetFile = _sceneWallpaperFile(sceneKey);
+    if (await targetFile.exists()) {
+      await targetFile.delete();
+    }
     _updateWallpaper(force: true);
   }
 
