@@ -21,6 +21,7 @@ import 'dart:math';
 import 'package:flauncher/database.dart';
 import 'package:flauncher/flauncher_channel.dart';
 import 'package:flauncher/providers/apps_service.dart';
+import 'package:flauncher/providers/scenes_service.dart';
 import 'package:flauncher/providers/settings_service.dart';
 import 'package:flauncher/providers/wallpaper_service.dart';
 import 'package:flutter/cupertino.dart';
@@ -35,6 +36,7 @@ import 'package:flauncher/models/category.dart';
   WallpaperService,
   AppsService,
   SettingsService,
+  ScenesService,
   ImagePicker,
 ], customMocks: [
   MockSpec<FLauncherDatabase>(unsupportedMembers: {#alias}),

@@ -21,12 +21,15 @@ import 'package:flauncher/flauncher_channel.dart';
 import 'package:flauncher/gradients.dart';
 import 'package:flauncher/l10n/app_localizations.dart';
 import 'package:flauncher/models/category.dart';
+import 'package:flauncher/models/scene.dart';
 import 'package:flauncher/providers/apps_service.dart';
 import 'package:flauncher/providers/launcher_state.dart';
 import 'package:flauncher/providers/network_service.dart';
+import 'package:flauncher/providers/scenes_service.dart';
 import 'package:flauncher/providers/settings_service.dart';
 import 'package:flauncher/providers/wallpaper_service.dart';
 import 'package:flauncher/providers/watch_next_service.dart';
+import 'package:flauncher/widgets/app_card.dart';
 import 'package:flauncher/widgets/application_info_panel.dart';
 import 'package:flauncher/widgets/category_clean_row.dart';
 import 'package:flauncher/widgets/settings/settings_panel_page.dart';
@@ -98,6 +101,88 @@ void main() {
     expect(find.text("Applications"), findsNothing);
     expect(find.text("Favorites"), findsNothing);
     expect(find.byType(CategoryCleanRow), findsNothing);
+  });
+
+  testWidgets("Dock shows every favorite app when the active scene has no dock override", (tester) async {
+    final appsService = mkAppService();
+    final favoritesCategory = fakeCategory(name: "Favorites", order: 0);
+    favoritesCategory.applications.addAll([
+      fakeApp(packageName: "me.efesser.app1", name: "App 1"),
+      fakeApp(packageName: "me.efesser.app2", name: "App 2"),
+      fakeApp(packageName: "me.efesser.app3", name: "App 3"),
+    ]);
+    mockSections(appsService, [favoritesCategory]);
+    final scenesService = mkScenesService(
+      activeScene: Scene(key: SceneKeys.normal, name: "Normal"),
+    );
+
+    await _pumpWidgetWith(tester, appsService, scenesService: scenesService);
+
+    expect(_dockPackageNames(tester), ["me.efesser.app1", "me.efesser.app2", "me.efesser.app3"]);
+  });
+
+  testWidgets("Dock shows only the apps listed in the active scene's dock override, in scene order", (tester) async {
+    final appsService = mkAppService();
+    final favoritesCategory = fakeCategory(name: "Favorites", order: 0);
+    favoritesCategory.applications.addAll([
+      fakeApp(packageName: "me.efesser.app1", name: "App 1"),
+      fakeApp(packageName: "me.efesser.app2", name: "App 2"),
+      fakeApp(packageName: "me.efesser.app3", name: "App 3"),
+    ]);
+    mockSections(appsService, [favoritesCategory]);
+    final scenesService = mkScenesService(
+      activeScene: Scene(
+        key: SceneKeys.cinema,
+        name: "Cinema",
+        dockPackageNames: ["me.efesser.app3", "me.efesser.app1"],
+      ),
+    );
+
+    await _pumpWidgetWith(tester, appsService, scenesService: scenesService);
+
+    expect(_dockPackageNames(tester), ["me.efesser.app3", "me.efesser.app1"]);
+  });
+
+  testWidgets("Dock silently skips an overridden package name that is no longer installed", (tester) async {
+    final appsService = mkAppService();
+    final favoritesCategory = fakeCategory(name: "Favorites", order: 0);
+    favoritesCategory.applications.addAll([
+      fakeApp(packageName: "me.efesser.app1", name: "App 1"),
+      fakeApp(packageName: "me.efesser.app2", name: "App 2"),
+    ]);
+    mockSections(appsService, [favoritesCategory]);
+    final scenesService = mkScenesService(
+      activeScene: Scene(
+        key: SceneKeys.cinema,
+        name: "Cinema",
+        dockPackageNames: ["me.efesser.uninstalled", "me.efesser.app2"],
+      ),
+    );
+
+    await _pumpWidgetWith(tester, appsService, scenesService: scenesService);
+
+    expect(_dockPackageNames(tester), ["me.efesser.app2"]);
+  });
+
+  testWidgets("Dock falls back to the full dock when the override matches no installed app", (tester) async {
+    final appsService = mkAppService();
+    final favoritesCategory = fakeCategory(name: "Favorites", order: 0);
+    favoritesCategory.applications.addAll([
+      fakeApp(packageName: "me.efesser.app1", name: "App 1"),
+      fakeApp(packageName: "me.efesser.app2", name: "App 2"),
+    ]);
+    mockSections(appsService, [favoritesCategory]);
+    final scenesService = mkScenesService(
+      activeScene: Scene(
+        key: SceneKeys.cinema,
+        name: "Cinema",
+        dockPackageNames: ["me.efesser.gone1", "me.efesser.gone2"],
+      ),
+    );
+
+    await _pumpWidgetWith(tester, appsService, scenesService: scenesService);
+
+    expect(_dockPackageNames(tester), ["me.efesser.app1", "me.efesser.app2"]);
   });
 
   testWidgets("Home page displays background image", (tester) async {
@@ -469,6 +554,14 @@ WallpaperService mkWallpaperService([bool wallpaper = true]) {
   return wallpaperService;
 }
 
+/// Builds a [ScenesService] stub. Defaults to a scene with no dock override,
+/// matching today's dock behavior when a test doesn't care about scenes.
+ScenesService mkScenesService({Scene? activeScene}) {
+  final scenesService = MockScenesService();
+  when(scenesService.activeScene).thenReturn(activeScene ?? Scene(key: SceneKeys.normal, name: "Normal"));
+  return scenesService;
+}
+
 AppsService mkAppService() {
   final appsService = MockAppsService();
   when(appsService.initialized).thenReturn(true);
@@ -505,25 +598,41 @@ void mockSections(AppsService appsService, List<Category> categories) {
   when(appsService.launcherSections).thenReturn(categories);
 }
 
+/// Package names of the [AppCard]s currently rendered in the dock, in tree
+/// (i.e. visual left-to-right) order.
+List<String> _dockPackageNames(WidgetTester tester) => tester
+    .widgetList<AppCard>(find.descendant(of: find.byType(CategoryCleanRow), matching: find.byType(AppCard)))
+    .map((appCard) => appCard.application.packageName)
+    .toList();
+
 Future<void> _pumpWidgetWith(
   WidgetTester tester,
-  AppsService appsService,
-) async {
-  return _pumpWidgetWithProviders(tester, mkWallpaperService(), appsService, mkSettingsService());
+  AppsService appsService, {
+  ScenesService? scenesService,
+}) async {
+  return _pumpWidgetWithProviders(
+    tester,
+    mkWallpaperService(),
+    appsService,
+    mkSettingsService(),
+    scenesService: scenesService,
+  );
 }
 
 Future<void> _pumpWidgetWithProviders(
   WidgetTester tester,
   WallpaperService wallpaperService,
   AppsService appsService,
-  SettingsService settingsService,
-) async {
+  SettingsService settingsService, {
+  ScenesService? scenesService,
+}) async {
   await tester.pumpWidget(
     MultiProvider(
       providers: [
         ChangeNotifierProvider<WallpaperService>.value(value: wallpaperService),
         ChangeNotifierProvider<AppsService>.value(value: appsService),
         ChangeNotifierProvider<SettingsService>.value(value: settingsService),
+        ChangeNotifierProvider<ScenesService>.value(value: scenesService ?? mkScenesService()),
         ChangeNotifierProvider(create: (_) => LauncherState()),
         ChangeNotifierProvider(create: (_) => NetworkService(FLauncherChannel())),
         ChangeNotifierProvider(create: (_) => WatchNextService(FLauncherChannel())),
