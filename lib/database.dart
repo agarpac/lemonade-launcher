@@ -104,36 +104,71 @@ class FLauncherDatabase extends _$FLauncherDatabase
         onCreate: (migrator) async {
           await migrator.createAll();
         },
+        // Stepped migration: every block upgrades the database by exactly one
+        // schema version.
+        //
+        // Two rules keep the chain internally consistent, and both must be
+        // respected when adding a new step:
+        //
+        //  1. A historical step is expressed with literal SQL describing the
+        //     schema as it existed at *that* version. Historical steps must never
+        //     be written in terms of the current Dart tables: those keep
+        //     evolving, so a step referring to them would silently start
+        //     migrating old databases to the wrong shape (or fail outright, as
+        //     soon as a column it copies no longer exists).
+        //     The one exception is the v7 `createTable(launcherSpacers)` below:
+        //     that table has not changed since it was introduced. If it ever
+        //     does, replace the call with the literal v7 CREATE TABLE.
+        //  2. Every step is bounded by `to` as well as `from`, so that a
+        //     migration to an intermediate version stops there instead of
+        //     applying later steps. In the app `to` is always [schemaVersion],
+        //     so this only matters for migration tests.
         onUpgrade: (migrator, from, to) async {
-          if (from <= 1) {
-            await migrator.alterTable(TableMigration(apps, newColumns: [apps.hidden]));
+          if (from < 2 && to >= 2) {
+            // v2 removed the unused "class_name" column from "apps".
+            await customStatement('ALTER TABLE apps DROP COLUMN "class_name";');
           }
-          if (from <= 2 && from != 1) {
-            await migrator.addColumn(apps, apps.hidden);
+          if (from < 3 && to >= 3) {
+            // v3 added "hidden" to "apps".
+            await customStatement(
+                'ALTER TABLE apps ADD COLUMN "hidden" INTEGER NOT NULL DEFAULT 0 CHECK ("hidden" IN (0, 1));');
           }
-          if (from <= 3) {
-            await migrator.addColumn(categories, categories.sort);
-            await migrator.addColumn(categories, categories.type);
-            await migrator.addColumn(categories, categories.rowHeight);
-            await migrator.addColumn(categories, categories.columnsCount);
-            await (update(categories)..where((tbl) => tbl.name.equals("Applications")))
-                .write(const CategoriesCompanion(type: Value(CategoryType.grid)));
+          if (from < 4 && to >= 4) {
+            // v4 added the per-category display settings.
+            await customStatement('ALTER TABLE categories ADD COLUMN "sort" INTEGER NOT NULL DEFAULT 0;');
+            await customStatement('ALTER TABLE categories ADD COLUMN "type" INTEGER NOT NULL DEFAULT 0;');
+            await customStatement('ALTER TABLE categories ADD COLUMN "row_height" INTEGER NOT NULL DEFAULT 110;');
+            await customStatement('ALTER TABLE categories ADD COLUMN "columns_count" INTEGER NOT NULL DEFAULT 6;');
+            // "Applications" is the default category and is rendered as a grid.
+            // 1 is CategoryType.grid at the time this step was introduced; it is
+            // hardcoded so that reordering the enum cannot rewrite history.
+            await customStatement("UPDATE categories SET \"type\" = 1 WHERE \"name\" = 'Applications';");
           }
-          if (from < 6) {
-            await customStatement("ALTER TABLE apps DROP COLUMN banner;");
-            await customStatement("ALTER TABLE apps DROP COLUMN icon;");
+          if (from < 5 && to >= 5) {
+            // v5 added "sideloaded" to "apps"; v7 removed it again. The column no
+            // longer exists in the Dart schema, so it is recreated literally: the
+            // v7 step below can then drop it unconditionally.
+            await customStatement(
+                'ALTER TABLE apps ADD COLUMN "sideloaded" INTEGER NOT NULL DEFAULT 0 CHECK ("sideloaded" IN (0, 1));');
           }
-          if (from < 7) {
+          if (from < 6 && to >= 6) {
+            // v6 moved app artwork out of the database.
+            await customStatement('ALTER TABLE apps DROP COLUMN "banner";');
+            await customStatement('ALTER TABLE apps DROP COLUMN "icon";');
+          }
+          if (from < 7 && to >= 7) {
+            // v7 introduced launcher spacers and removed "sideloaded".
             await migrator.createTable(launcherSpacers);
-            await migrator.dropColumn(apps, "sideloaded");
+            await customStatement('ALTER TABLE apps DROP COLUMN "sideloaded";');
           }
-          if (from < 8) {
-            await migrator.addColumn(apps, apps.lastLaunchedAt);
+          if (from < 8 && to >= 8) {
+            // v8 added "last_launched_at" to "apps".
+            await customStatement('ALTER TABLE apps ADD COLUMN "last_launched_at" INTEGER NULL;');
           }
-          if (from < 9) {
+          if (from < 9 && to >= 9) {
             await _mergeTvAndNonTvCategories();
           }
-          if (from < 10) {
+          if (from < 10 && to >= 10) {
             await _stripFavoritesFromAllApps();
           }
         },
