@@ -51,12 +51,14 @@ App fakeApp({
   String version = "1.0.0",
   bool hidden = false,
   bool sideloaded = false,
+  DateTime? lastLaunchedAt,
 }) {
     final app = App(
       packageName: packageName,
       name: name,
       version: version,
       hidden: hidden,
+      lastLaunchedAt: lastLaunchedAt,
     );
     app.sideloaded = sideloaded;
     return app;

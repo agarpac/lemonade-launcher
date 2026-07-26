@@ -171,6 +171,129 @@ void main() {
     });
   });
 
+  /// The platform channel has no concept of "last launched" — App.fromSystem always builds
+  /// a fresh App with lastLaunchedAt == null. AppsService._init merges that fresh app with the
+  /// existing in-memory one (carrying over `hidden` and `categoryOrders`); lastLaunchedAt must
+  /// be carried over too, or "Last Used" sorting silently breaks every time an app is
+  /// installed/updated or a bulk package scan runs, until the launcher fully restarts and
+  /// reloads from the database.
+  group("platform-channel merge preserves lastLaunchedAt", () {
+    test("PACKAGE_CHANGED event preserves in-memory lastLaunchedAt", () async {
+      final channel = MockFLauncherChannel();
+      final database = MockFLauncherDatabase();
+      _stubIconAndBannerLookups(channel);
+      final lastLaunchedAt = DateTime.fromMillisecondsSinceEpoch(12345);
+
+      when(channel.getApplications()).thenAnswer((_) => Future.value([
+            {
+              'packageName': 'me.efesser.flauncher',
+              'name': 'FLauncher',
+              'version': '1.0.0',
+              'sideloaded': false,
+            },
+          ]));
+      when(database.getApplications()).thenAnswer((_) => Future.value([
+            fakeApp(
+              packageName: "me.efesser.flauncher",
+              name: "FLauncher",
+              version: "1.0.0",
+              lastLaunchedAt: lastLaunchedAt,
+            ),
+          ]));
+      when(database.getCategories()).thenAnswer((_) => Future.value(<Category>[]));
+      when(database.getAppsCategories()).thenAnswer((_) => Future.value(<AppCategory>[]));
+      when(database.getLauncherSpacers()).thenAnswer((_) => Future.value(<LauncherSpacer>[]));
+      when(database.transaction(any)).thenAnswer((realInvocation) => realInvocation.positionalArguments[0]());
+      when(database.wasCreated).thenReturn(false);
+      when(database.persistApps(any)).thenAnswer((_) => Future.value());
+
+      final appsService = AppsService(channel, database);
+      await untilCalled(channel.addAppsChangedListener(any));
+      final dynamic listener = verify(channel.addAppsChangedListener(captureAny)).captured.single;
+
+      final result = listener({
+        "action": "PACKAGE_CHANGED",
+        "activityInfo": {
+          "packageName": "me.efesser.flauncher",
+          "name": "FLauncher",
+          "version": "2.0.0",
+          "sideloaded": false,
+        },
+      });
+      if (result is Future) {
+        await result;
+      }
+
+      final updatedApp = appsService.applications.firstWhere((app) => app.packageName == "me.efesser.flauncher");
+      // Sanity check: the merge did rebuild the app from the fresh system data.
+      expect(updatedApp.version, "2.0.0");
+      // The bug under test: without carrying it over, this is null after the merge.
+      expect(updatedApp.lastLaunchedAt, lastLaunchedAt);
+
+      // The database write for this event never touches last_launched_at (the companion
+      // built from platform-channel data has no such field), so the merge bug above is an
+      // in-memory/display bug only — it cannot clobber the stored value.
+      // (persistApps is also called once during the initial _refreshState, so take the
+      // most recent invocation — the one triggered by this PACKAGE_CHANGED event.)
+      final persistedCalls = verify(database.persistApps(captureAny)).captured;
+      final persisted = persistedCalls.last as Iterable<AppsCompanion>;
+      expect(persisted.single.lastLaunchedAt, const Value<DateTime?>.absent());
+    });
+
+    test("PACKAGES_AVAILABLE event preserves in-memory lastLaunchedAt", () async {
+      final channel = MockFLauncherChannel();
+      final database = MockFLauncherDatabase();
+      _stubIconAndBannerLookups(channel);
+      final lastLaunchedAt = DateTime.fromMillisecondsSinceEpoch(67890);
+
+      when(channel.getApplications()).thenAnswer((_) => Future.value([
+            {
+              'packageName': 'me.efesser.flauncher',
+              'name': 'FLauncher',
+              'version': '1.0.0',
+              'sideloaded': false,
+            },
+          ]));
+      when(database.getApplications()).thenAnswer((_) => Future.value([
+            fakeApp(
+              packageName: "me.efesser.flauncher",
+              name: "FLauncher",
+              version: "1.0.0",
+              lastLaunchedAt: lastLaunchedAt,
+            ),
+          ]));
+      when(database.getCategories()).thenAnswer((_) => Future.value(<Category>[]));
+      when(database.getAppsCategories()).thenAnswer((_) => Future.value(<AppCategory>[]));
+      when(database.getLauncherSpacers()).thenAnswer((_) => Future.value(<LauncherSpacer>[]));
+      when(database.transaction(any)).thenAnswer((realInvocation) => realInvocation.positionalArguments[0]());
+      when(database.wasCreated).thenReturn(false);
+      when(database.persistApps(any)).thenAnswer((_) => Future.value());
+
+      final appsService = AppsService(channel, database);
+      await untilCalled(channel.addAppsChangedListener(any));
+      final dynamic listener = verify(channel.addAppsChangedListener(captureAny)).captured.single;
+
+      final result = listener({
+        "action": "PACKAGES_AVAILABLE",
+        "activitiesInfo": [
+          {
+            "packageName": "me.efesser.flauncher",
+            "name": "FLauncher",
+            "version": "2.0.0",
+            "sideloaded": false,
+          },
+        ],
+      });
+      if (result is Future) {
+        await result;
+      }
+
+      final updatedApp = appsService.applications.firstWhere((app) => app.packageName == "me.efesser.flauncher");
+      expect(updatedApp.version, "2.0.0");
+      expect(updatedApp.lastLaunchedAt, lastLaunchedAt);
+    });
+  });
+
   test("launchApp calls channel", () async {
     final channel = MockFLauncherChannel();
     final database = MockFLauncherDatabase();

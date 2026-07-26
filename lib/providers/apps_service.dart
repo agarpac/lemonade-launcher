@@ -121,6 +121,11 @@ class AppsService extends ChangeNotifier
           if (existingApp != null) {
             newApp.hidden = existingApp.hidden;
             newApp.categoryOrders = Map.from(existingApp.categoryOrders);
+            // The platform channel has no concept of "last launched", so carry
+            // it over from the in-memory app or it would silently reset to
+            // null (and "Last Used" sorting would break) until the next full
+            // restart reloads it from the database.
+            newApp.lastLaunchedAt = existingApp.lastLaunchedAt;
             for (int categoryId in newApp.categoryOrders.keys) {
               if (_categoriesById.containsKey(categoryId)) {
                 Category category = _categoriesById[categoryId]!;
@@ -152,6 +157,10 @@ class AppsService extends ChangeNotifier
             if (existingApp != null) {
               newApp.hidden = existingApp.hidden;
               newApp.categoryOrders = Map.from(existingApp.categoryOrders);
+              // Same reasoning as the PACKAGE_ADDED/PACKAGE_CHANGED branch above:
+              // preserve the in-memory last-launched timestamp across a bulk
+              // package scan, since the platform channel cannot supply it.
+              newApp.lastLaunchedAt = existingApp.lastLaunchedAt;
               for (int categoryId in newApp.categoryOrders.keys) {
                 if (_categoriesById.containsKey(categoryId)) {
                   Category category = _categoriesById[categoryId]!;
