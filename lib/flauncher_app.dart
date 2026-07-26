@@ -16,6 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import 'package:collection/collection.dart';
 import 'package:flauncher/actions.dart';
 import 'package:flauncher/providers/apps_service.dart';
 import 'package:flauncher/providers/settings_service.dart';
@@ -81,7 +82,21 @@ class FLauncherApp extends StatelessWidget
         GlobalWidgetsLocalizations.delegate
       ],
       supportedLocales: AppLocalizations.supportedLocales,
-      title: 'FLauncher',
+      // Spanish (Spain) is the default locale: TV boxes are often left on
+      // en-US out of the box, and this launcher targets an es-ES setup.
+      // The system locale still wins whenever it is a supported one.
+      localeListResolutionCallback: (deviceLocales, supportedLocales) {
+        for (final deviceLocale in deviceLocales ?? const <Locale>[]) {
+          final match = supportedLocales.firstWhereOrNull(
+            (supported) => supported.languageCode == deviceLocale.languageCode,
+          );
+          if (match != null) {
+            return match;
+          }
+        }
+        return const Locale('es');
+      },
+      title: 'Lemonade Launcher',
         theme: ThemeData(
           useMaterial3: true,
           brightness: Brightness.dark,
