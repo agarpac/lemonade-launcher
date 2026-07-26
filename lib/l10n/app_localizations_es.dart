@@ -214,6 +214,34 @@ class AppLocalizationsEs extends AppLocalizations {
       'Esta escena requiere un PIN, que todavía no está disponible.';
 
   @override
+  String get sceneEditorNormalExplanation =>
+      'Normal es tu propia configuración, sin cambios. No hay nada que configurar aquí.';
+
+  @override
+  String get sceneOverrideShowAppNames =>
+      'Mostrar nombres de aplicaciones bajo los iconos';
+
+  @override
+  String get sceneOverrideDisableBackgroundBlur =>
+      'Desactivar el desenfoque de fondo';
+
+  @override
+  String get sceneOverrideInheritOn => 'Heredar (activado)';
+
+  @override
+  String get sceneOverrideInheritOff => 'Heredar (desactivado)';
+
+  @override
+  String get sceneOverrideOn => 'Activado';
+
+  @override
+  String get sceneOverrideOff => 'Desactivado';
+
+  @override
+  String get sceneOverrideUpdateFailed =>
+      'No se ha podido guardar este cambio.';
+
+  @override
   String get spacer => 'Espaciador';
 
   @override

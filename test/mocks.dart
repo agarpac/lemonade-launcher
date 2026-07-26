@@ -29,6 +29,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:mockito/annotations.dart';
 import 'package:flauncher/models/app.dart';
 import 'package:flauncher/models/category.dart';
+import 'package:flauncher/models/scene.dart';
 
 
 @GenerateMocks([
@@ -60,6 +61,25 @@ App fakeApp({
     app.sideloaded = sideloaded;
     return app;
 }
+
+Scene fakeScene({
+  String key = SceneKeys.cinema,
+  String name = "Cinema",
+  bool? hideAppBar,
+  bool? showWatchNext,
+  bool? showAppNames,
+  bool? disableBackgroundBlur,
+  bool? showCategoryTitles,
+}) =>
+    Scene(
+      key: key,
+      name: name,
+      hideAppBar: hideAppBar,
+      showWatchNext: showWatchNext,
+      showAppNames: showAppNames,
+      disableBackgroundBlur: disableBackgroundBlur,
+      showCategoryTitles: showCategoryTitles,
+    );
 
 Category fakeCategory({
   String name = "Favorites",

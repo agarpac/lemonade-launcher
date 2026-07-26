@@ -35,6 +35,9 @@ import 'package:flauncher/widgets/settings/misc_panel_page.dart';
 import 'package:flauncher/widgets/settings/interface_settings_page.dart';
 import 'package:flauncher/widgets/settings/general_settings_page.dart';
 import 'package:flauncher/widgets/settings/screensaver_clock_style_page.dart';
+import 'package:flauncher/widgets/settings/scenes_panel_page.dart';
+import 'package:flauncher/widgets/settings/scene_editor_page.dart';
+import 'package:flauncher/widgets/settings/scene_override_page.dart';
 import 'package:flauncher/models/app.dart';
 import 'package:flutter/material.dart';
 
@@ -110,6 +113,15 @@ class _SettingsPanelState extends State<SettingsPanel> {
                     case AppDetailsPage.routeName:
                       return _FastPageRoute(
                           builder: (_) => AppDetailsPage(application: settings.arguments as App));
+                    case ScenesPanelPage.routeName:
+                      return _FastPageRoute(builder: (_) => ScenesPanelPage());
+                    case SceneEditorPage.routeName:
+                      return _FastPageRoute(
+                          builder: (_) => SceneEditorPage(sceneKey: settings.arguments as String));
+                    case SceneOverridePage.routeName:
+                      final args = settings.arguments as (String, SceneOverrideField);
+                      return _FastPageRoute(
+                          builder: (_) => SceneOverridePage(sceneKey: args.$1, field: args.$2));
                     default:
                       throw ArgumentError.value(settings.name, "settings.name", "Route not supported.");
                   }

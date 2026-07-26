@@ -211,6 +211,31 @@ class AppLocalizationsEn extends AppLocalizations {
       'This scene requires a PIN, which isn\'t supported yet.';
 
   @override
+  String get sceneEditorNormalExplanation =>
+      'Normal is your own settings, left untouched. There is nothing to configure here.';
+
+  @override
+  String get sceneOverrideShowAppNames => 'Show app names below icons';
+
+  @override
+  String get sceneOverrideDisableBackgroundBlur => 'Disable background blur';
+
+  @override
+  String get sceneOverrideInheritOn => 'Inherit (on)';
+
+  @override
+  String get sceneOverrideInheritOff => 'Inherit (off)';
+
+  @override
+  String get sceneOverrideOn => 'On';
+
+  @override
+  String get sceneOverrideOff => 'Off';
+
+  @override
+  String get sceneOverrideUpdateFailed => 'Could not save this change.';
+
+  @override
   String get spacer => 'Spacer';
 
   @override

@@ -482,6 +482,54 @@ abstract class AppLocalizations {
   /// **'This scene requires a PIN, which isn\'t supported yet.'**
   String get scenePinProtected;
 
+  /// No description provided for @sceneEditorNormalExplanation.
+  ///
+  /// In en, this message translates to:
+  /// **'Normal is your own settings, left untouched. There is nothing to configure here.'**
+  String get sceneEditorNormalExplanation;
+
+  /// No description provided for @sceneOverrideShowAppNames.
+  ///
+  /// In en, this message translates to:
+  /// **'Show app names below icons'**
+  String get sceneOverrideShowAppNames;
+
+  /// No description provided for @sceneOverrideDisableBackgroundBlur.
+  ///
+  /// In en, this message translates to:
+  /// **'Disable background blur'**
+  String get sceneOverrideDisableBackgroundBlur;
+
+  /// No description provided for @sceneOverrideInheritOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Inherit (on)'**
+  String get sceneOverrideInheritOn;
+
+  /// No description provided for @sceneOverrideInheritOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Inherit (off)'**
+  String get sceneOverrideInheritOff;
+
+  /// No description provided for @sceneOverrideOn.
+  ///
+  /// In en, this message translates to:
+  /// **'On'**
+  String get sceneOverrideOn;
+
+  /// No description provided for @sceneOverrideOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Off'**
+  String get sceneOverrideOff;
+
+  /// No description provided for @sceneOverrideUpdateFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not save this change.'**
+  String get sceneOverrideUpdateFailed;
+
   /// No description provided for @spacer.
   ///
   /// In en, this message translates to:
