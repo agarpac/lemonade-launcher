@@ -151,14 +151,68 @@ Sin una tesis, un fork solo acumula deuda de mantenimiento. La ventaja real de e
 
 ### 9.1 Escenas preconfiguradas — **aprobado**
 
-El launcher cambia de comportamiento según el momento, no solo de fondo de pantalla. Cada escena es un preajuste seleccionable que agrupa:
+El launcher cambia de presentación según el momento. Cada escena es un preajuste seleccionable manualmente.
 
-- Subconjunto de aplicaciones visibles en el dock
+> **Restricción firme: una escena NUNCA altera el contenido del dock.**
+>
+> Las aplicaciones que el usuario ha añadido al dock están **siempre disponibles, en todas las escenas**, en su orden. Ni se filtran, ni se ocultan, ni se reordenan.
+>
+> El motivo es el mismo por el que se descartó el dock adaptativo (sección 9.2): con un mando a distancia se navega por posición, sin mirar. Un dock cuyo contenido depende del modo activo obliga a releer la pantalla en cada uso y destruye la memoria muscular. El dock es territorio del usuario y es estable.
+
+Una escena agrupa por tanto **ajustes de presentación**, no de contenido:
+
 - Nivel de brillo del sistema
 - Fondo de pantalla asociado
-- Opcionalmente, bloqueo con PIN para salir de la escena
 
-Escenas de partida: **Cine** (streaming, brillo alto), **Noche** (brillo mínimo, música y pódcast), **Niños** (dock filtrado, salida con PIN), **Normal**.
+### 9.1.3 Qué agrupa una escena
+
+Una escena es **un paquete de ajustes de presentación que se cambian de golpe**. Todos ellos ya existen hoy en `lib/providers/settings_service.dart`, pero son globales y están repartidos por el panel de Ajustes: poner la televisión en «modo cine» obliga a entrar, cambiar cinco cosas y luego revertirlas una a una.
+
+| Ajuste | Clave existente |
+| --- | --- |
+| Fondo de pantalla (fichero o gradiente) | `WallpaperService` / `gradientUuid` |
+| Ocultar la barra superior | `autoHideAppBarEnabled` |
+| Mostrar «Continuar viendo» | `showWatchNextSection` |
+| Nombres bajo los iconos | `showAppNamesBelowIcons` |
+| Desenfoque del fondo | `backgroundBlurDisabled` |
+| Títulos de categoría | `showCategoryTitles` |
+| Color de acento | `accentColorHex` |
+
+Cada uno es una sobrescritura **opcional**: `null` significa «no cambiar, respeta el ajuste global del usuario».
+
+Escenas de partida:
+
+- **Normal** — no sobrescribe nada; los ajustes del usuario tal cual.
+- **Cine** — barra superior oculta, sin «Continuar viendo», sin nombres bajo los iconos, fondo oscuro. Pantalla limpia.
+- **Noche** — fondo negro OLED, sin desenfoque.
+
+❌ **«Niños» se elimina.** Su único propósito era filtrar el dock, y eso ya no ocurre. Con el PIN aparcado (9.1.2), sería una etiqueta que no hace nada.
+
+❌ **El brillo se elimina de las escenas.** La variante no destructiva solo afecta a la ventana del launcher: deja de aplicarse en cuanto cualquier aplicación pasa a primer plano, que es justo cuando una escena «Cine» debería servir para algo. Y la propia interfaz de ajustes ya advierte de que muchos televisores no admiten el control de brillo a nivel de aplicación. La variante que sí funciona escribe un ajuste global del sistema y es irreversible: ver la sección 13. Con el fondo y los seis ajustes de presentación restantes, una escena ya cambia la cara del launcher de forma clara y sin efectos colaterales fuera de la aplicación.
+
+**Consecuencia arquitectónica, y es la parte difícil:** todos estos ajustes son preferencias **globales** persistidas. Si activar una escena las escribe, destruye la configuración del usuario sin vuelta atrás. La solución está en 9.1.4.
+
+### 9.1.4 Arquitectura: superposición por derivación
+
+**Decisión: la sobrescritura de una escena nunca se escribe en ninguna parte.** Es una función pura de la escena activa, evaluada en el momento de leer el valor:
+
+```
+valor efectivo = sobrescritura de la escena activa ?? ajuste del usuario
+```
+
+El ajuste del usuario **no se modifica jamás**. La escena ya está persistida, así que el valor efectivo se recalcula desde cero en cada arranque.
+
+**Por qué no «guardar y restaurar».** Esa alternativa tiene un fallo con nombre propio: *baseline envenenado*. El mecanismo concreto aquí sería: el usuario tiene el gradiente A; al activar «Noche» se guarda A como original y se escribe B; **el sistema mata el launcher** —cosa que ocurre con normalidad mientras Netflix está en primer plano—; al reabrir, la marca «estoy en una escena» se ha perdido, y la siguiente activación guarda B como si fuera el original. **El gradiente A del usuario es irrecuperable.** Un indicador persistido no lo arregla: son dos escrituras sin transacción entre ellas. Y aún queda la otra mitad: si el usuario cambia su fondo *mientras* hay una escena activa, salir de la escena revierte su cambio en silencio.
+
+Con superposición, esos tres escenarios desaparecen porque no existe ningún «original» que guardar.
+
+**El punto de composición es el servicio, no el árbol de widgets.** `lib/widgets/cached_blur_backdrop.dart` lee el fondo por su cuenta, además de `_wallpaper()` en `lib/flauncher.dart`. Si la superposición se compone en los widgets, hay que hacerlo en dos sitios, y el día que discrepen se ve **el desenfoque del fondo del usuario detrás del fondo de la escena**. Un único punto de composición, dos consumidores.
+
+**Precedencia del fondo,** de mayor a menor: fondo de la escena → vídeo del usuario (resuelto día/noche) → imagen del usuario (día/noche) → gradiente del usuario. La escena **suprime el vídeo**: `_wallpaper()` comprueba el vídeo primero y sale antes de tiempo, así que si no se suprimiera, la escena sería invisible para cualquier usuario con fondo de vídeo. El cambio día/noche sigue funcionando por debajo, para que al volver a «Normal» el fondo correcto esté ya resuelto sin esperar al siguiente ciclo.
+
+**Sin migración y sin subir la versión del formato.** No hace falta ninguna clave nueva ni ningún campo nuevo: `wallpaperPath` y `gradientUuid` ya existen. Importa no subir la versión sin necesidad, porque `_decodeScenes` rechaza un payload de versión superior y cae a los valores por defecto: instalar un APK antiguo sobre uno nuevo **borraría en silencio toda la configuración de escenas**.
+
+Un identificador de gradiente desconocido se resuelve como «sin sobrescritura», no como un gradiente arbitrario: una escena restaurada desde otra versión degrada al fondo del usuario.
 
 **Activación exclusivamente manual.** La escena solo cambia cuando el usuario la selecciona, y persiste hasta que la vuelva a cambiar. Queda explícitamente fuera de alcance:
 
@@ -285,3 +339,32 @@ Ejemplos de icono de dock que dejan de ser «abrir SmartTube»: la bandeja de su
 3. **Validación al crear y al restaurar.** Si el paquete de destino no está instalado, el acceso directo se marca como no disponible en lugar de fallar al pulsarlo.
 4. **Descubrimiento en el dispositivo.** Para averiguar qué acepta cualquier aplicación instalada, sin adivinar: `adb shell dumpsys package <packageName>` lista sus `intent-filter` reales. Documentar los contratos confirmados aquí a medida que se verifiquen.
 5. **Sin ingeniería inversa de aplicaciones oficiales.** Solo se soportan contratos declarados públicamente. Un acceso directo que se rompe en silencio tras una actualización es peor que no tenerlo.
+
+## 13. Deuda heredada conocida
+
+Fallos reales del código heredado de Arc Launcher, detectados durante el desarrollo pero **fuera del alcance actual**. Se anotan aquí para que la decisión de no tocarlos sea consciente y no un olvido.
+
+### 13.1 El programador de brillo destruye el brillo automático del dispositivo
+
+`android/app/src/main/java/com/leanbitlab/ltvL/MainActivity.java:672`
+
+El método nativo `setSystemBrightness` no se limita a escribir `Settings.System.SCREEN_BRIGHTNESS`: además cambia `SCREEN_BRIGHTNESS_MODE` a **manual**, y escribe a ciegas las claves de fabricante `backlight` y `backlight_level` (líneas 675-677). Nada en el proyecto lee ni restaura jamás el valor anterior de ese modo.
+
+Consecuencia: quien active el programador de brillo pierde el brillo automático de su televisor **de forma permanente**. El cambio es un ajuste del sistema, así que sobrevive a cerrar la aplicación, a reiniciar el dispositivo e incluso a desinstalar el launcher. Solo se recupera desde los ajustes del propio televisor.
+
+Agravantes en el mismo método:
+
+- **`setSystemBrightness` devuelve `true` desde dentro de su propio `catch`** (líneas 680-682). Es decir, en `lib/providers/brightness_service.dart:206` la variable `success` significa «teníamos permiso», no «la escritura funcionó». Un fallo real se interpreta como éxito.
+- **El permiso se consulta una sola vez, en el constructor** (`brightness_service.dart:84`), con `_hasPermission` inicializado a `true` (:80) y con fallback a `true` si el canal falla (:95-98). Como `WRITE_SETTINGS` se concede **fuera** de la aplicación —por ADB o por el diálogo del sistema—, tras concederlo el launcher sigue creyendo el valor obsoleto hasta que se reinicia el proceso. El arreglo natural es volver a comprobarlo en `AppLifecycleState.resumed`, donde `lib/flauncher.dart:79-84` ya atiende ese evento para otro servicio.
+
+Por qué no se arregla ahora: la funcionalidad está marcada como experimental, viene desactivada por defecto y requiere un permiso que hay que conceder a mano por ADB, así que nadie la sufre sin haberla buscado. Arreglarlo bien exige capturar una línea base del valor **y del modo** antes de la primera escritura, con garantía de escritura única, y restaurarla — es decir, el mismo problema de línea base envenenada descrito en 9.1.4, pero sobre un ajuste del sistema que ni siquiera es nuestro.
+
+Si algún día se retoma, el orden correcto es: primero arreglar el `catch` que miente, después la comprobación de permiso obsoleta, y solo entonces plantearse la restauración.
+
+### 13.2 Las instantáneas de esquema de la base de datos son incompletas y contradictorias
+
+`test/generated_migrations/schema_v1..v5.dart` no contienen las columnas `banner` ni `icon`, mientras que los JSON de `drift_schemas/` sí las incluyen. El test de migración valida por tanto contra esquemas que ningún dispositivo real tuvo. Fue precisamente el motivo de que no detectara los dos fallos corregidos en la cadena de migraciones.
+
+Además solo existen instantáneas de la v1 a la v5, mientras el esquema vivo va por la **v10**: los pasos de la v6 en adelante no tienen ninguna verificación automática. Las instantáneas de v6 a v9 ya no se pueden generar honestamente, porque de esas versiones solo queda el esquema actual.
+
+Arreglo posible: regenerar las instantáneas v1-v5 desde los JSON, que sí son correctos.

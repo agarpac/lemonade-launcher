@@ -24,7 +24,6 @@ import 'package:flauncher/actions.dart';
 import 'package:flauncher/custom_traversal_policy.dart';
 import 'package:flauncher/providers/apps_service.dart';
 import 'package:flauncher/providers/launcher_state.dart';
-import 'package:flauncher/providers/scenes_service.dart';
 import 'package:flauncher/providers/settings_service.dart';
 import 'package:flauncher/providers/wallpaper_service.dart';
 import 'package:flauncher/providers/watch_next_service.dart';
@@ -452,16 +451,18 @@ class _FLauncherState extends State<FLauncher> with WidgetsBindingObserver {
           width: 1.5,
         ),
       ),
-      child: Selector<ScenesService, List<String>>(
-        selector: (_, scenesService) =>
-            scenesService.activeScene.overridesDock ? scenesService.activeScene.dockPackageNames : const <String>[],
-        builder: (context, dockPackageNamesOverride, _) => CategoryCleanRow(
-          category: category,
-          applications: _dockApplications(apps, dockPackageNamesOverride),
-          isFirstSection: handleUpNavigationToSettings,
-          scrollAlignment: 1.0,
-          onAppFocused: _onHomeSectionFocused,
-        ),
+      // The dock is never filtered, hidden, or reordered by the active scene.
+      // With a remote you navigate by position without looking at the
+      // screen, so the apps here must always be exactly what the user put
+      // in the dock, always in the same place. This is also why a
+      // usage-based adaptive dock was rejected (see docs/PRD.md section 9.2);
+      // scenes are held to the same constraint (docs/PRD.md section 9.1).
+      child: CategoryCleanRow(
+        category: category,
+        applications: apps,
+        isFirstSection: handleUpNavigationToSettings,
+        scrollAlignment: 1.0,
+        onAppFocused: _onHomeSectionFocused,
       ),
     );
 
@@ -480,33 +481,6 @@ class _FLauncherState extends State<FLauncher> with WidgetsBindingObserver {
         ),
       ),
     );
-  }
-
-  /// Applies the active scene's dock override, if any, to [apps].
-  ///
-  /// An empty [dockPackageNamesOverride] means "no override": [apps] is
-  /// returned unchanged, byte-for-byte what today's dock renders.
-  ///
-  /// Otherwise the dock shows only the apps listed in
-  /// [dockPackageNamesOverride], in that exact order. Package names that are
-  /// no longer installed (uninstalled, or restored from another device's
-  /// backup) are skipped silently: this is the device's only home screen and
-  /// must never render a placeholder or throw. If every listed package is
-  /// missing, the override would leave the dock empty, which is a dead end
-  /// on a TV with no other launcher — so the unfiltered dock is shown
-  /// instead.
-  List<App> _dockApplications(List<App> apps, List<String> dockPackageNamesOverride) {
-    if (dockPackageNamesOverride.isEmpty) {
-      return apps;
-    }
-
-    final appsByPackageName = {for (final app in apps) app.packageName: app};
-    final filtered = dockPackageNamesOverride
-        .map((packageName) => appsByPackageName[packageName])
-        .whereType<App>()
-        .toList();
-
-    return filtered.isEmpty ? apps : filtered;
   }
 
   Widget _wallpaper(BuildContext context, WallpaperService wallpaperService) {

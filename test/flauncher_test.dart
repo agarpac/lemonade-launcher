@@ -104,25 +104,14 @@ void main() {
     expect(find.byType(CategoryCleanRow), findsNothing);
   });
 
-  testWidgets("Dock shows every favorite app when the active scene has no dock override", (tester) async {
-    final appsService = mkAppService();
-    final favoritesCategory = fakeCategory(name: "Favorites", order: 0);
-    favoritesCategory.applications.addAll([
-      fakeApp(packageName: "me.efesser.app1", name: "App 1"),
-      fakeApp(packageName: "me.efesser.app2", name: "App 2"),
-      fakeApp(packageName: "me.efesser.app3", name: "App 3"),
-    ]);
-    mockSections(appsService, [favoritesCategory]);
-    final scenesService = mkScenesService(
-      activeScene: Scene(key: SceneKeys.normal, name: "Normal"),
-    );
-
-    await _pumpWidgetWith(tester, appsService, scenesService: scenesService);
-
-    expect(_dockPackageNames(tester), ["me.efesser.app1", "me.efesser.app2", "me.efesser.app3"]);
-  });
-
-  testWidgets("Dock shows only the apps listed in the active scene's dock override, in scene order", (tester) async {
+  testWidgets("Dock ignores a scene's dockPackageNames override entirely", (tester) async {
+    // Regression test for the rule that scenes must never alter the dock.
+    // With a remote you navigate by position without looking at the screen,
+    // so a dock whose contents depend on the active scene would break
+    // muscle memory and force the user to re-read the screen every time.
+    // Even though this scene carries a non-empty (and reordered/partial)
+    // dockPackageNames, the dock must still render every favorite app in its
+    // own, unfiltered order.
     final appsService = mkAppService();
     final favoritesCategory = fakeCategory(name: "Favorites", order: 0);
     favoritesCategory.applications.addAll([
@@ -141,49 +130,7 @@ void main() {
 
     await _pumpWidgetWith(tester, appsService, scenesService: scenesService);
 
-    expect(_dockPackageNames(tester), ["me.efesser.app3", "me.efesser.app1"]);
-  });
-
-  testWidgets("Dock silently skips an overridden package name that is no longer installed", (tester) async {
-    final appsService = mkAppService();
-    final favoritesCategory = fakeCategory(name: "Favorites", order: 0);
-    favoritesCategory.applications.addAll([
-      fakeApp(packageName: "me.efesser.app1", name: "App 1"),
-      fakeApp(packageName: "me.efesser.app2", name: "App 2"),
-    ]);
-    mockSections(appsService, [favoritesCategory]);
-    final scenesService = mkScenesService(
-      activeScene: Scene(
-        key: SceneKeys.cinema,
-        name: "Cinema",
-        dockPackageNames: ["me.efesser.uninstalled", "me.efesser.app2"],
-      ),
-    );
-
-    await _pumpWidgetWith(tester, appsService, scenesService: scenesService);
-
-    expect(_dockPackageNames(tester), ["me.efesser.app2"]);
-  });
-
-  testWidgets("Dock falls back to the full dock when the override matches no installed app", (tester) async {
-    final appsService = mkAppService();
-    final favoritesCategory = fakeCategory(name: "Favorites", order: 0);
-    favoritesCategory.applications.addAll([
-      fakeApp(packageName: "me.efesser.app1", name: "App 1"),
-      fakeApp(packageName: "me.efesser.app2", name: "App 2"),
-    ]);
-    mockSections(appsService, [favoritesCategory]);
-    final scenesService = mkScenesService(
-      activeScene: Scene(
-        key: SceneKeys.cinema,
-        name: "Cinema",
-        dockPackageNames: ["me.efesser.gone1", "me.efesser.gone2"],
-      ),
-    );
-
-    await _pumpWidgetWith(tester, appsService, scenesService: scenesService);
-
-    expect(_dockPackageNames(tester), ["me.efesser.app1", "me.efesser.app2"]);
+    expect(_dockPackageNames(tester), ["me.efesser.app1", "me.efesser.app2", "me.efesser.app3"]);
   });
 
   testWidgets("Home page displays background image", (tester) async {
