@@ -1797,6 +1797,12 @@ class MockSettingsService extends _i1.Mock implements _i21.SettingsService {
       ) as bool);
 
   @override
+  bool get showWeather => (super.noSuchMethod(
+        Invocation.getter(#showWeather),
+        returnValue: false,
+      ) as bool);
+
+  @override
   _i4.Color get accentColor => (super.noSuchMethod(
         Invocation.getter(#accentColor),
         returnValue: _FakeColor_3(
@@ -2063,6 +2069,46 @@ class MockSettingsService extends _i1.Mock implements _i21.SettingsService {
         Invocation.method(
           #setShowFocusBorders,
           [value],
+        ),
+        returnValue: _i11.Future<void>.value(),
+        returnValueForMissingStub: _i11.Future<void>.value(),
+      ) as _i11.Future<void>);
+
+  @override
+  _i11.Future<void> setShowWeather(bool? value) => (super.noSuchMethod(
+        Invocation.method(
+          #setShowWeather,
+          [value],
+        ),
+        returnValue: _i11.Future<void>.value(),
+        returnValueForMissingStub: _i11.Future<void>.value(),
+      ) as _i11.Future<void>);
+
+  @override
+  _i11.Future<void> setWeatherLocation({
+    required double? latitude,
+    required double? longitude,
+    required String? label,
+  }) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #setWeatherLocation,
+          [],
+          {
+            #latitude: latitude,
+            #longitude: longitude,
+            #label: label,
+          },
+        ),
+        returnValue: _i11.Future<void>.value(),
+        returnValueForMissingStub: _i11.Future<void>.value(),
+      ) as _i11.Future<void>);
+
+  @override
+  _i11.Future<void> clearWeatherLocation() => (super.noSuchMethod(
+        Invocation.method(
+          #clearWeatherLocation,
+          [],
         ),
         returnValue: _i11.Future<void>.value(),
         returnValueForMissingStub: _i11.Future<void>.value(),

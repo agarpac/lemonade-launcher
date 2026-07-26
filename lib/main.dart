@@ -30,6 +30,7 @@ import 'package:flauncher/providers/settings_service.dart';
 import 'package:flauncher/providers/brightness_service.dart';
 import 'package:flauncher/providers/wallpaper_service.dart';
 import 'package:flauncher/providers/watch_next_service.dart';
+import 'package:flauncher/providers/weather_service.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -132,6 +133,14 @@ class _LauncherRootState extends State<LauncherRoot> {
             ChangeNotifierProvider(
                 create: (_) => WatchNextService(widget.fLauncherChannel),
                 lazy: false
+            ),
+            // After SettingsService, like WallpaperService above: it reads the
+            // weather toggle and the picked city from it, and listens to it.
+            ChangeNotifierProvider(
+                create: (context) {
+                  SettingsService settingsService = Provider.of(context, listen: false);
+                  return WeatherService(settingsService, widget.sharedPreferences);
+                }
             ),
             // Plain Provider: BackupService is not a ChangeNotifier — it owns
             // no in-memory state to listen to.

@@ -46,6 +46,10 @@ const String _showWatchNextSection = "show_watch_next_section";
 const String _dockDarkBackground = "dock_dark_background";
 const String _dockShadowEnabled = "dock_shadow_enabled";
 const String _showFocusBorders = "show_focus_borders";
+const String _showWeather = "show_weather";
+const String _weatherLatitude = "weather_latitude";
+const String _weatherLongitude = "weather_longitude";
+const String _weatherLocationLabel = "weather_location_label";
 
 // WiFi usage period options
 const String WIFI_USAGE_DAILY = "daily";
@@ -178,6 +182,65 @@ class SettingsService extends ChangeNotifier {
   bool get dockShadowEnabled => _sharedPreferences.getBool(_dockShadowEnabled) ?? false;
 
   bool get showFocusBorders => _sharedPreferences.getBool(_showFocusBorders) ?? true;
+
+  // ---------------------------------------------------------------------
+  // Weather (PRD sections 3.A and 6).
+  //
+  // A user setting, not a scene override: the scene model is closed at its
+  // six presentation settings, and "which city's weather" is not a
+  // presentation choice.
+  //
+  // All four reads below go through the guarded helpers at the bottom of this
+  // class. `SharedPreferences.getBool`/`getDouble`/`getString` are hard casts
+  // over the preference cache, and since the backup feature imports a
+  // user-supplied JSON straight into the store, a value of the wrong type
+  // under any of these keys is reachable input. A `TypeError` here would come
+  // out of a getter the status bar reads on every build.
+  // ---------------------------------------------------------------------
+
+  /// Whether the weather block is shown in the status bar. Off by default:
+  /// the launcher must not reach the network until the user asks it to.
+  bool get showWeather => _readBool(_showWeather) ?? false;
+
+  /// Latitude of the city the user picked, or `null` when none is set.
+  double? get weatherLatitude => _readDouble(_weatherLatitude);
+
+  /// Longitude of the city the user picked, or `null` when none is set.
+  double? get weatherLongitude => _readDouble(_weatherLongitude);
+
+  /// Human-readable name of the picked city, for the settings page. Purely
+  /// cosmetic: nothing resolves a location from it.
+  String? get weatherLocationLabel => _readString(_weatherLocationLabel);
+
+  /// Reads a bool, treating a value of any other type as absent.
+  bool? _readBool(String key) {
+    try {
+      return _sharedPreferences.getBool(key);
+    } catch (e) {
+      debugPrint("SettingsService: stored value under '$key' is not a bool, ignoring it ($e)");
+      return null;
+    }
+  }
+
+  /// Reads a double, treating a value of any other type as absent.
+  double? _readDouble(String key) {
+    try {
+      return _sharedPreferences.getDouble(key);
+    } catch (e) {
+      debugPrint("SettingsService: stored value under '$key' is not a double, ignoring it ($e)");
+      return null;
+    }
+  }
+
+  /// Reads a string, treating a value of any other type as absent.
+  String? _readString(String key) {
+    try {
+      return _sharedPreferences.getString(key);
+    } catch (e) {
+      debugPrint("SettingsService: stored value under '$key' is not a string, ignoring it ($e)");
+      return null;
+    }
+  }
 
   /// Built from the effective [accentColorHex], not the user-only one: the
   /// whole `ColorScheme` in `flauncher_app.dart` is derived from this getter,
@@ -314,6 +377,38 @@ class SettingsService extends ChangeNotifier {
     if (!value) {
       await setAppHighlightAnimationEnabled(false);
     }
+  }
+
+  Future<void> setShowWeather(bool value) async {
+    return set(_showWeather, value);
+  }
+
+  /// Stores the picked city as a single unit. The three keys are written
+  /// together — and cleared together in [clearWeatherLocation] — so no reader
+  /// ever sees a latitude without its longitude.
+  Future<void> setWeatherLocation({
+    required double latitude,
+    required double longitude,
+    required String label,
+  }) async {
+    await Future.wait([
+      _sharedPreferences.setDouble(_weatherLatitude, latitude),
+      _sharedPreferences.setDouble(_weatherLongitude, longitude),
+      _sharedPreferences.setString(_weatherLocationLabel, label),
+    ]);
+    notifyListeners();
+  }
+
+  /// Forgets the picked city. Leaves [showWeather] alone: a user who clears
+  /// the location keeps the toggle where they put it, and `WeatherService`
+  /// already treats "enabled without a location" as nothing to show.
+  Future<void> clearWeatherLocation() async {
+    await Future.wait([
+      _sharedPreferences.remove(_weatherLatitude),
+      _sharedPreferences.remove(_weatherLongitude),
+      _sharedPreferences.remove(_weatherLocationLabel),
+    ]);
+    notifyListeners();
   }
 
   bool get timeBasedWallpaperEnabled => _sharedPreferences.getBool("time_based_wallpaper_enabled") ?? false;
