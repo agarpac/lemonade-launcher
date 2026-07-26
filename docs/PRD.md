@@ -67,9 +67,31 @@ Requisitos del bloque de clima:
 | Arriba desde el dock va a la barra superior | ✅ `MoveFocusToSettingsIntent` |
 | Abajo desde la barra vuelve a la última app enfocada | ✅ `custom_traversal_policy.dart` |
 | Realimentación sonora al navegar | ✅ `SoundFeedbackDirectionalFocusAction` |
-| Escalado 1,08× al enfocar, con físicas de muelle | ⬜ **pendiente de revisar** — existe `appHighlightAnimationEnabled`; hay que comprobar la curva y el factor reales |
+| Escalado al enfocar con animación no lineal | ✅ **cumplido** — ver 4.1 |
 
-**Prohibido:** transiciones lineales. Usar muelle o `Curves.fastOutSlowIn`.
+**Prohibido:** transiciones lineales.
+
+### 4.1 Valores reales de la animación de foco
+
+La v1 de este PRD pedía «escalado 1,08× con físicas de muelle». Ese número se escribió antes de conocer el código y **sin haberlo probado en un televisor**. Los valores implementados son distintos, están mejor fundamentados, y se conservan:
+
+| Elemento | Valor | Ubicación |
+| --- | --- | --- |
+| Factor de escala del icono | **1,07** | `lib/widgets/app_card.dart:106` |
+| Duración | **180 ms** | `lib/widgets/app_card.dart:107` |
+| Curva | **`Curves.easeOutCubic`** | `lib/widgets/app_card.dart:215` |
+| Tipo de animación | `AnimatedScale` implícita, envuelta en `RepaintBoundary` | — |
+| Borde de foco | Contorno de 1 dp con alfa pulsante `0.4 + v*0.6`, `AnimationController` de 1200 ms independiente de la escala | `_HighlightOutline` |
+| Tarjetas de «Continuar viendo» | 1,06 + elevación de −4 px | `lib/widgets/watch_next_row.dart:364` |
+
+Estos valores provienen de la rama `feature/animations-refine` del proyecto de origen, que iteró **1,2 → 1,06 → 1,07** y **`easeInOut` → `easeOutCubic`**. Es decir: hay ajuste empírico detrás. Nunca probaron 1,08.
+
+Decisiones registradas para que nadie las «arregle» sin contexto:
+
+1. **No se cambia 1,07 por 1,08.** En un icono de unos 100 px la diferencia es de un píxel. Alinear el código con una cifra inventada del documento no aporta nada perceptible.
+2. **Se mantiene `easeOutCubic` en lugar de `Curves.fastOutSlowIn`.** `easeOutCubic` arranca rápido y desacelera; `fastOutSlowIn` acelera al principio. En navegación con mando lo que se percibe como calidad no es la suavidad sino la **latencia**: el icono debe responder de inmediato al pulsar la cruceta. La curva actual es la mejor de las dos para este caso.
+3. **Se descartan las físicas de muelle reales** (`SpringSimulation`/`SpringDescription`, hoy ausentes del proyecto). Exigirían sustituir la `AnimatedScale` implícita por un `AnimationController`, añadiendo **un ticker por tarjeta enfocada** en una GPU de gama baja donde Impeller ya está desactivado para sostener los 60 fps. El riesgo de tirones supera la ganancia estética.
+4. **El 1,06 de «Continuar viendo» no es una incoherencia.** Sus tarjetas son pósteres 16:9 mucho mayores, y un mismo factor sobre un elemento más grande desplaza más píxeles; un factor algo menor mantiene el efecto visual equivalente.
 
 ## 5. Panel de ajustes interno
 
@@ -146,7 +168,25 @@ Escenas de partida: **Cine** (streaming, brillo alto), **Noche** (brillo mínimo
 
 El motivo es de producto, no técnico: en la pantalla del salón, un entorno que se reconfigura por su cuenta produce desconfianza. El usuario debe poder predecir con total certeza qué se va a encontrar al encender la televisión. Nótese que esto convive con el fondo de pantalla por horario que ya existe, que es un ajuste independiente y sigue siendo opcional.
 
-Reaprovecha lo que ya existe: categorías en Drift, `lib/providers/brightness_service.dart` y la gestión de fondos. Falta la capa que las orquesta y la persistencia de la escena activa.
+Reaprovecha lo que ya existe: categorías en Drift, `lib/providers/brightness_service.dart` y la gestión de fondos.
+
+### 9.1.1 Estado: núcleo implementado
+
+`lib/models/scene.dart` y `lib/providers/scenes_service.dart`, con 93 pruebas propias. Persistencia en `shared_preferences` como JSON con campo `version`; el esquema SQL **no** se toca. Cada escena tiene una clave estable (`normal`, `cinema`, `night`, `kids`) independiente de su etiqueta visible.
+
+Sobrescrituras opcionales por escena: aplicaciones visibles del dock (por `packageName`, no por identificador de base de datos, para que sobrevivan a reinstalaciones), brillo, y fondo — este último por fichero **o** por gradiente, mutuamente excluyentes y validado en el constructor. `null` significa siempre «no cambiar nada».
+
+El PIN se guarda como SHA-256 con sal aleatoria por escritura, se compara en tiempo constante, y se verifica **en el servicio**, no en la interfaz: quitar el PIN, cambiarlo o restaurar los valores por defecto exigen conocerlo. `saveScene` transfiere siempre el estado de PIN almacenado, de modo que no existe forma de expresar «guarda esta escena sin su bloqueo».
+
+### 9.1.2 El PIN queda aplazado
+
+El bloqueo por PIN **no forma parte del alcance actual**. La capacidad está implementada y probada en el servicio, pero es opcional: sin PIN configurado no interviene en nada, y ninguna escena se siembra con uno.
+
+Queda por tanto fuera de esta fase: el diálogo de introducción de PIN, y exigirlo para entrar en Ajustes.
+
+Si algún día se retoma, esa segunda parte es imprescindible y no es negociable: sin ella el bloqueo es decorativo, porque el candado impide *salir* de la escena pero cualquiera que abra Ajustes puede añadir aplicaciones al dock de «Niños» o desactivar el launcher. La defensa correcta es **una sola puerta** —la entrada a Ajustes— y no proteger uno por uno los ajustes individuales, que obligaría a reintroducir el PIN en cada cambio sin cerrar el agujero real.
+
+Consecuencia práctica: la escena «Niños» es hoy un dock filtrado sin candado. Sigue siendo útil —limita lo que se ve— pero no impide salir de ella.
 
 ### 9.2 Candidatas evaluadas
 
@@ -161,16 +201,18 @@ Reaprovecha lo que ya existe: categorías en Drift, `lib/providers/brightness_se
 
 ## 10. Trabajo pendiente, por orden
 
-**Bloqueante:** reparar la suite de tests. `flutter test` da 23 pruebas correctas y **14 ficheros que no compilan**, porque el fork de origen refactorizó `lib/` sin actualizar `test/`. Los ficheros afectados cubren precisamente las zonas donde vamos a trabajar: categorías, aplicaciones, panel de ajustes y la pantalla principal. Construir escenas encima de esto sería trabajar a ciegas sobre el entorno absoluto del sistema.
+✅ **Completado — reparación de la suite de tests.** Se partía de 23 pruebas correctas y **14 ficheros que no compilaban**, porque el proyecto de origen refactorizó `lib/` sin actualizar `test/`. Estado actual: **102 pruebas correctas, 1 omitida, 0 fallos**, y 0 errores de `flutter analyze`. Incluyó además la corrección de un fallo real heredado en la cadena de migraciones de `lib/database.dart`, que dejaba la base de datos inabrible al actualizar desde los esquemas v1 a v4.
 
-Después:
+✅ **Completado — animación de foco** (sección 4.1): el requisito estaba mal planteado en la v1; los valores reales son mejores y se conservan documentados.
+
+Pendiente:
 
 1. Escenas preconfiguradas (sección 9.1).
 2. Copia de seguridad y restauración de la configuración (sección 11).
-3. Widget de clima con Open-Meteo, interruptor y buscador de ciudad en Ajustes.
-4. Encapsular los elementos de la barra superior en tarjetas de cristal.
-5. Squircle para los iconos de aplicación.
-6. Revisar el escalado al enfocar (factor 1,08× y físicas de muelle).
+3. Accesos directos a contenido (sección 12).
+4. Widget de clima con Open-Meteo, interruptor y buscador de ciudad en Ajustes.
+5. Encapsular los elementos de la barra superior en tarjetas de cristal.
+6. Squircle para los iconos de aplicación.
 7. Limpiar las cadenas y referencias restantes a Arc Launcher.
 8. Decidir si se renombra el `applicationId` `com.omeda.arc` — **antes** de la primera publicación, nunca después.
 
