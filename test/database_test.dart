@@ -66,6 +66,38 @@ void main() {
     expect(app.read<bool>("hidden"), true);
   });
 
+  test("getApplications round-trips lastLaunchedAt for \"Last Used\" sorting", () async {
+    final older = DateTime.fromMillisecondsSinceEpoch(1000);
+    final newer = DateTime.fromMillisecondsSinceEpoch(2000);
+
+    await database.customInsert("INSERT INTO apps(package_name, name, version)"
+        " VALUES('me.efesser.older', 'Older', '1.0.0');");
+    await database.customInsert("INSERT INTO apps(package_name, name, version)"
+        " VALUES('me.efesser.newer', 'Newer', '1.0.0');");
+
+    await database.updateApp("me.efesser.older", AppsCompanion(lastLaunchedAt: Value(older)));
+    await database.updateApp("me.efesser.newer", AppsCompanion(lastLaunchedAt: Value(newer)));
+
+    final apps = await database.getApplications();
+    final olderApp = apps.firstWhere((app) => app.packageName == "me.efesser.older");
+    final newerApp = apps.firstWhere((app) => app.packageName == "me.efesser.newer");
+
+    // The column is written correctly (proven independently); the bug is that
+    // App's constructor didn't accept it, so drift's generated mapper never
+    // read it back, and lastLaunchedAt was always null after a DB round trip.
+    expect(olderApp.lastLaunchedAt, older);
+    expect(newerApp.lastLaunchedAt, newer);
+
+    // This is exactly what AppsService.sortCategory does for CategorySort.lastUsed:
+    // without the fix both fall back to epoch zero and tie, so the sort is a no-op.
+    final sorted = [olderApp, newerApp]..sort((a, b) {
+      final aTime = a.lastLaunchedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+      final bTime = b.lastLaunchedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+      return bTime.compareTo(aTime);
+    });
+    expect(sorted.map((app) => app.packageName).toList(), ["me.efesser.newer", "me.efesser.older"]);
+  });
+
   test("deleteApps", () async {
     await database.customInsert("INSERT INTO apps(package_name, name, version)"
         " VALUES('me.efesser.flauncher', 'FLauncher', '1.0.0');");

@@ -98,6 +98,8 @@ class $AppsTable extends Apps with TableInfo<$AppsTable, App> {
           .read(DriftSqlType.string, data['${effectivePrefix}version'])!,
       hidden: attachedDatabase.typeMapping
           .read(DriftSqlType.bool, data['${effectivePrefix}hidden'])!,
+      lastLaunchedAt: attachedDatabase.typeMapping.read(
+          DriftSqlType.dateTime, data['${effectivePrefix}last_launched_at']),
     );
   }
 
