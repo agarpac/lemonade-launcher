@@ -18,6 +18,8 @@
 
 import 'package:flauncher/widgets/side_panel_dialog.dart';
 import 'package:flauncher/widgets/settings/applications_panel_page.dart';
+import 'package:flauncher/widgets/settings/backup_panel_page.dart';
+import 'package:flauncher/widgets/settings/backup_restore_page.dart';
 import 'package:flauncher/widgets/settings/launcher_sections_panel_page.dart';
 import 'package:flauncher/widgets/settings/gradient_panel_page.dart';
 import 'package:flauncher/widgets/settings/launcher_section_panel_page.dart';
@@ -116,6 +118,10 @@ class _SettingsPanelState extends State<SettingsPanel> {
                     case AppDetailsPage.routeName:
                       return _FastPageRoute(
                           builder: (_) => AppDetailsPage(application: settings.arguments as App));
+                    case BackupPanelPage.routeName:
+                      return _FastPageRoute(builder: (_) => const BackupPanelPage());
+                    case BackupRestorePage.routeName:
+                      return _FastPageRoute(builder: (_) => BackupRestorePage());
                     case ScenesPanelPage.routeName:
                       return _FastPageRoute(builder: (_) => ScenesPanelPage());
                     case SceneEditorPage.routeName:

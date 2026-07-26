@@ -20,6 +20,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flauncher/l10n/app_localizations.dart';
 import 'focusable_settings_tile.dart';
+import 'backup_panel_page.dart';
 import 'brightness_settings_page.dart';
 import 'date_time_format_page.dart';
 import 'back_button_action_page.dart';
@@ -74,6 +75,12 @@ class GeneralSettingsPage extends StatelessWidget {
                   leading: const Icon(Icons.wifi),
                   title: Text(localizations.wifiUsagePeriodTitle, style: Theme.of(context).textTheme.bodyMedium),
                   onPressed: () => Navigator.of(context).pushNamed(WifiUsagePeriodPage.routeName),
+                ),
+                FocusableSettingsTile(
+                  leading: const Icon(Icons.backup_outlined),
+                  title: Text(localizations.backupAndRestore, style: Theme.of(context).textTheme.bodyMedium),
+                  trailing: const Icon(Icons.chevron_right),
+                  onPressed: () => Navigator.of(context).pushNamed(BackupPanelPage.routeName),
                 ),
 
               ],

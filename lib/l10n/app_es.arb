@@ -258,5 +258,37 @@
     "clockStylePixelTitle": "Píxel",
     "clockStylePixelSubtitle": "Monoespaciado en negrita, estilo arcade",
     "clockStyleDigitalTitle": "Digital",
-    "clockStyleDigitalSubtitle": "Pantalla monoespaciada nítida"
+    "clockStyleDigitalSubtitle": "Pantalla monoespaciada nítida",
+    "backupAndRestore": "Copia de seguridad y restauración",
+    "backupCreate": "Crear copia de seguridad",
+    "backupRestore": "Restaurar copia de seguridad",
+    "backupChooseFile": "Elegir una copia de seguridad",
+    "backupCreatedTitle": "Copia de seguridad creada",
+    "backupNotCreatedTitle": "No se creó la copia de seguridad",
+    "backupExportSucceeded": "Se guardó toda la configuración en un archivo.",
+    "backupExportStorageUnavailable": "Este dispositivo no expone ningún almacenamiento donde escribir la copia de seguridad.",
+    "backupExportFailed": "No se pudo escribir el archivo de copia de seguridad. No se guardó nada.",
+    "backupExportFilePath": "Archivo: {path}",
+    "@backupExportFilePath": {
+        "placeholders": {
+            "path": { "type": "String" }
+        }
+    },
+    "backupExportWallpapersNotIncluded": "Las imágenes de fondo no forman parte de la copia de seguridad. Tendrás que volver a elegir estas después de restaurar:",
+    "backupListEmpty": "No se encontró ninguna copia de seguridad en este dispositivo. Crea una primero.",
+    "backupListStorageUnavailable": "Este dispositivo no expone ningún almacenamiento donde buscar copias de seguridad.",
+    "backupRestoreConfirmTitle": "¿Restaurar esta copia de seguridad?",
+    "backupRestoreConfirmBody": "La configuración actual se reemplaza por el contenido de este archivo, no se combina con él: aplicaciones, categorías, secciones y ajustes vuelven a como estaban cuando se creó la copia de seguridad.",
+    "backupRestoreConfirmButton": "Restaurar",
+    "backupRestoreSkippedApps": "Estas aplicaciones están en la copia de seguridad pero no están instaladas, así que quedarán fuera:",
+    "backupRestoreWallpapersToReselect": "Estos fondos no están en este dispositivo, así que tendrás que volver a elegirlos:",
+    "backupRestoredTitle": "Configuración restaurada",
+    "backupNotRestoredTitle": "No se restauró la configuración",
+    "backupImportSucceeded": "Se restauró la configuración.",
+    "backupImportSettingsRestoreIncomplete": "Se restauró la configuración, pero algunos ajustes no se pudieron escribir y volvieron a su valor predeterminado. Restaurar de nuevo la misma copia de seguridad es seguro.",
+    "backupImportFileNotFound": "Este archivo de copia de seguridad ya no existe. No se cambió nada.",
+    "backupImportInvalidFile": "Este archivo no es una copia de seguridad, o está dañado. No se cambió nada.",
+    "backupImportUnsupportedVersion": "Esta copia de seguridad se creó con una versión más reciente del lanzador y no se puede leer. No se cambió nada.",
+    "backupImportInstalledAppsUnavailable": "No se pudo leer la lista de aplicaciones instaladas, así que no se pudo comprobar la copia de seguridad. No se cambió nada.",
+    "backupImportRestoreFailed": "No se pudo restaurar la configuración. No se cambió nada."
 }

@@ -41,7 +41,11 @@ const int backupSchemaVersion = 1;
 
 /// Prefix of the exported file name. The rest is a local timestamp, so two
 /// exports never overwrite each other and `adb pull` picks the newest by name.
-const String _backupFileNamePrefix = "lemonade-launcher-backup-";
+///
+/// Public because the restore UI lists the backups in the export directory and
+/// must filter on exactly this prefix; a second copy of the literal over there
+/// would be free to drift away from the one used to write the files.
+const String backupFileNamePrefix = "lemonade-launcher-backup-";
 
 /// Basenames of the six fixed user wallpaper files, in the documents
 /// directory, as `WallpaperService` builds them in its `_init`.
@@ -300,7 +304,7 @@ class BackupService {
         },
       };
 
-      final file = File("${directory.path}/${_backupFileNamePrefix}${_fileNameTimestamp(debugNow())}.json");
+      final file = File("${directory.path}/$backupFileNamePrefix${_fileNameTimestamp(debugNow())}.json");
       await directory.create(recursive: true);
       await file.writeAsString(const JsonEncoder.withIndent("  ").convert(payload), flush: true);
 

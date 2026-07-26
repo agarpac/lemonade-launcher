@@ -21,6 +21,7 @@ import 'dart:math';
 import 'package:flauncher/database.dart';
 import 'package:flauncher/flauncher_channel.dart';
 import 'package:flauncher/providers/apps_service.dart';
+import 'package:flauncher/providers/backup_service.dart';
 import 'package:flauncher/providers/scenes_service.dart';
 import 'package:flauncher/providers/settings_service.dart';
 import 'package:flauncher/providers/wallpaper_service.dart';
@@ -40,6 +41,7 @@ import 'package:flauncher/models/scene.dart';
   ScenesService,
   ImagePicker,
 ], customMocks: [
+  MockSpec<BackupService>(),
   MockSpec<FLauncherDatabase>(unsupportedMembers: {#alias}),
   MockSpec<ImageProvider>(unsupportedMembers: {#alias}),
 ])

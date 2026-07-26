@@ -1195,6 +1195,168 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Clean monospaced display'**
   String get clockStyleDigitalSubtitle;
+
+  /// No description provided for @backupAndRestore.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup and restore'**
+  String get backupAndRestore;
+
+  /// No description provided for @backupCreate.
+  ///
+  /// In en, this message translates to:
+  /// **'Create backup'**
+  String get backupCreate;
+
+  /// No description provided for @backupRestore.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore backup'**
+  String get backupRestore;
+
+  /// No description provided for @backupChooseFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a backup'**
+  String get backupChooseFile;
+
+  /// No description provided for @backupCreatedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup created'**
+  String get backupCreatedTitle;
+
+  /// No description provided for @backupNotCreatedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup not created'**
+  String get backupNotCreatedTitle;
+
+  /// No description provided for @backupExportSucceeded.
+  ///
+  /// In en, this message translates to:
+  /// **'The whole configuration was saved to a file.'**
+  String get backupExportSucceeded;
+
+  /// No description provided for @backupExportStorageUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'This device exposes no storage where the backup could be written.'**
+  String get backupExportStorageUnavailable;
+
+  /// No description provided for @backupExportFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The backup file could not be written. Nothing was saved.'**
+  String get backupExportFailed;
+
+  /// No description provided for @backupExportFilePath.
+  ///
+  /// In en, this message translates to:
+  /// **'File: {path}'**
+  String backupExportFilePath(String path);
+
+  /// No description provided for @backupExportWallpapersNotIncluded.
+  ///
+  /// In en, this message translates to:
+  /// **'Wallpaper images are not part of the backup. You will have to choose these again after restoring:'**
+  String get backupExportWallpapersNotIncluded;
+
+  /// No description provided for @backupListEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No backup found on this device. Create one first.'**
+  String get backupListEmpty;
+
+  /// No description provided for @backupListStorageUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'This device exposes no storage where backups could be looked for.'**
+  String get backupListStorageUnavailable;
+
+  /// No description provided for @backupRestoreConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore this backup?'**
+  String get backupRestoreConfirmTitle;
+
+  /// No description provided for @backupRestoreConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The current configuration is replaced by the contents of this file, not merged with it: applications, categories, sections and settings all go back to what they were when the backup was created.'**
+  String get backupRestoreConfirmBody;
+
+  /// No description provided for @backupRestoreConfirmButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore'**
+  String get backupRestoreConfirmButton;
+
+  /// No description provided for @backupRestoreSkippedApps.
+  ///
+  /// In en, this message translates to:
+  /// **'These applications are in the backup but are not installed, so they will be left out:'**
+  String get backupRestoreSkippedApps;
+
+  /// No description provided for @backupRestoreWallpapersToReselect.
+  ///
+  /// In en, this message translates to:
+  /// **'These wallpapers are not on this device, so you will have to choose them again:'**
+  String get backupRestoreWallpapersToReselect;
+
+  /// No description provided for @backupRestoredTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Configuration restored'**
+  String get backupRestoredTitle;
+
+  /// No description provided for @backupNotRestoredTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Configuration not restored'**
+  String get backupNotRestoredTitle;
+
+  /// No description provided for @backupImportSucceeded.
+  ///
+  /// In en, this message translates to:
+  /// **'The configuration was restored.'**
+  String get backupImportSucceeded;
+
+  /// No description provided for @backupImportSettingsRestoreIncomplete.
+  ///
+  /// In en, this message translates to:
+  /// **'The configuration was restored, but some settings could not be written and went back to their default value. Restoring the same backup again is safe.'**
+  String get backupImportSettingsRestoreIncomplete;
+
+  /// No description provided for @backupImportFileNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'This backup file no longer exists. Nothing was changed.'**
+  String get backupImportFileNotFound;
+
+  /// No description provided for @backupImportInvalidFile.
+  ///
+  /// In en, this message translates to:
+  /// **'This file is not a backup, or it is damaged. Nothing was changed.'**
+  String get backupImportInvalidFile;
+
+  /// No description provided for @backupImportUnsupportedVersion.
+  ///
+  /// In en, this message translates to:
+  /// **'This backup was created by a newer version of the launcher and cannot be read. Nothing was changed.'**
+  String get backupImportUnsupportedVersion;
+
+  /// No description provided for @backupImportInstalledAppsUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'The list of installed applications could not be read, so the backup could not be checked. Nothing was changed.'**
+  String get backupImportInstalledAppsUnavailable;
+
+  /// No description provided for @backupImportRestoreFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The configuration could not be restored. Nothing was changed.'**
+  String get backupImportRestoreFailed;
 }
 
 class _AppLocalizationsDelegate

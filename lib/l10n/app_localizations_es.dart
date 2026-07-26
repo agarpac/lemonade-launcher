@@ -611,4 +611,102 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get clockStyleDigitalSubtitle => 'Pantalla monoespaciada nítida';
+
+  @override
+  String get backupAndRestore => 'Copia de seguridad y restauración';
+
+  @override
+  String get backupCreate => 'Crear copia de seguridad';
+
+  @override
+  String get backupRestore => 'Restaurar copia de seguridad';
+
+  @override
+  String get backupChooseFile => 'Elegir una copia de seguridad';
+
+  @override
+  String get backupCreatedTitle => 'Copia de seguridad creada';
+
+  @override
+  String get backupNotCreatedTitle => 'No se creó la copia de seguridad';
+
+  @override
+  String get backupExportSucceeded =>
+      'Se guardó toda la configuración en un archivo.';
+
+  @override
+  String get backupExportStorageUnavailable =>
+      'Este dispositivo no expone ningún almacenamiento donde escribir la copia de seguridad.';
+
+  @override
+  String get backupExportFailed =>
+      'No se pudo escribir el archivo de copia de seguridad. No se guardó nada.';
+
+  @override
+  String backupExportFilePath(String path) {
+    return 'Archivo: $path';
+  }
+
+  @override
+  String get backupExportWallpapersNotIncluded =>
+      'Las imágenes de fondo no forman parte de la copia de seguridad. Tendrás que volver a elegir estas después de restaurar:';
+
+  @override
+  String get backupListEmpty =>
+      'No se encontró ninguna copia de seguridad en este dispositivo. Crea una primero.';
+
+  @override
+  String get backupListStorageUnavailable =>
+      'Este dispositivo no expone ningún almacenamiento donde buscar copias de seguridad.';
+
+  @override
+  String get backupRestoreConfirmTitle => '¿Restaurar esta copia de seguridad?';
+
+  @override
+  String get backupRestoreConfirmBody =>
+      'La configuración actual se reemplaza por el contenido de este archivo, no se combina con él: aplicaciones, categorías, secciones y ajustes vuelven a como estaban cuando se creó la copia de seguridad.';
+
+  @override
+  String get backupRestoreConfirmButton => 'Restaurar';
+
+  @override
+  String get backupRestoreSkippedApps =>
+      'Estas aplicaciones están en la copia de seguridad pero no están instaladas, así que quedarán fuera:';
+
+  @override
+  String get backupRestoreWallpapersToReselect =>
+      'Estos fondos no están en este dispositivo, así que tendrás que volver a elegirlos:';
+
+  @override
+  String get backupRestoredTitle => 'Configuración restaurada';
+
+  @override
+  String get backupNotRestoredTitle => 'No se restauró la configuración';
+
+  @override
+  String get backupImportSucceeded => 'Se restauró la configuración.';
+
+  @override
+  String get backupImportSettingsRestoreIncomplete =>
+      'Se restauró la configuración, pero algunos ajustes no se pudieron escribir y volvieron a su valor predeterminado. Restaurar de nuevo la misma copia de seguridad es seguro.';
+
+  @override
+  String get backupImportFileNotFound =>
+      'Este archivo de copia de seguridad ya no existe. No se cambió nada.';
+
+  @override
+  String get backupImportInvalidFile =>
+      'Este archivo no es una copia de seguridad, o está dañado. No se cambió nada.';
+
+  @override
+  String get backupImportUnsupportedVersion =>
+      'Esta copia de seguridad se creó con una versión más reciente del lanzador y no se puede leer. No se cambió nada.';
+
+  @override
+  String get backupImportInstalledAppsUnavailable =>
+      'No se pudo leer la lista de aplicaciones instaladas, así que no se pudo comprobar la copia de seguridad. No se cambió nada.';
+
+  @override
+  String get backupImportRestoreFailed =>
+      'No se pudo restaurar la configuración. No se cambió nada.';
 }

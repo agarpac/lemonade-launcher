@@ -598,4 +598,102 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get clockStyleDigitalSubtitle => 'Clean monospaced display';
+
+  @override
+  String get backupAndRestore => 'Backup and restore';
+
+  @override
+  String get backupCreate => 'Create backup';
+
+  @override
+  String get backupRestore => 'Restore backup';
+
+  @override
+  String get backupChooseFile => 'Choose a backup';
+
+  @override
+  String get backupCreatedTitle => 'Backup created';
+
+  @override
+  String get backupNotCreatedTitle => 'Backup not created';
+
+  @override
+  String get backupExportSucceeded =>
+      'The whole configuration was saved to a file.';
+
+  @override
+  String get backupExportStorageUnavailable =>
+      'This device exposes no storage where the backup could be written.';
+
+  @override
+  String get backupExportFailed =>
+      'The backup file could not be written. Nothing was saved.';
+
+  @override
+  String backupExportFilePath(String path) {
+    return 'File: $path';
+  }
+
+  @override
+  String get backupExportWallpapersNotIncluded =>
+      'Wallpaper images are not part of the backup. You will have to choose these again after restoring:';
+
+  @override
+  String get backupListEmpty =>
+      'No backup found on this device. Create one first.';
+
+  @override
+  String get backupListStorageUnavailable =>
+      'This device exposes no storage where backups could be looked for.';
+
+  @override
+  String get backupRestoreConfirmTitle => 'Restore this backup?';
+
+  @override
+  String get backupRestoreConfirmBody =>
+      'The current configuration is replaced by the contents of this file, not merged with it: applications, categories, sections and settings all go back to what they were when the backup was created.';
+
+  @override
+  String get backupRestoreConfirmButton => 'Restore';
+
+  @override
+  String get backupRestoreSkippedApps =>
+      'These applications are in the backup but are not installed, so they will be left out:';
+
+  @override
+  String get backupRestoreWallpapersToReselect =>
+      'These wallpapers are not on this device, so you will have to choose them again:';
+
+  @override
+  String get backupRestoredTitle => 'Configuration restored';
+
+  @override
+  String get backupNotRestoredTitle => 'Configuration not restored';
+
+  @override
+  String get backupImportSucceeded => 'The configuration was restored.';
+
+  @override
+  String get backupImportSettingsRestoreIncomplete =>
+      'The configuration was restored, but some settings could not be written and went back to their default value. Restoring the same backup again is safe.';
+
+  @override
+  String get backupImportFileNotFound =>
+      'This backup file no longer exists. Nothing was changed.';
+
+  @override
+  String get backupImportInvalidFile =>
+      'This file is not a backup, or it is damaged. Nothing was changed.';
+
+  @override
+  String get backupImportUnsupportedVersion =>
+      'This backup was created by a newer version of the launcher and cannot be read. Nothing was changed.';
+
+  @override
+  String get backupImportInstalledAppsUnavailable =>
+      'The list of installed applications could not be read, so the backup could not be checked. Nothing was changed.';
+
+  @override
+  String get backupImportRestoreFailed =>
+      'The configuration could not be restored. Nothing was changed.';
 }

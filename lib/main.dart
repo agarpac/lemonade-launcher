@@ -21,6 +21,8 @@ import 'dart:async';
 import 'package:flauncher/database.dart';
 import 'package:flauncher/flauncher_channel.dart';
 import 'package:flauncher/providers/apps_service.dart';
+import 'package:flauncher/providers/backup_service.dart';
+import 'package:flauncher/providers/configuration_reloader.dart';
 import 'package:flauncher/providers/launcher_state.dart';
 import 'package:flauncher/providers/network_service.dart';
 import 'package:flauncher/providers/scenes_service.dart';
@@ -43,41 +45,101 @@ Future<void> main() async {
   final fLauncherChannel = FLauncherChannel();
   final fLauncherDatabase = FLauncherDatabase(connect());
 
-  runApp(MultiProvider(
-      providers: [
-        // ScenesService must be created before SettingsService: the latter
-        // composes the active scene's presentation overrides into its own
-        // getters (see SettingsService's constructor doc), the same way
-        // WallpaperService below depends on both.
-        ChangeNotifierProvider(
-            create: (_) => ScenesService(sharedPreferences),
-            lazy: false),
-        ChangeNotifierProvider(
-            create: (context) {
-              ScenesService scenesService = Provider.of(context, listen: false);
-              return SettingsService(sharedPreferences, scenesService);
-            },
-            lazy: false),
-        ChangeNotifierProvider(create: (_) => AppsService(fLauncherChannel, fLauncherDatabase)),
-        ChangeNotifierProvider(create: (_) => LauncherState()),
-        ChangeNotifierProvider(create: (_) => NetworkService(fLauncherChannel)),
-        ChangeNotifierProvider(
-            create: (context) {
-              SettingsService settingsService = Provider.of(context, listen: false);
-              ScenesService scenesService = Provider.of(context, listen: false);
-              return WallpaperService(settingsService, scenesService);
-            }
+  runApp(LauncherRoot(
+    sharedPreferences: sharedPreferences,
+    fLauncherChannel: fLauncherChannel,
+    fLauncherDatabase: fLauncherDatabase,
+  ));
+}
+
+/// Root of the application: owns the launcher's provider tree and the one
+/// thing that can throw it away and build it again.
+///
+/// Stateful only to hold [_generation]. Every service below lives in a
+/// [MultiProvider] keyed on that counter, so bumping it makes Flutter discard
+/// the whole subtree — providers included — and inflate a new one, re-creating
+/// every service from the store as it is at that moment. That is exactly what a
+/// restored backup needs: `BackupService.importBackup` replaces the database
+/// and the preferences underneath services that read them once, at
+/// construction time, and this launcher is the device's only home screen, so
+/// restarting the process is off the table.
+class LauncherRoot extends StatefulWidget {
+  final SharedPreferences sharedPreferences;
+  final FLauncherChannel fLauncherChannel;
+  final FLauncherDatabase fLauncherDatabase;
+
+  const LauncherRoot({
+    super.key,
+    required this.sharedPreferences,
+    required this.fLauncherChannel,
+    required this.fLauncherDatabase,
+  });
+
+  @override
+  State<LauncherRoot> createState() => _LauncherRootState();
+}
+
+class _LauncherRootState extends State<LauncherRoot> {
+  /// Bumped by [ConfigurationReloader.reload]; keys the [MultiProvider] below.
+  int _generation = 0;
+
+  late final ConfigurationReloader _configurationReloader = ConfigurationReloader(_reloadConfiguration);
+
+  void _reloadConfiguration() {
+    if (!mounted) {
+      return;
+    }
+    setState(() => _generation++);
+  }
+
+  @override
+  Widget build(BuildContext context) => Provider<ConfigurationReloader>.value(
+        // Deliberately *above* the keyed subtree: the reloader must outlive the
+        // very rebuild it triggers. Placed inside the MultiProvider it would be
+        // destroyed together with the page that just called it — and the
+        // instance a page reads would be a different one on every generation.
+        value: _configurationReloader,
+        child: MultiProvider(
+          key: ValueKey(_generation),
+          providers: [
+            // ScenesService must be created before SettingsService: the latter
+            // composes the active scene's presentation overrides into its own
+            // getters (see SettingsService's constructor doc), the same way
+            // WallpaperService below depends on both.
+            ChangeNotifierProvider(
+                create: (_) => ScenesService(widget.sharedPreferences),
+                lazy: false),
+            ChangeNotifierProvider(
+                create: (context) {
+                  ScenesService scenesService = Provider.of(context, listen: false);
+                  return SettingsService(widget.sharedPreferences, scenesService);
+                },
+                lazy: false),
+            ChangeNotifierProvider(create: (_) => AppsService(widget.fLauncherChannel, widget.fLauncherDatabase)),
+            ChangeNotifierProvider(create: (_) => LauncherState()),
+            ChangeNotifierProvider(create: (_) => NetworkService(widget.fLauncherChannel)),
+            ChangeNotifierProvider(
+                create: (context) {
+                  SettingsService settingsService = Provider.of(context, listen: false);
+                  ScenesService scenesService = Provider.of(context, listen: false);
+                  return WallpaperService(settingsService, scenesService);
+                }
+            ),
+            ChangeNotifierProvider(
+                create: (_) => BrightnessService(widget.sharedPreferences),
+                lazy: false
+            ),
+            ChangeNotifierProvider(
+                create: (_) => WatchNextService(widget.fLauncherChannel),
+                lazy: false
+            ),
+            // Plain Provider: BackupService is not a ChangeNotifier — it owns
+            // no in-memory state to listen to.
+            Provider(
+                create: (_) =>
+                    BackupService(widget.fLauncherDatabase, widget.sharedPreferences, widget.fLauncherChannel)),
+          ],
+          child: FLauncherApp(),
         ),
-        ChangeNotifierProvider(
-            create: (_) => BrightnessService(sharedPreferences),
-            lazy: false
-        ),
-        ChangeNotifierProvider(
-            create: (_) => WatchNextService(fLauncherChannel),
-            lazy: false
-        ),
-      ],
-      child: FLauncherApp()
-    )
-  );
+      );
 }

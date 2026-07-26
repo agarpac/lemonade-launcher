@@ -268,5 +268,37 @@
     "clockStylePixelTitle": "Pixel",
     "clockStylePixelSubtitle": "Bold monospaced, arcade feel",
     "clockStyleDigitalTitle": "Digital",
-    "clockStyleDigitalSubtitle": "Clean monospaced display"
+    "clockStyleDigitalSubtitle": "Clean monospaced display",
+    "backupAndRestore": "Backup and restore",
+    "backupCreate": "Create backup",
+    "backupRestore": "Restore backup",
+    "backupChooseFile": "Choose a backup",
+    "backupCreatedTitle": "Backup created",
+    "backupNotCreatedTitle": "Backup not created",
+    "backupExportSucceeded": "The whole configuration was saved to a file.",
+    "backupExportStorageUnavailable": "This device exposes no storage where the backup could be written.",
+    "backupExportFailed": "The backup file could not be written. Nothing was saved.",
+    "backupExportFilePath": "File: {path}",
+    "@backupExportFilePath": {
+        "placeholders": {
+            "path": { "type": "String" }
+        }
+    },
+    "backupExportWallpapersNotIncluded": "Wallpaper images are not part of the backup. You will have to choose these again after restoring:",
+    "backupListEmpty": "No backup found on this device. Create one first.",
+    "backupListStorageUnavailable": "This device exposes no storage where backups could be looked for.",
+    "backupRestoreConfirmTitle": "Restore this backup?",
+    "backupRestoreConfirmBody": "The current configuration is replaced by the contents of this file, not merged with it: applications, categories, sections and settings all go back to what they were when the backup was created.",
+    "backupRestoreConfirmButton": "Restore",
+    "backupRestoreSkippedApps": "These applications are in the backup but are not installed, so they will be left out:",
+    "backupRestoreWallpapersToReselect": "These wallpapers are not on this device, so you will have to choose them again:",
+    "backupRestoredTitle": "Configuration restored",
+    "backupNotRestoredTitle": "Configuration not restored",
+    "backupImportSucceeded": "The configuration was restored.",
+    "backupImportSettingsRestoreIncomplete": "The configuration was restored, but some settings could not be written and went back to their default value. Restoring the same backup again is safe.",
+    "backupImportFileNotFound": "This backup file no longer exists. Nothing was changed.",
+    "backupImportInvalidFile": "This file is not a backup, or it is damaged. Nothing was changed.",
+    "backupImportUnsupportedVersion": "This backup was created by a newer version of the launcher and cannot be read. Nothing was changed.",
+    "backupImportInstalledAppsUnavailable": "The list of installed applications could not be read, so the backup could not be checked. Nothing was changed.",
+    "backupImportRestoreFailed": "The configuration could not be restored. Nothing was changed."
 }
