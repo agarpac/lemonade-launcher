@@ -189,5 +189,84 @@
     "watchNextPermissionTitle": "Watch Next permission required",
     "watchNextPermissionBody": "Allow access to TV listings to show your continue watching items.",
     "watchNextGrantPermission": "Grant permission",
-    "watchNextCheckPermission": "Check again"
+    "watchNextCheckPermission": "Check again",
+    "miscellaneous": "Miscellaneous",
+    "interface": "Interface",
+    "system": "System",
+    "brightnessScheduler": "Brightness Scheduler",
+    "screensaverSettings": "Screensaver Settings",
+    "screensaverClockStyle": "Screensaver Clock Style",
+    "wifiUsagePeriodTitle": "WiFi Usage Period",
+    "wifiPeriodDaily": "Daily",
+    "wifiPeriodWeekly": "Weekly",
+    "wifiPeriodMonthly": "Monthly",
+    "wifiUsageToggle": "WiFi Usage",
+    "networkIndicator": "Network Indicator",
+    "wifiUsageGrantPermission": "Grant Usage Permission",
+    "selectAName": "Select a name",
+    "customName": "Custom Name",
+    "lastUsed": "Last Used",
+    "addToCategory": "Add to Category",
+    "removeFromFavorites": "Remove from Fav",
+    "addToFavorites": "Add to Fav",
+    "setCustomBanner": "Set Custom Banner",
+    "clearCustomBanner": "Clear Custom Banner",
+    "setBannerFailed": "Failed to set banner: {error}",
+    "@setBannerFailed": {
+        "placeholders": {
+            "error": { "type": "String" }
+        }
+    },
+    "clearBannerFailed": "Failed to clear banner: {error}",
+    "@clearBannerFailed": {
+        "placeholders": {
+            "error": { "type": "String" }
+        }
+    },
+    "selectImage": "Select Image",
+    "selectVideo": "Select Video",
+    "mediaItemsCount": "{count} items",
+    "@mediaItemsCount": {
+        "placeholders": {
+            "count": { "type": "String" }
+        }
+    },
+    "noImagesFoundOnDevice": "No images found on device",
+    "noVideosFoundOnDevice": "No videos found on device",
+    "mediaPickerHintNoItems": "D-pad: navigate  •  Back: cancel",
+    "mediaPickerHintWithItems": "D-pad: navigate  •  Select: set wallpaper  •  Back: cancel",
+    "mediaAccessPermissionRequired": "Media access permission is required",
+    "mediaAccessPermissionExplanation": "Grant permission to browse photos and videos",
+    "grantPermission": "Grant Permission",
+    "permissionRequired": "Permission Required",
+    "brightnessAdbInstructions": "To control brightness on this device, you must grant permission via ADB:",
+    "checkStatus": "Check Status",
+    "enableScheduler": "Enable Scheduler",
+    "currentTimeSlotLabel": "Current: {label}",
+    "@currentTimeSlotLabel": {
+        "placeholders": {
+            "label": { "type": "String" }
+        }
+    },
+    "brightnessExperimentalNotice": "EXPERIMENTAL: This feature is untested and may be removed in future versions based on user feedback.",
+    "brightnessDeviceSupportNote": "Note: Some Android TV devices may not support app-level brightness control.",
+    "noApplicationsFound": "No applications found",
+    "invalidFormat": "Invalid format",
+    "selectFormatsBelow": "Select formats below",
+    "aboutLegalese": "Fork of Arc Launcher © Meddouri Badis\nBased on FLauncher © Étienne Fesser",
+    "preview": "Preview",
+    "clockStyleMinimalTitle": "Minimal",
+    "clockStyleMinimalSubtitle": "Thin, elegant font (Default)",
+    "clockStyleBoldTitle": "Bold",
+    "clockStyleBoldSubtitle": "Thick, highly visible font",
+    "clockStyleRetroTitle": "Retro",
+    "clockStyleRetroSubtitle": "Monospaced, retro terminal style",
+    "clockStyleElegantTitle": "Elegant",
+    "clockStyleElegantSubtitle": "Classic serif typeface",
+    "clockStyleNeonTitle": "Neon",
+    "clockStyleNeonSubtitle": "Ultra-thin, glowing style",
+    "clockStylePixelTitle": "Pixel",
+    "clockStylePixelSubtitle": "Bold monospaced, arcade feel",
+    "clockStyleDigitalTitle": "Digital",
+    "clockStyleDigitalSubtitle": "Clean monospaced display"
 }

@@ -12,10 +12,10 @@ class AppLocalizationsEs extends AppLocalizations {
   String get aboutFlauncher => 'Acerca de Lemonade Launcher';
 
   @override
-  String get addCategory => 'Agregar categoría';
+  String get addCategory => 'Añadir categoría';
 
   @override
-  String get addSection => 'Agregar sección';
+  String get addSection => 'Añadir sección';
 
   @override
   String get alphabetical => 'Alfabético';
@@ -186,7 +186,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get row => 'Row';
 
   @override
-  String get rowHeight => 'Row height';
+  String get rowHeight => 'Altura de fila';
 
   @override
   String get save => 'Guardar';
@@ -414,4 +414,201 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get watchNextCheckPermission => 'Comprobar de nuevo';
+
+  @override
+  String get miscellaneous => 'Varios';
+
+  @override
+  String get interface => 'Interfaz';
+
+  @override
+  String get system => 'Sistema';
+
+  @override
+  String get brightnessScheduler => 'Programador de brillo';
+
+  @override
+  String get screensaverSettings => 'Ajustes del salvapantallas';
+
+  @override
+  String get screensaverClockStyle => 'Estilo del reloj del salvapantallas';
+
+  @override
+  String get wifiUsagePeriodTitle => 'Periodo de uso de WiFi';
+
+  @override
+  String get wifiPeriodDaily => 'Diario';
+
+  @override
+  String get wifiPeriodWeekly => 'Semanal';
+
+  @override
+  String get wifiPeriodMonthly => 'Mensual';
+
+  @override
+  String get wifiUsageToggle => 'Uso de WiFi';
+
+  @override
+  String get networkIndicator => 'Indicador de red';
+
+  @override
+  String get wifiUsageGrantPermission => 'Conceder permiso de uso';
+
+  @override
+  String get selectAName => 'Selecciona un nombre';
+
+  @override
+  String get customName => 'Nombre personalizado';
+
+  @override
+  String get lastUsed => 'Uso reciente';
+
+  @override
+  String get addToCategory => 'Añadir a categoría';
+
+  @override
+  String get removeFromFavorites => 'Quitar de favoritos';
+
+  @override
+  String get addToFavorites => 'Añadir a favoritos';
+
+  @override
+  String get setCustomBanner => 'Establecer banner personalizado';
+
+  @override
+  String get clearCustomBanner => 'Quitar banner personalizado';
+
+  @override
+  String setBannerFailed(String error) {
+    return 'No se pudo establecer el banner: $error';
+  }
+
+  @override
+  String clearBannerFailed(String error) {
+    return 'No se pudo quitar el banner: $error';
+  }
+
+  @override
+  String get selectImage => 'Seleccionar imagen';
+
+  @override
+  String get selectVideo => 'Seleccionar vídeo';
+
+  @override
+  String mediaItemsCount(String count) {
+    return '$count elementos';
+  }
+
+  @override
+  String get noImagesFoundOnDevice =>
+      'No se encontraron imágenes en el dispositivo';
+
+  @override
+  String get noVideosFoundOnDevice =>
+      'No se encontraron vídeos en el dispositivo';
+
+  @override
+  String get mediaPickerHintNoItems => 'D-pad: navegar  •  Atrás: cancelar';
+
+  @override
+  String get mediaPickerHintWithItems =>
+      'D-pad: navegar  •  Seleccionar: establecer fondo  •  Atrás: cancelar';
+
+  @override
+  String get mediaAccessPermissionRequired =>
+      'Se requiere permiso de acceso a multimedia';
+
+  @override
+  String get mediaAccessPermissionExplanation =>
+      'Concede el permiso para explorar fotos y vídeos';
+
+  @override
+  String get grantPermission => 'Conceder permiso';
+
+  @override
+  String get permissionRequired => 'Permiso necesario';
+
+  @override
+  String get brightnessAdbInstructions =>
+      'Para controlar el brillo de este dispositivo, debes conceder permiso mediante ADB:';
+
+  @override
+  String get checkStatus => 'Comprobar estado';
+
+  @override
+  String get enableScheduler => 'Activar programador';
+
+  @override
+  String currentTimeSlotLabel(String label) {
+    return 'Actual: $label';
+  }
+
+  @override
+  String get brightnessExperimentalNotice =>
+      'EXPERIMENTAL: esta función no está probada y podría eliminarse en futuras versiones según los comentarios de los usuarios.';
+
+  @override
+  String get brightnessDeviceSupportNote =>
+      'Nota: algunos dispositivos Android TV podrían no admitir el control de brillo a nivel de aplicación.';
+
+  @override
+  String get noApplicationsFound => 'No se encontraron aplicaciones';
+
+  @override
+  String get invalidFormat => 'Formato no válido';
+
+  @override
+  String get selectFormatsBelow => 'Selecciona los formatos a continuación';
+
+  @override
+  String get aboutLegalese =>
+      'Fork de Arc Launcher © Meddouri Badis\nBasado en FLauncher © Étienne Fesser';
+
+  @override
+  String get preview => 'Vista previa';
+
+  @override
+  String get clockStyleMinimalTitle => 'Minimalista';
+
+  @override
+  String get clockStyleMinimalSubtitle =>
+      'Fuente fina y elegante (predeterminado)';
+
+  @override
+  String get clockStyleBoldTitle => 'Negrita';
+
+  @override
+  String get clockStyleBoldSubtitle => 'Fuente gruesa y muy visible';
+
+  @override
+  String get clockStyleRetroTitle => 'Retro';
+
+  @override
+  String get clockStyleRetroSubtitle =>
+      'Estilo monoespaciado de terminal retro';
+
+  @override
+  String get clockStyleElegantTitle => 'Elegante';
+
+  @override
+  String get clockStyleElegantSubtitle => 'Tipografía serif clásica';
+
+  @override
+  String get clockStyleNeonTitle => 'Neón';
+
+  @override
+  String get clockStyleNeonSubtitle => 'Estilo ultrafino y luminoso';
+
+  @override
+  String get clockStylePixelTitle => 'Píxel';
+
+  @override
+  String get clockStylePixelSubtitle =>
+      'Monoespaciado en negrita, estilo arcade';
+
+  @override
+  String get clockStyleDigitalTitle => 'Digital';
+
+  @override
+  String get clockStyleDigitalSubtitle => 'Pantalla monoespaciada nítida';
 }

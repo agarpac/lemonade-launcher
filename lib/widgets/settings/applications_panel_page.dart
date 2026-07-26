@@ -251,7 +251,7 @@ class _AllAppsTab extends StatelessWidget {
         selector: (_, appsService) => appsService.applications.where((app) => !app.hidden).toList(),
         builder: (context, applications, _) {
           if (applications.isEmpty) {
-            return const _EmptyListPlaceholder("No applications found", autofocus: true);
+            return _EmptyListPlaceholder(AppLocalizations.of(context)!.noApplicationsFound, autofocus: true);
           }
           return ListView(
             children: applications
@@ -279,7 +279,7 @@ class _FavoritesTab extends StatelessWidget {
         },
         builder: (context, applications, _) {
           if (applications.isEmpty) {
-            return const _EmptyListPlaceholder("No applications found", autofocus: true);
+            return _EmptyListPlaceholder(AppLocalizations.of(context)!.noApplicationsFound, autofocus: true);
           }
           return ListView(
             children: applications
@@ -301,7 +301,7 @@ class _HiddenTab extends StatelessWidget {
         selector: (_, appsService) => appsService.applications.where((app) => app.hidden).toList(),
         builder: (context, applications, _) {
           if (applications.isEmpty) {
-            return const _EmptyListPlaceholder("No applications found", autofocus: true);
+            return _EmptyListPlaceholder(AppLocalizations.of(context)!.noApplicationsFound, autofocus: true);
           }
           return ListView(
             children: applications

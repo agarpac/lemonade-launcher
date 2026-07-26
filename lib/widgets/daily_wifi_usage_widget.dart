@@ -1,3 +1,4 @@
+import 'package:flauncher/l10n/app_localizations.dart';
 import 'package:flauncher/providers/network_service.dart';
 import 'package:flauncher/providers/settings_service.dart';
 import 'package:flutter/material.dart';
@@ -10,10 +11,12 @@ class DailyWifiUsageWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer2<NetworkService, SettingsService>(
       builder: (context, networkService, settingsService, _) {
+        final localizations = AppLocalizations.of(context)!;
+
         if (!networkService.hasUsageStatsPermission) {
           return TextButton.icon(
              icon: const Icon(Icons.data_usage, size: 20),
-             label: const Text("Grant Usage Permission"),
+             label: Text(localizations.wifiUsageGrantPermission),
              onPressed: () => networkService.requestPermission(),
           );
         }
@@ -22,14 +25,14 @@ class DailyWifiUsageWidget extends StatelessWidget {
         String label;
         switch (period) {
           case 'weekly':
-            label = 'Weekly: ';
+            label = '${localizations.wifiPeriodWeekly}: ';
             break;
           case 'monthly':
-            label = 'Monthly: ';
+            label = '${localizations.wifiPeriodMonthly}: ';
             break;
           case 'daily':
           default:
-            label = 'Daily: ';
+            label = '${localizations.wifiPeriodDaily}: ';
             break;
         }
 

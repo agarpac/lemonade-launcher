@@ -841,6 +841,360 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Check again'**
   String get watchNextCheckPermission;
+
+  /// No description provided for @miscellaneous.
+  ///
+  /// In en, this message translates to:
+  /// **'Miscellaneous'**
+  String get miscellaneous;
+
+  /// No description provided for @interface.
+  ///
+  /// In en, this message translates to:
+  /// **'Interface'**
+  String get interface;
+
+  /// No description provided for @system.
+  ///
+  /// In en, this message translates to:
+  /// **'System'**
+  String get system;
+
+  /// No description provided for @brightnessScheduler.
+  ///
+  /// In en, this message translates to:
+  /// **'Brightness Scheduler'**
+  String get brightnessScheduler;
+
+  /// No description provided for @screensaverSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Screensaver Settings'**
+  String get screensaverSettings;
+
+  /// No description provided for @screensaverClockStyle.
+  ///
+  /// In en, this message translates to:
+  /// **'Screensaver Clock Style'**
+  String get screensaverClockStyle;
+
+  /// No description provided for @wifiUsagePeriodTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'WiFi Usage Period'**
+  String get wifiUsagePeriodTitle;
+
+  /// No description provided for @wifiPeriodDaily.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily'**
+  String get wifiPeriodDaily;
+
+  /// No description provided for @wifiPeriodWeekly.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly'**
+  String get wifiPeriodWeekly;
+
+  /// No description provided for @wifiPeriodMonthly.
+  ///
+  /// In en, this message translates to:
+  /// **'Monthly'**
+  String get wifiPeriodMonthly;
+
+  /// No description provided for @wifiUsageToggle.
+  ///
+  /// In en, this message translates to:
+  /// **'WiFi Usage'**
+  String get wifiUsageToggle;
+
+  /// No description provided for @networkIndicator.
+  ///
+  /// In en, this message translates to:
+  /// **'Network Indicator'**
+  String get networkIndicator;
+
+  /// No description provided for @wifiUsageGrantPermission.
+  ///
+  /// In en, this message translates to:
+  /// **'Grant Usage Permission'**
+  String get wifiUsageGrantPermission;
+
+  /// No description provided for @selectAName.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a name'**
+  String get selectAName;
+
+  /// No description provided for @customName.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom Name'**
+  String get customName;
+
+  /// No description provided for @lastUsed.
+  ///
+  /// In en, this message translates to:
+  /// **'Last Used'**
+  String get lastUsed;
+
+  /// No description provided for @addToCategory.
+  ///
+  /// In en, this message translates to:
+  /// **'Add to Category'**
+  String get addToCategory;
+
+  /// No description provided for @removeFromFavorites.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from Fav'**
+  String get removeFromFavorites;
+
+  /// No description provided for @addToFavorites.
+  ///
+  /// In en, this message translates to:
+  /// **'Add to Fav'**
+  String get addToFavorites;
+
+  /// No description provided for @setCustomBanner.
+  ///
+  /// In en, this message translates to:
+  /// **'Set Custom Banner'**
+  String get setCustomBanner;
+
+  /// No description provided for @clearCustomBanner.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear Custom Banner'**
+  String get clearCustomBanner;
+
+  /// No description provided for @setBannerFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to set banner: {error}'**
+  String setBannerFailed(String error);
+
+  /// No description provided for @clearBannerFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to clear banner: {error}'**
+  String clearBannerFailed(String error);
+
+  /// No description provided for @selectImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Select Image'**
+  String get selectImage;
+
+  /// No description provided for @selectVideo.
+  ///
+  /// In en, this message translates to:
+  /// **'Select Video'**
+  String get selectVideo;
+
+  /// No description provided for @mediaItemsCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} items'**
+  String mediaItemsCount(String count);
+
+  /// No description provided for @noImagesFoundOnDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'No images found on device'**
+  String get noImagesFoundOnDevice;
+
+  /// No description provided for @noVideosFoundOnDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'No videos found on device'**
+  String get noVideosFoundOnDevice;
+
+  /// No description provided for @mediaPickerHintNoItems.
+  ///
+  /// In en, this message translates to:
+  /// **'D-pad: navigate  •  Back: cancel'**
+  String get mediaPickerHintNoItems;
+
+  /// No description provided for @mediaPickerHintWithItems.
+  ///
+  /// In en, this message translates to:
+  /// **'D-pad: navigate  •  Select: set wallpaper  •  Back: cancel'**
+  String get mediaPickerHintWithItems;
+
+  /// No description provided for @mediaAccessPermissionRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Media access permission is required'**
+  String get mediaAccessPermissionRequired;
+
+  /// No description provided for @mediaAccessPermissionExplanation.
+  ///
+  /// In en, this message translates to:
+  /// **'Grant permission to browse photos and videos'**
+  String get mediaAccessPermissionExplanation;
+
+  /// No description provided for @grantPermission.
+  ///
+  /// In en, this message translates to:
+  /// **'Grant Permission'**
+  String get grantPermission;
+
+  /// No description provided for @permissionRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Permission Required'**
+  String get permissionRequired;
+
+  /// No description provided for @brightnessAdbInstructions.
+  ///
+  /// In en, this message translates to:
+  /// **'To control brightness on this device, you must grant permission via ADB:'**
+  String get brightnessAdbInstructions;
+
+  /// No description provided for @checkStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Check Status'**
+  String get checkStatus;
+
+  /// No description provided for @enableScheduler.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable Scheduler'**
+  String get enableScheduler;
+
+  /// No description provided for @currentTimeSlotLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Current: {label}'**
+  String currentTimeSlotLabel(String label);
+
+  /// No description provided for @brightnessExperimentalNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'EXPERIMENTAL: This feature is untested and may be removed in future versions based on user feedback.'**
+  String get brightnessExperimentalNotice;
+
+  /// No description provided for @brightnessDeviceSupportNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Note: Some Android TV devices may not support app-level brightness control.'**
+  String get brightnessDeviceSupportNote;
+
+  /// No description provided for @noApplicationsFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No applications found'**
+  String get noApplicationsFound;
+
+  /// No description provided for @invalidFormat.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid format'**
+  String get invalidFormat;
+
+  /// No description provided for @selectFormatsBelow.
+  ///
+  /// In en, this message translates to:
+  /// **'Select formats below'**
+  String get selectFormatsBelow;
+
+  /// No description provided for @aboutLegalese.
+  ///
+  /// In en, this message translates to:
+  /// **'Fork of Arc Launcher © Meddouri Badis\nBased on FLauncher © Étienne Fesser'**
+  String get aboutLegalese;
+
+  /// No description provided for @preview.
+  ///
+  /// In en, this message translates to:
+  /// **'Preview'**
+  String get preview;
+
+  /// No description provided for @clockStyleMinimalTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Minimal'**
+  String get clockStyleMinimalTitle;
+
+  /// No description provided for @clockStyleMinimalSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Thin, elegant font (Default)'**
+  String get clockStyleMinimalSubtitle;
+
+  /// No description provided for @clockStyleBoldTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Bold'**
+  String get clockStyleBoldTitle;
+
+  /// No description provided for @clockStyleBoldSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Thick, highly visible font'**
+  String get clockStyleBoldSubtitle;
+
+  /// No description provided for @clockStyleRetroTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Retro'**
+  String get clockStyleRetroTitle;
+
+  /// No description provided for @clockStyleRetroSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Monospaced, retro terminal style'**
+  String get clockStyleRetroSubtitle;
+
+  /// No description provided for @clockStyleElegantTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Elegant'**
+  String get clockStyleElegantTitle;
+
+  /// No description provided for @clockStyleElegantSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Classic serif typeface'**
+  String get clockStyleElegantSubtitle;
+
+  /// No description provided for @clockStyleNeonTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Neon'**
+  String get clockStyleNeonTitle;
+
+  /// No description provided for @clockStyleNeonSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Ultra-thin, glowing style'**
+  String get clockStyleNeonSubtitle;
+
+  /// No description provided for @clockStylePixelTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Pixel'**
+  String get clockStylePixelTitle;
+
+  /// No description provided for @clockStylePixelSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Bold monospaced, arcade feel'**
+  String get clockStylePixelSubtitle;
+
+  /// No description provided for @clockStyleDigitalTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Digital'**
+  String get clockStyleDigitalTitle;
+
+  /// No description provided for @clockStyleDigitalSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Clean monospaced display'**
+  String get clockStyleDigitalSubtitle;
 }
 
 class _AppLocalizationsDelegate

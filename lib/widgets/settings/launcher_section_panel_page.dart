@@ -387,7 +387,7 @@ class _CategorySettingsState extends State<_CategorySettings>
               isDense: true,
               isExpanded: true,
               initialValue: sectionNamePresets.contains(_name) ? _name : 'Custom...',
-              hint: Text(_name.isEmpty ? 'Select a name' : _name, style: Theme.of(context).textTheme.bodySmall),
+              hint: Text(_name.isEmpty ? localizations.selectAName : _name, style: Theme.of(context).textTheme.bodySmall),
               onChanged: (value) {
                 setState(() {
                   if (value == 'Custom...') {
@@ -410,7 +410,7 @@ class _CategorySettingsState extends State<_CategorySettings>
         if (!sectionNamePresets.contains(_name) || _name.isEmpty)
           _listTile(
             context,
-            Text('Custom Name'),
+            Text(localizations.customName),
             Padding(
               padding: EdgeInsets.only(top: 4),
               child: TextFormField(
@@ -459,7 +459,7 @@ class _CategorySettingsState extends State<_CategorySettings>
                 ),
                 DropdownMenuItem(
                   value: CategorySort.lastUsed,
-                  child: Text('Last Used', style: Theme.of(context).textTheme.bodySmall),
+                  child: Text(localizations.lastUsed, style: Theme.of(context).textTheme.bodySmall),
                 )
               ]
             )

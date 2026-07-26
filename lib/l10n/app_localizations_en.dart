@@ -406,4 +406,196 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get watchNextCheckPermission => 'Check again';
+
+  @override
+  String get miscellaneous => 'Miscellaneous';
+
+  @override
+  String get interface => 'Interface';
+
+  @override
+  String get system => 'System';
+
+  @override
+  String get brightnessScheduler => 'Brightness Scheduler';
+
+  @override
+  String get screensaverSettings => 'Screensaver Settings';
+
+  @override
+  String get screensaverClockStyle => 'Screensaver Clock Style';
+
+  @override
+  String get wifiUsagePeriodTitle => 'WiFi Usage Period';
+
+  @override
+  String get wifiPeriodDaily => 'Daily';
+
+  @override
+  String get wifiPeriodWeekly => 'Weekly';
+
+  @override
+  String get wifiPeriodMonthly => 'Monthly';
+
+  @override
+  String get wifiUsageToggle => 'WiFi Usage';
+
+  @override
+  String get networkIndicator => 'Network Indicator';
+
+  @override
+  String get wifiUsageGrantPermission => 'Grant Usage Permission';
+
+  @override
+  String get selectAName => 'Select a name';
+
+  @override
+  String get customName => 'Custom Name';
+
+  @override
+  String get lastUsed => 'Last Used';
+
+  @override
+  String get addToCategory => 'Add to Category';
+
+  @override
+  String get removeFromFavorites => 'Remove from Fav';
+
+  @override
+  String get addToFavorites => 'Add to Fav';
+
+  @override
+  String get setCustomBanner => 'Set Custom Banner';
+
+  @override
+  String get clearCustomBanner => 'Clear Custom Banner';
+
+  @override
+  String setBannerFailed(String error) {
+    return 'Failed to set banner: $error';
+  }
+
+  @override
+  String clearBannerFailed(String error) {
+    return 'Failed to clear banner: $error';
+  }
+
+  @override
+  String get selectImage => 'Select Image';
+
+  @override
+  String get selectVideo => 'Select Video';
+
+  @override
+  String mediaItemsCount(String count) {
+    return '$count items';
+  }
+
+  @override
+  String get noImagesFoundOnDevice => 'No images found on device';
+
+  @override
+  String get noVideosFoundOnDevice => 'No videos found on device';
+
+  @override
+  String get mediaPickerHintNoItems => 'D-pad: navigate  •  Back: cancel';
+
+  @override
+  String get mediaPickerHintWithItems =>
+      'D-pad: navigate  •  Select: set wallpaper  •  Back: cancel';
+
+  @override
+  String get mediaAccessPermissionRequired =>
+      'Media access permission is required';
+
+  @override
+  String get mediaAccessPermissionExplanation =>
+      'Grant permission to browse photos and videos';
+
+  @override
+  String get grantPermission => 'Grant Permission';
+
+  @override
+  String get permissionRequired => 'Permission Required';
+
+  @override
+  String get brightnessAdbInstructions =>
+      'To control brightness on this device, you must grant permission via ADB:';
+
+  @override
+  String get checkStatus => 'Check Status';
+
+  @override
+  String get enableScheduler => 'Enable Scheduler';
+
+  @override
+  String currentTimeSlotLabel(String label) {
+    return 'Current: $label';
+  }
+
+  @override
+  String get brightnessExperimentalNotice =>
+      'EXPERIMENTAL: This feature is untested and may be removed in future versions based on user feedback.';
+
+  @override
+  String get brightnessDeviceSupportNote =>
+      'Note: Some Android TV devices may not support app-level brightness control.';
+
+  @override
+  String get noApplicationsFound => 'No applications found';
+
+  @override
+  String get invalidFormat => 'Invalid format';
+
+  @override
+  String get selectFormatsBelow => 'Select formats below';
+
+  @override
+  String get aboutLegalese =>
+      'Fork of Arc Launcher © Meddouri Badis\nBased on FLauncher © Étienne Fesser';
+
+  @override
+  String get preview => 'Preview';
+
+  @override
+  String get clockStyleMinimalTitle => 'Minimal';
+
+  @override
+  String get clockStyleMinimalSubtitle => 'Thin, elegant font (Default)';
+
+  @override
+  String get clockStyleBoldTitle => 'Bold';
+
+  @override
+  String get clockStyleBoldSubtitle => 'Thick, highly visible font';
+
+  @override
+  String get clockStyleRetroTitle => 'Retro';
+
+  @override
+  String get clockStyleRetroSubtitle => 'Monospaced, retro terminal style';
+
+  @override
+  String get clockStyleElegantTitle => 'Elegant';
+
+  @override
+  String get clockStyleElegantSubtitle => 'Classic serif typeface';
+
+  @override
+  String get clockStyleNeonTitle => 'Neon';
+
+  @override
+  String get clockStyleNeonSubtitle => 'Ultra-thin, glowing style';
+
+  @override
+  String get clockStylePixelTitle => 'Pixel';
+
+  @override
+  String get clockStylePixelSubtitle => 'Bold monospaced, arcade feel';
+
+  @override
+  String get clockStyleDigitalTitle => 'Digital';
+
+  @override
+  String get clockStyleDigitalSubtitle => 'Clean monospaced display';
 }

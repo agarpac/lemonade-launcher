@@ -16,6 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import 'package:flauncher/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -31,12 +32,13 @@ class BrightnessSettingsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<BrightnessService>(
       builder: (context, brightnessService, _) {
+        final localizations = AppLocalizations.of(context)!;
         final isEnabled = brightnessService.isEnabled;
         final currentSlot = brightnessService.getCurrentTimeSlot();
-        
+
         return Column(
           children: [
-            Text('Brightness Scheduler', style: Theme.of(context).textTheme.titleLarge),
+            Text(localizations.brightnessScheduler, style: Theme.of(context).textTheme.titleLarge),
             const Divider(),
             Expanded(
               child: SingleChildScrollView(
@@ -59,7 +61,7 @@ class BrightnessSettingsPage extends StatelessWidget {
                                   const SizedBox(width: 8),
                                   Expanded(
                                     child: Text(
-                                      'Permission Required',
+                                      localizations.permissionRequired,
                                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                                         color: Colors.orange,
                                         fontWeight: FontWeight.bold,
@@ -69,7 +71,7 @@ class BrightnessSettingsPage extends StatelessWidget {
                                 ],
                               ),
                               const SizedBox(height: 8),
-                              const Text('To control brightness on this device, you must grant permission via ADB:'),
+                              Text(localizations.brightnessAdbInstructions),
                               const SizedBox(height: 8),
                               Container(
                                 padding: const EdgeInsets.all(8),
@@ -89,13 +91,13 @@ class BrightnessSettingsPage extends StatelessWidget {
                                   ElevatedButton.icon(
                                     onPressed: brightnessService.requestPermission,
                                     icon: const Icon(Icons.settings),
-                                    label: const Text('Grant Permission'),
+                                    label: Text(localizations.grantPermission),
                                   ),
                                   const SizedBox(height: 8),
                                   TextButton.icon(
                                     onPressed: brightnessService.checkPermission,
                                     icon: const Icon(Icons.refresh),
-                                    label: const Text('Check Status'),
+                                    label: Text(localizations.checkStatus),
                                   ),
                                 ],
                               ),
@@ -108,7 +110,7 @@ class BrightnessSettingsPage extends StatelessWidget {
                     RoundedSwitchListTile(
                       autofocus: true,
                       title: Text(
-                        'Enable Scheduler',
+                        localizations.enableScheduler,
                         style: Theme.of(context).textTheme.bodyMedium,
                       ),
                       secondary: Icon(isEnabled ? Icons.schedule : Icons.schedule_outlined),
@@ -121,7 +123,7 @@ class BrightnessSettingsPage extends StatelessWidget {
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         child: Text(
-                          'Current: ${currentSlot.label}',
+                          localizations.currentTimeSlotLabel(currentSlot.label),
                           style: Theme.of(context).textTheme.bodySmall?.copyWith(
                             color: Theme.of(context).colorScheme.primary,
                           ),
@@ -156,7 +158,7 @@ class BrightnessSettingsPage extends StatelessWidget {
                                 const SizedBox(width: 8),
                                 Expanded(
                                   child: Text(
-                                    'EXPERIMENTAL: This feature is untested and may be removed in future versions based on user feedback.',
+                                    localizations.brightnessExperimentalNotice,
                                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                       color: Colors.redAccent,
                                       fontWeight: FontWeight.bold,
@@ -168,7 +170,7 @@ class BrightnessSettingsPage extends StatelessWidget {
                           ),
                           const SizedBox(height: 16),
                           Text(
-                            'Note: Some Android TV devices may not support app-level brightness control.',
+                            localizations.brightnessDeviceSupportNote,
                             style: Theme.of(context).textTheme.bodySmall?.copyWith(
                               color: Colors.white54,
                               fontStyle: FontStyle.italic,

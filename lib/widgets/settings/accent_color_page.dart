@@ -16,6 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import 'package:flauncher/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -54,10 +55,11 @@ class AccentColorPage extends StatelessWidget {
     return Consumer<SettingsService>(
       builder: (context, settingsService, _) {
         final currentColor = settingsService.userAccentColorHex;
-        
+        final localizations = AppLocalizations.of(context)!;
+
         return Column(
           children: [
-            Text('Accent Color', style: Theme.of(context).textTheme.titleLarge),
+            Text(localizations.sceneOverrideAccentColor, style: Theme.of(context).textTheme.titleLarge),
             const Divider(),
             Expanded(
               child: GridView.builder(
@@ -106,7 +108,7 @@ class AccentColorPage extends StatelessWidget {
                     ),
                     const SizedBox(width: 12),
                     Text(
-                      'Preview',
+                      localizations.preview,
                       style: TextStyle(
                         color: _hexToColor(currentColor),
                         fontSize: 18,

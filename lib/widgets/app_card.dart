@@ -20,6 +20,7 @@ import 'dart:async';
 
 import 'package:flauncher/actions.dart';
 import 'package:flauncher/app_image_type.dart';
+import 'package:flauncher/l10n/app_localizations.dart';
 import 'package:flauncher/providers/apps_service.dart';
 import 'package:flauncher/providers/settings_service.dart';
 import 'package:flauncher/widgets/application_info_panel.dart';
@@ -348,17 +349,17 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
         ),
       );
     } else {
-      return const Padding(
-        padding: EdgeInsets.all(8),
+      return Padding(
+        padding: const EdgeInsets.all(8),
         child: Center(
           child: FittedBox(
             fit: BoxFit.scaleDown,
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2)),
-                SizedBox(width: 8),
-                Text("Loading"),
+                const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2)),
+                const SizedBox(width: 8),
+                Text(AppLocalizations.of(context)!.loading),
               ],
             ),
           ),

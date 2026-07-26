@@ -1,7 +1,7 @@
 {
     "aboutFlauncher": "Acerca de Lemonade Launcher",
-    "addCategory": "Agregar categoría",
-    "addSection": "Agregar sección",
+    "addCategory": "Añadir categoría",
+    "addSection": "Añadir sección",
     "alphabetical": "Alfabético",
     "appCardHighlightAnimation": "Resaltar aplicaciones",
     "showFocusBorders": "Mostrar bordes de enfoque",
@@ -80,7 +80,7 @@
     "renameCategory": "Renombrar categoría",
     "reorder": "Reordenar",
     "row": "Row",
-    "rowHeight": "Row height",
+    "rowHeight": "Altura de fila",
     "save": "Guardar",
     "scenes": "Escenas",
     "sceneNormal": "Normal",
@@ -179,5 +179,84 @@
     "watchNextPermissionTitle": "Se requiere permiso para Ver después",
     "watchNextPermissionBody": "Permite el acceso a la guía de TV para mostrar lo que estabas viendo.",
     "watchNextGrantPermission": "Conceder permiso",
-    "watchNextCheckPermission": "Comprobar de nuevo"
+    "watchNextCheckPermission": "Comprobar de nuevo",
+    "miscellaneous": "Varios",
+    "interface": "Interfaz",
+    "system": "Sistema",
+    "brightnessScheduler": "Programador de brillo",
+    "screensaverSettings": "Ajustes del salvapantallas",
+    "screensaverClockStyle": "Estilo del reloj del salvapantallas",
+    "wifiUsagePeriodTitle": "Periodo de uso de WiFi",
+    "wifiPeriodDaily": "Diario",
+    "wifiPeriodWeekly": "Semanal",
+    "wifiPeriodMonthly": "Mensual",
+    "wifiUsageToggle": "Uso de WiFi",
+    "networkIndicator": "Indicador de red",
+    "wifiUsageGrantPermission": "Conceder permiso de uso",
+    "selectAName": "Selecciona un nombre",
+    "customName": "Nombre personalizado",
+    "lastUsed": "Uso reciente",
+    "addToCategory": "Añadir a categoría",
+    "removeFromFavorites": "Quitar de favoritos",
+    "addToFavorites": "Añadir a favoritos",
+    "setCustomBanner": "Establecer banner personalizado",
+    "clearCustomBanner": "Quitar banner personalizado",
+    "setBannerFailed": "No se pudo establecer el banner: {error}",
+    "@setBannerFailed": {
+        "placeholders": {
+            "error": { "type": "String" }
+        }
+    },
+    "clearBannerFailed": "No se pudo quitar el banner: {error}",
+    "@clearBannerFailed": {
+        "placeholders": {
+            "error": { "type": "String" }
+        }
+    },
+    "selectImage": "Seleccionar imagen",
+    "selectVideo": "Seleccionar vídeo",
+    "mediaItemsCount": "{count} elementos",
+    "@mediaItemsCount": {
+        "placeholders": {
+            "count": { "type": "String" }
+        }
+    },
+    "noImagesFoundOnDevice": "No se encontraron imágenes en el dispositivo",
+    "noVideosFoundOnDevice": "No se encontraron vídeos en el dispositivo",
+    "mediaPickerHintNoItems": "D-pad: navegar  •  Atrás: cancelar",
+    "mediaPickerHintWithItems": "D-pad: navegar  •  Seleccionar: establecer fondo  •  Atrás: cancelar",
+    "mediaAccessPermissionRequired": "Se requiere permiso de acceso a multimedia",
+    "mediaAccessPermissionExplanation": "Concede el permiso para explorar fotos y vídeos",
+    "grantPermission": "Conceder permiso",
+    "permissionRequired": "Permiso necesario",
+    "brightnessAdbInstructions": "Para controlar el brillo de este dispositivo, debes conceder permiso mediante ADB:",
+    "checkStatus": "Comprobar estado",
+    "enableScheduler": "Activar programador",
+    "currentTimeSlotLabel": "Actual: {label}",
+    "@currentTimeSlotLabel": {
+        "placeholders": {
+            "label": { "type": "String" }
+        }
+    },
+    "brightnessExperimentalNotice": "EXPERIMENTAL: esta función no está probada y podría eliminarse en futuras versiones según los comentarios de los usuarios.",
+    "brightnessDeviceSupportNote": "Nota: algunos dispositivos Android TV podrían no admitir el control de brillo a nivel de aplicación.",
+    "noApplicationsFound": "No se encontraron aplicaciones",
+    "invalidFormat": "Formato no válido",
+    "selectFormatsBelow": "Selecciona los formatos a continuación",
+    "aboutLegalese": "Fork de Arc Launcher © Meddouri Badis\nBasado en FLauncher © Étienne Fesser",
+    "preview": "Vista previa",
+    "clockStyleMinimalTitle": "Minimalista",
+    "clockStyleMinimalSubtitle": "Fuente fina y elegante (predeterminado)",
+    "clockStyleBoldTitle": "Negrita",
+    "clockStyleBoldSubtitle": "Fuente gruesa y muy visible",
+    "clockStyleRetroTitle": "Retro",
+    "clockStyleRetroSubtitle": "Estilo monoespaciado de terminal retro",
+    "clockStyleElegantTitle": "Elegante",
+    "clockStyleElegantSubtitle": "Tipografía serif clásica",
+    "clockStyleNeonTitle": "Neón",
+    "clockStyleNeonSubtitle": "Estilo ultrafino y luminoso",
+    "clockStylePixelTitle": "Píxel",
+    "clockStylePixelSubtitle": "Monoespaciado en negrita, estilo arcade",
+    "clockStyleDigitalTitle": "Digital",
+    "clockStyleDigitalSubtitle": "Pantalla monoespaciada nítida"
 }
