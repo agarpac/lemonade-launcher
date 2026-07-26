@@ -16,12 +16,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import 'package:flauncher/database.dart';
+import 'package:flauncher/l10n/app_localizations.dart';
+import 'package:flauncher/models/category.dart';
 import 'package:flauncher/providers/apps_service.dart';
-import 'package:flauncher/widgets/rename_category_dialog.dart';
-import 'package:flauncher/widgets/settings/category_panel_page.dart';
+import 'package:flauncher/widgets/settings/launcher_section_panel_page.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:provider/provider.dart';
@@ -29,6 +28,14 @@ import 'package:provider/provider.dart';
 import '../../mocks.dart';
 import '../../mocks.mocks.dart';
 
+// The old CategoryPanelPage(categoryId: ...), driven by list-style "arrow down N times then
+// enter" navigation and immediate per-field AppsService calls (setCategorySort/setCategoryType/
+// setCategoryColumnsCount/setCategoryRowHeight), was replaced by
+// LauncherSectionPanelPage(sectionIndex: ...): a dropdown-based form (name/sort/layout/
+// columns-or-row-height) that stages edits locally and only persists them, all at once, via
+// AppsService.updateCategory(id, name, sort, type, columnsCount, rowHeight) when "Save" is
+// pressed. Deleting now calls AppsService.deleteSection(index) with the section's list index,
+// not the Category object.
 void main() {
   setUpAll(() async {
     final binding = TestWidgetsFlutterBinding.ensureInitialized();
@@ -38,165 +45,164 @@ void main() {
     binding.platformDispatcher.textScaleFactorTestValue = 0.8;
   });
 
-  testWidgets("Category is displayed", (tester) async {
+  testWidgets("Category settings are pre-filled from the existing category", (tester) async {
     final appsService = MockAppsService();
     final favoritesCategory =
         fakeCategory(name: "Favorites", sort: CategorySort.alphabetical, type: CategoryType.grid, columnsCount: 6);
-    when(appsService.categoriesWithApps).thenReturn([
-      CategoryWithApps(favoritesCategory, []),
-      CategoryWithApps(fakeCategory(name: "Applications"), []),
-    ]);
+    when(appsService.launcherSections).thenReturn([favoritesCategory, fakeCategory(name: "Applications")]);
 
-    await _pumpWidgetWithProviders(tester, appsService, favoritesCategory.id);
+    await _pumpWidgetWithProviders(tester, appsService, 0);
 
-    expect(find.text("Favorites"), findsNWidgets(2));
+    expect(find.text("Favorites"), findsOneWidget);
     expect(find.text("Alphabetical"), findsOneWidget);
     expect(find.text("Grid"), findsOneWidget);
     expect(find.text("6"), findsOneWidget);
   });
 
-  testWidgets("'Edit name' opens AddCategoryDialog", (tester) async {
+  testWidgets("Changing the name preset and saving calls AppsService.updateCategory", (tester) async {
     final appsService = MockAppsService();
     final favoritesCategory =
         fakeCategory(name: "Favorites", sort: CategorySort.alphabetical, type: CategoryType.grid, columnsCount: 6);
-    when(appsService.categoriesWithApps).thenReturn([
-      CategoryWithApps(favoritesCategory, []),
-      CategoryWithApps(fakeCategory(name: "Applications"), []),
-    ]);
+    when(appsService.launcherSections).thenReturn([favoritesCategory, fakeCategory(name: "Applications")]);
 
-    await _pumpWidgetWithProviders(tester, appsService, favoritesCategory.id);
+    await _pumpWidgetWithProviders(tester, appsService, 0);
 
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await _selectDropdownOption(tester, find.byType(DropdownButtonFormField<String>), "Games");
+    await tester.tap(find.text("Save"));
     await tester.pumpAndSettle();
 
-    expect(find.byType(AddCategoryDialog), findsOneWidget);
+    verify(appsService.updateCategory(
+      favoritesCategory.id,
+      "Games",
+      CategorySort.alphabetical,
+      CategoryType.grid,
+      6,
+      favoritesCategory.rowHeight,
+    ));
   });
 
-  testWidgets("'Sort' calls AppsService", (tester) async {
+  testWidgets("Changing sort and saving calls AppsService.updateCategory", (tester) async {
     final appsService = MockAppsService();
     final favoritesCategory =
         fakeCategory(name: "Favorites", sort: CategorySort.alphabetical, type: CategoryType.grid, columnsCount: 6);
-    when(appsService.categoriesWithApps).thenReturn([
-      CategoryWithApps(favoritesCategory, []),
-      CategoryWithApps(fakeCategory(name: "Applications"), []),
-    ]);
+    when(appsService.launcherSections).thenReturn([favoritesCategory, fakeCategory(name: "Applications")]);
 
-    await _pumpWidgetWithProviders(tester, appsService, favoritesCategory.id);
+    await _pumpWidgetWithProviders(tester, appsService, 0);
 
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
-    await tester.pumpAndSettle();
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await _selectDropdownOption(tester, find.byType(DropdownButtonFormField<CategorySort>), "Manual");
+    await tester.tap(find.text("Save"));
     await tester.pumpAndSettle();
 
-    verify(appsService.setCategorySort(favoritesCategory, CategorySort.manual));
+    verify(appsService.updateCategory(
+      favoritesCategory.id,
+      "Favorites",
+      CategorySort.manual,
+      CategoryType.grid,
+      6,
+      favoritesCategory.rowHeight,
+    ));
   });
 
-  testWidgets("'Type' calls AppsService", (tester) async {
+  testWidgets("Changing layout and saving calls AppsService.updateCategory", (tester) async {
     final appsService = MockAppsService();
     final favoritesCategory =
         fakeCategory(name: "Favorites", sort: CategorySort.alphabetical, type: CategoryType.row, rowHeight: 110);
-    when(appsService.categoriesWithApps).thenReturn([
-      CategoryWithApps(favoritesCategory, []),
-      CategoryWithApps(fakeCategory(name: "Applications"), []),
-    ]);
+    when(appsService.launcherSections).thenReturn([favoritesCategory, fakeCategory(name: "Applications")]);
 
-    await _pumpWidgetWithProviders(tester, appsService, favoritesCategory.id);
+    await _pumpWidgetWithProviders(tester, appsService, 0);
 
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
-    await tester.pumpAndSettle();
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await _selectDropdownOption(tester, find.byType(DropdownButtonFormField<CategoryType>), "Grid");
+    await tester.tap(find.text("Save"));
     await tester.pumpAndSettle();
 
-    verify(appsService.setCategoryType(favoritesCategory, CategoryType.grid));
+    verify(appsService.updateCategory(
+      favoritesCategory.id,
+      "Favorites",
+      CategorySort.alphabetical,
+      CategoryType.grid,
+      favoritesCategory.columnsCount,
+      110,
+    ));
   });
 
-  testWidgets("'Columns count' calls AppsService", (tester) async {
+  testWidgets("Changing columns count and saving calls AppsService.updateCategory", (tester) async {
     final appsService = MockAppsService();
     final favoritesCategory =
         fakeCategory(name: "Favorites", sort: CategorySort.alphabetical, type: CategoryType.grid, columnsCount: 6);
-    when(appsService.categoriesWithApps).thenReturn([
-      CategoryWithApps(favoritesCategory, []),
-      CategoryWithApps(fakeCategory(name: "Applications"), []),
-    ]);
+    when(appsService.launcherSections).thenReturn([favoritesCategory, fakeCategory(name: "Applications")]);
 
-    await _pumpWidgetWithProviders(tester, appsService, favoritesCategory.id);
+    await _pumpWidgetWithProviders(tester, appsService, 0);
 
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
-    await tester.pumpAndSettle();
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await _selectDropdownOption(tester, find.byType(DropdownButtonFormField<int>), "7");
+    await tester.tap(find.text("Save"));
     await tester.pumpAndSettle();
 
-    verify(appsService.setCategoryColumnsCount(favoritesCategory, 7));
+    verify(appsService.updateCategory(
+      favoritesCategory.id,
+      "Favorites",
+      CategorySort.alphabetical,
+      CategoryType.grid,
+      7,
+      favoritesCategory.rowHeight,
+    ));
   });
 
-  testWidgets("'Row height' calls AppsService", (tester) async {
+  testWidgets("Changing row height and saving calls AppsService.updateCategory", (tester) async {
     final appsService = MockAppsService();
     final favoritesCategory =
         fakeCategory(name: "Favorites", sort: CategorySort.alphabetical, type: CategoryType.row, rowHeight: 110);
-    when(appsService.categoriesWithApps).thenReturn([
-      CategoryWithApps(favoritesCategory, []),
-      CategoryWithApps(fakeCategory(name: "Applications"), []),
-    ]);
+    when(appsService.launcherSections).thenReturn([favoritesCategory, fakeCategory(name: "Applications")]);
 
-    await _pumpWidgetWithProviders(tester, appsService, favoritesCategory.id);
+    await _pumpWidgetWithProviders(tester, appsService, 0);
 
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
-    await tester.pumpAndSettle();
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await _selectDropdownOption(tester, find.byType(DropdownButtonFormField<int>), "120");
+    await tester.tap(find.text("Save"));
     await tester.pumpAndSettle();
 
-    verify(appsService.setCategoryRowHeight(favoritesCategory, 120));
+    verify(appsService.updateCategory(
+      favoritesCategory.id,
+      "Favorites",
+      CategorySort.alphabetical,
+      CategoryType.row,
+      favoritesCategory.columnsCount,
+      120,
+    ));
   });
 
-  testWidgets("'Delete' calls AppsService", (tester) async {
+  testWidgets("'Delete' calls AppsService.deleteSection with the section index", (tester) async {
     final appsService = MockAppsService();
     final favoritesCategory =
         fakeCategory(name: "Favorites", sort: CategorySort.alphabetical, type: CategoryType.row, rowHeight: 110);
-    when(appsService.categoriesWithApps).thenReturn([
-      CategoryWithApps(favoritesCategory, []),
-      CategoryWithApps(fakeCategory(name: "Applications"), []),
-    ]);
+    when(appsService.launcherSections).thenReturn([fakeCategory(name: "Applications"), favoritesCategory]);
+    when(appsService.deleteSection(any)).thenAnswer((_) => Future.value());
 
-    await _pumpWidgetWithProviders(tester, appsService, favoritesCategory.id);
+    await _pumpWidgetWithProviders(tester, appsService, 1);
 
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.tap(find.text("Delete"));
     await tester.pumpAndSettle();
 
-    verify(appsService.deleteSection(favoritesCategory));
+    verify(appsService.deleteSection(1));
   });
 }
 
-Future<void> _pumpWidgetWithProviders(WidgetTester tester, AppsService appsService, int categoryId) async {
+Future<void> _selectDropdownOption(WidgetTester tester, Finder dropdownFinder, String optionText) async {
+  await tester.ensureVisible(dropdownFinder);
+  await tester.tap(dropdownFinder);
+  await tester.pumpAndSettle();
+  await tester.tap(find.text(optionText).last);
+  await tester.pumpAndSettle();
+}
+
+Future<void> _pumpWidgetWithProviders(WidgetTester tester, AppsService appsService, int sectionIndex) async {
   await tester.pumpWidget(
     MultiProvider(
       providers: [
         ChangeNotifierProvider<AppsService>.value(value: appsService),
       ],
       builder: (_, __) => MaterialApp(
-        home: Scaffold(body: CategoryPanelPage(categoryId: categoryId)),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Scaffold(body: LauncherSectionPanelPage(sectionIndex: sectionIndex)),
       ),
     ),
   );

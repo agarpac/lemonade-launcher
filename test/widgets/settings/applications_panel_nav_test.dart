@@ -5,7 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:flauncher/l10n/app_localizations.dart';
 
 import '../../mocks.dart';
 import '../../mocks.mocks.dart';
@@ -17,15 +17,18 @@ void main() {
     binding.window.devicePixelRatioTestValue = 1.0;
   });
 
-  testWidgets("Left/Right arrow keys switch categories in ApplicationsPanelPage", (tester) async {
+  testWidgets("Left/Right arrow keys switch tabs in ApplicationsPanelPage", (tester) async {
     final appsService = MockAppsService();
-    // Setup some fake apps to populate tabs
-    when(appsService.applications).thenReturn([
-      fakeApp(packageName: "pkg.tv", name: "TV App", sideloaded: false, hidden: false),
-      fakeApp(packageName: "pkg.sideload", name: "Sideload App", sideloaded: true, hidden: false),
-    ]);
-    // Mock category for favorites (even if empty)
-    when(appsService.categories).thenReturn([]); 
+    final allApp = fakeApp(packageName: "pkg.all", name: "All App", hidden: false);
+    final favoriteApp = fakeApp(packageName: "pkg.fav", name: "Fav App", hidden: false);
+    final hiddenApp = fakeApp(packageName: "pkg.hidden", name: "Hidden App", hidden: true);
+    // ApplicationsPanelPage now exposes 3 tabs: "All Apps" (every non-hidden app), "Favorite
+    // Apps" (the "Favorites" category's non-hidden apps) and "Hidden Apps" (hidden apps),
+    // replacing the removed TV/Non-TV/Hidden split.
+    when(appsService.applications).thenReturn([allApp, favoriteApp, hiddenApp]);
+    final favoritesCategory = fakeCategory(name: "Favorites");
+    favoritesCategory.applications.add(favoriteApp);
+    when(appsService.categories).thenReturn([favoritesCategory]);
 
     await tester.pumpWidget(
       MultiProvider(
@@ -42,34 +45,43 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // Initial state: TV Applications (index 0)
-    expect(find.text("TV Apps"), findsOneWidget, reason: "Should start on TV Apps tab");
+    // Initial state: All Apps (index 0)
+    expect(find.text("All Apps"), findsOneWidget, reason: "Should start on All Apps tab");
+    expect(find.text("All App"), findsOneWidget);
 
-    // Focus on the list (assuming list item is focusable, or we can just send keys if focus is set)
-    // To be safe, we'll try to focus the first list item.
-    // The list items are _AppListItem which contain Focus/InkWell.
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.pumpAndSettle();
-    
     // Simulate Right Arrow
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
     await tester.pumpAndSettle();
 
-    // Should now be on Non-TV Applications (index 1)
-    expect(find.text("Non-TV Apps"), findsOneWidget, reason: "Should switch to Non-TV Apps after Right Arrow");
-    expect(find.text("Sideload App"), findsOneWidget);
+    // Should now be on Favorite Apps (index 1)
+    expect(find.text("Favorite Apps"), findsOneWidget, reason: "Should switch to Favorite Apps after Right Arrow");
+    expect(find.text("Fav App"), findsOneWidget);
+
+    // Simulate Right Arrow again
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+    await tester.pumpAndSettle();
+
+    // Should now be on Hidden Apps (index 2)
+    expect(find.text("Hidden Apps"), findsOneWidget, reason: "Should switch to Hidden Apps after Right Arrow");
+    expect(find.text("Hidden App"), findsOneWidget);
 
     // Simulate Left Arrow
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
     await tester.pumpAndSettle();
 
-    // Should be back on TV Applications (index 0)
-    expect(find.text("TV Apps"), findsOneWidget, reason: "Should switch back to TV Apps after Left Arrow");
-    expect(find.text("TV App"), findsOneWidget);
+    // Should be back on Favorite Apps (index 1)
+    expect(find.text("Favorite Apps"), findsOneWidget, reason: "Should switch back to Favorite Apps after Left Arrow");
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
+    await tester.pumpAndSettle();
+
+    // Should be back on All Apps (index 0)
+    expect(find.text("All Apps"), findsOneWidget, reason: "Should switch back to All Apps after Left Arrow");
+    expect(find.text("All App"), findsOneWidget);
 
     // Check boundary (Left on first tab)
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
     await tester.pumpAndSettle();
-    expect(find.text("TV Apps"), findsOneWidget, reason: "Should stay on TV Apps when pressing Left on first tab");
+    expect(find.text("All Apps"), findsOneWidget, reason: "Should stay on All Apps when pressing Left on first tab");
   });
 }

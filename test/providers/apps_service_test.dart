@@ -18,108 +18,110 @@
 
 import 'package:drift/drift.dart';
 import 'package:flauncher/database.dart';
+import 'package:flauncher/models/app.dart';
+import 'package:flauncher/models/category.dart';
 import 'package:flauncher/providers/apps_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
+import 'package:shared_preferences_platform_interface/shared_preferences_platform_interface.dart';
 
 import '../mocks.dart';
 import '../mocks.mocks.dart';
 
+/// Stubs [MockFLauncherChannel] icon/banner lookups for any package name. AppsService
+/// pre-caches icons and banners for every non-hidden app right after initialisation
+/// (see AppsService._preCacheIcons), so any test that ends up with non-hidden apps in
+/// memory must provide these stubs or the fire-and-forget calls throw MissingStubError.
+void _stubIconAndBannerLookups(MockFLauncherChannel channel) {
+  when(channel.getApplicationIcon(any)).thenAnswer((_) => Future.value(Uint8List(0)));
+  when(channel.getApplicationBanner(any)).thenAnswer((_) => Future.value(Uint8List(0)));
+}
+
+/// Adds [apps] to [category].applications, also recording their order in
+/// App.categoryOrders. AppsService.sortCategory relies on categoryOrders being set
+/// for the default (manual) CategorySort, so any test pre-populating a category's
+/// applications directly (bypassing AppsService.addToCategory) must set this up too.
+void _addAppsToCategory(Category category, List<App> apps) {
+  for (var i = 0; i < apps.length; i++) {
+    apps[i].categoryOrders[category.id] = i;
+  }
+  category.applications.addAll(apps);
+}
+
 void main() {
+  SharedPreferencesStorePlatform.instance = InMemorySharedPreferencesStore.empty();
+
   group("AppsService initialised correctly", () {
-    test("with empty database", () async {
+    // The upstream default-category bootstrap ("TV Applications"/"Non-TV Applications" split by
+    // `sideloaded`) was replaced by AppsService._initDefaultCategories with an "All Apps" category
+    // (every non-hidden app) plus a "Favorites" category seeded from a hard-coded list of default
+    // launcher package names, with those apps moved out of "All Apps". These tests were rewritten
+    // to match that behaviour instead of the removed TV/Non-TV split.
+    test("creates 'All Apps' and 'Favorites' categories on first run", () async {
       final channel = MockFLauncherChannel();
       final database = MockFLauncherDatabase();
+      _stubIconAndBannerLookups(channel);
       when(channel.getApplications()).thenAnswer((_) => Future.value([
             {
               'packageName': 'me.efesser.flauncher',
               'name': 'FLauncher',
               'version': null,
-              'sideloaded': false
+              'sideloaded': false,
             },
             {
-              'packageName': 'me.efesser.flauncher.2',
-              'name': 'FLauncher 2',
+              'packageName': 'com.omeda.arc',
+              'name': 'Arc Launcher',
               'version': '2.0.0',
-              'sideloaded': true
-            }
+              'sideloaded': false,
+            },
           ]));
-      when(database.listApplications()).thenAnswer((_) => Future.value([
-            fakeApp(
-              packageName: "me.efesser.flauncher",
-              name: "FLauncher",
-              version: "1.0.0",
-              sideloaded: false,
-            ),
-            fakeApp(
-              packageName: "me.efesser.flauncher.2",
-              name: "FLauncher 2",
-              version: "2.0.0",
-              sideloaded: true,
-            ),
-          ]));
-      final tvApplicationsCategory = fakeCategory(name: "TV Applications");
-      final nonTvApplicationsCategory = fakeCategory(name: "Non-TV Applications");
-      when(database.listCategoriesWithVisibleApps()).thenAnswer((_) => Future.value([
-            CategoryWithApps(tvApplicationsCategory, []),
-            CategoryWithApps(nonTvApplicationsCategory, []),
-          ]));
-      when(database.nextAppCategoryOrder(any)).thenAnswer((_) => Future.value(0));
+
+      final persistedApps = [
+        fakeApp(packageName: "me.efesser.flauncher", name: "FLauncher", version: ""),
+        fakeApp(packageName: "com.omeda.arc", name: "Arc Launcher", version: "2.0.0"),
+      ];
+      int getApplicationsCallCount = 0;
+      when(database.getApplications()).thenAnswer((_) {
+        getApplicationsCallCount++;
+        return Future.value(getApplicationsCallCount == 1 ? <App>[] : persistedApps);
+      });
+      when(database.getCategories()).thenAnswer((_) => Future.value(<Category>[]));
+      when(database.getAppsCategories()).thenAnswer((_) => Future.value(<AppCategory>[]));
+      when(database.getLauncherSpacers()).thenAnswer((_) => Future.value(<LauncherSpacer>[]));
       when(database.transaction(any)).thenAnswer((realInvocation) => realInvocation.positionalArguments[0]());
       when(database.wasCreated).thenReturn(true);
-      AppsService(channel, database);
+      int nextCategoryId = 100;
+      when(database.insertCategory(any)).thenAnswer((_) => Future.value(nextCategoryId++));
+      when(database.nextAppCategoryOrder(any)).thenAnswer((_) => Future.value(null));
+
+      final appsService = AppsService(channel, database);
       await untilCalled(channel.addAppsChangedListener(any));
 
       verifyInOrder([
-        database.listApplications(),
+        database.getApplications(),
         database.persistApps([
-          AppsCompanion.insert(
-            packageName: "me.efesser.flauncher",
-            name: "FLauncher",
-            version: "(unknown)",
-            sideloaded: Value(false),
-          ),
-          AppsCompanion.insert(
-            packageName: "me.efesser.flauncher.2",
-            name: "FLauncher 2",
-            version: "2.0.0",
-            sideloaded: Value(true),
-          ),
+          AppsCompanion.insert(packageName: "me.efesser.flauncher", name: "FLauncher", version: ""),
+          AppsCompanion.insert(packageName: "com.omeda.arc", name: "Arc Launcher", version: "2.0.0"),
         ]),
         database.deleteApps([]),
-        database.listCategoriesWithVisibleApps(),
-        database.listApplications(),
-        database.insertCategory(
-          CategoriesCompanion.insert(name: "TV Applications", order: 0),
-        ),
-        database.updateCategory(
-          tvApplicationsCategory.id,
-          CategoriesCompanion(type: Value(CategoryType.grid)),
-        ),
-        database.insertAppsCategories([
-          AppsCategoriesCompanion.insert(
-            categoryId: tvApplicationsCategory.id,
-            appPackageName: "me.efesser.flauncher",
-            order: 0,
-          )
-        ]),
-        database.insertCategory(
-          CategoriesCompanion.insert(name: "Non-TV Applications", order: 0),
-        ),
-        database.insertAppsCategories([
-          AppsCategoriesCompanion.insert(
-            categoryId: nonTvApplicationsCategory.id,
-            appPackageName: "me.efesser.flauncher.2",
-            order: 0,
-          )
-        ]),
-        database.listCategoriesWithVisibleApps(),
+        database.insertCategory(CategoriesCompanion.insert(name: "All Apps", order: 0)),
+        database.insertCategory(CategoriesCompanion.insert(name: "Favorites", order: 0)),
       ]);
+
+      // The most recently created category is inserted at order 0 and pushes older ones down,
+      // so "Favorites" (created second) ends up before "All Apps".
+      final categories = List.of(appsService.categories)..sort((a, b) => a.order.compareTo(b.order));
+      expect(categories.length, 2);
+      expect(categories[0].name, "Favorites");
+      expect(categories[0].applications.map((a) => a.packageName), ["com.omeda.arc"]);
+      expect(categories[1].name, "All Apps");
+      expect(categories[1].applications.map((a) => a.packageName), ["me.efesser.flauncher"]);
     });
 
     test("with newly installed, uninstalled and existing apps", () async {
       final channel = MockFLauncherChannel();
       final database = MockFLauncherDatabase();
+      _stubIconAndBannerLookups(channel);
       when(channel.getApplications()).thenAnswer((_) => Future.value([
             {
               'packageName': 'me.efesser.flauncher',
@@ -136,36 +138,35 @@ void main() {
           ]));
       when(channel.applicationExists("uninstalled.app")).thenAnswer((_) => Future.value(false));
       when(channel.applicationExists("not.uninstalled.app")).thenAnswer((_) => Future.value(true));
-      when(database.listApplications()).thenAnswer((_) => Future.value([
+      when(database.getApplications()).thenAnswer((_) => Future.value([
             fakeApp(packageName: "me.efesser.flauncher", name: "FLauncher", version: "1.0.0"),
             fakeApp(packageName: "uninstalled.app", name: "Uninstalled Application", version: "1.0.0"),
             fakeApp(packageName: "not.uninstalled.app", name: "Not Uninstalled Application", version: "1.0.0")
           ]));
-      when(database.listCategoriesWithVisibleApps()).thenAnswer((_) => Future.value([]));
+      when(database.getCategories()).thenAnswer((_) => Future.value(<Category>[]));
+      when(database.getAppsCategories()).thenAnswer((_) => Future.value(<AppCategory>[]));
+      when(database.getLauncherSpacers()).thenAnswer((_) => Future.value(<LauncherSpacer>[]));
       when(database.transaction(any)).thenAnswer((realInvocation) => realInvocation.positionalArguments[0]());
       when(database.wasCreated).thenReturn(false);
       AppsService(channel, database);
       await untilCalled(channel.addAppsChangedListener(any));
 
       verifyInOrder([
-        database.listApplications(),
+        database.getApplications(),
         database.persistApps([
           AppsCompanion.insert(
             packageName: "me.efesser.flauncher",
             name: "FLauncher",
             version: "2.0.0",
-            sideloaded: Value(false),
           ),
           AppsCompanion.insert(
             packageName: "me.efesser.flauncher.2",
             name: "FLauncher 2",
             version: "1.0.0",
-            sideloaded: Value(false),
           )
         ]),
         database.deleteApps(["uninstalled.app"]),
-        database.listCategoriesWithVisibleApps(),
-        database.listApplications(),
+        database.getApplications(),
       ]);
     });
   });
@@ -244,7 +245,6 @@ void main() {
 
     verify(database.insertAppsCategories(
         [AppsCategoriesCompanion.insert(categoryId: category.id, appPackageName: "app.to.be.added", order: 1)]));
-    verify(database.listCategoriesWithVisibleApps());
   });
 
   test("removeFromCategory removes app from category", () async {
@@ -257,16 +257,14 @@ void main() {
     await appsService.removeFromCategory(app, category);
 
     verify(database.deleteAppCategory(category.id, app.packageName));
-    verify(database.listCategoriesWithVisibleApps());
   });
 
   test("saveOrderInCategory persists apps order from memory to database", () async {
     final channel = MockFLauncherChannel();
     final database = MockFLauncherDatabase();
     final category = fakeCategory(name: "Category");
-    final appsService = await _buildInitialisedAppsService(channel, database, [
-      CategoryWithApps(category, [fakeApp(packageName: "app.1"), fakeApp(packageName: "app.2")])
-    ]);
+    _addAppsToCategory(category, [fakeApp(packageName: "app.1"), fakeApp(packageName: "app.2")]);
+    final appsService = await _buildInitialisedAppsService(channel, database, [category]);
 
     await appsService.saveApplicationOrderInCategory(category);
 
@@ -274,21 +272,19 @@ void main() {
       AppsCategoriesCompanion.insert(categoryId: category.id, appPackageName: "app.1", order: 0),
       AppsCategoriesCompanion.insert(categoryId: category.id, appPackageName: "app.2", order: 1)
     ]));
-    verify(database.listCategoriesWithVisibleApps());
   });
 
   test("reorderApplication changes application order in-memory", () async {
     final channel = MockFLauncherChannel();
     final database = MockFLauncherDatabase();
     final category = fakeCategory(name: "Category");
-    final appsService = await _buildInitialisedAppsService(channel, database, [
-      CategoryWithApps(category, [fakeApp(packageName: "app.1"), fakeApp(packageName: "app.2")])
-    ]);
+    _addAppsToCategory(category, [fakeApp(packageName: "app.1"), fakeApp(packageName: "app.2")]);
+    final appsService = await _buildInitialisedAppsService(channel, database, [category]);
 
     appsService.reorderApplication(category, 1, 0);
 
-    expect(appsService.categoriesWithApps[0].applications[0].packageName, "app.2");
-    expect(appsService.categoriesWithApps[0].applications[1].packageName, "app.1");
+    expect(appsService.categories[0].applications[0].packageName, "app.2");
+    expect(appsService.categories[0].applications[1].packageName, "app.1");
   });
 
   test("addCategory adds category at index 0 and moves others", () async {
@@ -298,14 +294,14 @@ void main() {
     final appsService = await _buildInitialisedAppsService(
       channel,
       database,
-      [CategoryWithApps(existingCategory, [])],
+      [existingCategory],
     );
+    when(database.insertCategory(any)).thenAnswer((_) => Future.value(500));
 
     await appsService.addCategory("New Category");
 
     verify(database.insertCategory(CategoriesCompanion.insert(name: "New Category", order: 0)));
     verify(database.updateCategories([CategoriesCompanion(id: Value(existingCategory.id), order: Value(1))]));
-    verify(database.listCategoriesWithVisibleApps());
   });
 
   test("renameCategory renames category", () async {
@@ -315,39 +311,38 @@ void main() {
     final appsService = await _buildInitialisedAppsService(
       channel,
       database,
-      [CategoryWithApps(category, [])],
+      [category],
     );
 
     await appsService.renameCategory(category, "New name");
 
     verify(database.updateCategory(category.id, CategoriesCompanion(name: Value("New name"))));
-    verify(database.listCategoriesWithVisibleApps());
+    expect(appsService.categories.first.name, "New name");
   });
 
-  test("deleteCategory deletes category", () async {
+  test("deleteSection deletes category", () async {
     final channel = MockFLauncherChannel();
     final database = MockFLauncherDatabase();
     final defaultCategory = fakeCategory(name: "Applications", order: 0);
     final categoryToDelete = fakeCategory(name: "Delete Me", order: 1);
-    final appInDefaultCategory = fakeApp();
-    final appInCategoryToDelete = fakeApp(packageName: "app.to.be.moved.1");
-    final hiddenAppInCategoryToDelete = fakeApp(packageName: "app.to.be.moved.2", hidden: true);
+    // NOTE: the previous implementation moved a deleted category's apps into the default
+    // category before removing it. The current AppsService.deleteSection(int index) no longer
+    // does this: it only deletes the category row (apps_categories rows cascade-delete in the
+    // database) and removes the section, without reassigning apps elsewhere. See final report.
     final appsService = await _buildInitialisedAppsService(
       channel,
       database,
-      [
-        CategoryWithApps(defaultCategory, [appInDefaultCategory]),
-        CategoryWithApps(categoryToDelete, [appInCategoryToDelete, hiddenAppInCategoryToDelete])
-      ],
+      [defaultCategory, categoryToDelete],
     );
+    final indexToDelete = appsService.launcherSections.indexOf(categoryToDelete);
 
-    await appsService.deleteSection(categoryToDelete);
+    await appsService.deleteSection(indexToDelete);
 
     verify(database.deleteCategory(categoryToDelete.id));
-    verify(database.listCategoriesWithVisibleApps());
+    expect(appsService.categories.map((c) => c.name), ["Applications"]);
   });
 
-  test("moveCategory changes categories order", () async {
+  test("moveSection changes sections order", () async {
     final channel = MockFLauncherChannel();
     final database = MockFLauncherDatabase();
     final applicationsCategory = fakeCategory(name: "Applications", order: 0);
@@ -355,11 +350,10 @@ void main() {
     final appsService = await _buildInitialisedAppsService(
       channel,
       database,
-      [CategoryWithApps(applicationsCategory, []), CategoryWithApps(favoritesCategory, [])],
+      [applicationsCategory, favoritesCategory],
     );
-    when(database.nextAppCategoryOrder(applicationsCategory.id)).thenAnswer((_) => Future.value(1));
 
-    await appsService.moveCategory(1, 0);
+    await appsService.moveSection(1, 0);
 
     verify(database.updateCategories(
       [
@@ -367,90 +361,109 @@ void main() {
         CategoriesCompanion(id: Value(applicationsCategory.id), order: Value(1))
       ],
     ));
-    verify(database.listCategoriesWithVisibleApps());
+    expect(appsService.launcherSections.map((s) => (s as Category).name), ["Favorites", "Applications"]);
   });
 
   test("hideApplication hides application", () async {
+    final channel = MockFLauncherChannel();
     final database = MockFLauncherDatabase();
     final application = fakeApp();
-    final appsService = await _buildInitialisedAppsService(MockFLauncherChannel(), database, []);
-    when(database.listApplications()).thenAnswer((_) => Future.value([application]));
+    final appsService =
+        await _buildInitialisedAppsService(channel, database, [], initialApplications: [application]);
 
     await appsService.hideApplication(application);
 
     verify(database.updateApp(application.packageName, AppsCompanion(hidden: Value(true))));
-    verify(database.listCategoriesWithVisibleApps());
-    verify(database.listApplications());
+    expect(application.hidden, isTrue);
     expect(appsService.applications, [application]);
   });
 
-  test("unHideApplication hides application", () async {
+  test("showApplication un-hides application", () async {
+    final channel = MockFLauncherChannel();
     final database = MockFLauncherDatabase();
-    final application = fakeApp();
-    final appsService = await _buildInitialisedAppsService(MockFLauncherChannel(), database, []);
+    final application = fakeApp(hidden: true);
+    final appsService =
+        await _buildInitialisedAppsService(channel, database, [], initialApplications: [application]);
 
-    await appsService.unHideApplication(application);
+    await appsService.showApplication(application);
 
     verify(database.updateApp(application.packageName, AppsCompanion(hidden: Value(false))));
-    verify(database.listCategoriesWithVisibleApps());
-    verify(database.listApplications());
+    expect(application.hidden, isFalse);
   });
 
   test("setCategoryType persists change in database", () async {
+    final channel = MockFLauncherChannel();
     final database = MockFLauncherDatabase();
     final category = fakeCategory(type: CategoryType.row);
-    final appsService = await _buildInitialisedAppsService(MockFLauncherChannel(), database, []);
+    final appsService = await _buildInitialisedAppsService(channel, database, [category]);
 
     await appsService.setCategoryType(category, CategoryType.grid);
 
     verify(database.updateCategory(category.id, CategoriesCompanion(type: Value(CategoryType.grid))));
-    verify(database.listCategoriesWithVisibleApps());
+    expect(category.type, CategoryType.grid);
   });
 
   test("setCategorySort persists change in database", () async {
+    final channel = MockFLauncherChannel();
     final database = MockFLauncherDatabase();
     final category = fakeCategory(sort: CategorySort.manual);
-    final appsService = await _buildInitialisedAppsService(MockFLauncherChannel(), database, []);
+    final appsService = await _buildInitialisedAppsService(channel, database, [category]);
 
     await appsService.setCategorySort(category, CategorySort.alphabetical);
 
     verify(database.updateCategory(category.id, CategoriesCompanion(sort: Value(CategorySort.alphabetical))));
-    verify(database.listCategoriesWithVisibleApps());
+    expect(category.sort, CategorySort.alphabetical);
   });
 
   test("setCategoryColumnsCount persists change in database", () async {
+    final channel = MockFLauncherChannel();
     final database = MockFLauncherDatabase();
     final category = fakeCategory(columnsCount: 6);
-    final appsService = await _buildInitialisedAppsService(MockFLauncherChannel(), database, []);
+    final appsService = await _buildInitialisedAppsService(channel, database, [category]);
 
     await appsService.setCategoryColumnsCount(category, 8);
 
     verify(database.updateCategory(category.id, CategoriesCompanion(columnsCount: Value(8))));
-    verify(database.listCategoriesWithVisibleApps());
+    expect(category.columnsCount, 8);
   });
 
   test("setCategoryRowHeight persists change in database", () async {
+    final channel = MockFLauncherChannel();
     final database = MockFLauncherDatabase();
     final category = fakeCategory(rowHeight: 110);
-    final appsService = await _buildInitialisedAppsService(MockFLauncherChannel(), database, []);
+    final appsService = await _buildInitialisedAppsService(channel, database, [category]);
 
     await appsService.setCategoryRowHeight(category, 120);
 
     verify(database.updateCategory(category.id, CategoriesCompanion(rowHeight: Value(120))));
-    verify(database.listCategoriesWithVisibleApps());
+    expect(category.rowHeight, 120);
   });
 }
 
+/// Builds an [AppsService] whose initial state is fully controlled by the test: [categories] are
+/// returned verbatim by `getCategories()` (their `applications` lists, if pre-populated by the
+/// caller, are left untouched since `getAppsCategories()` is empty) and [initialApplications] are
+/// returned by the first `getApplications()` call so that `AppsService`'s internal `_applications`
+/// map contains them (this is required for methods such as hideApplication/showApplication that
+/// only mutate apps already tracked in memory).
 Future<AppsService> _buildInitialisedAppsService(
   MockFLauncherChannel channel,
   MockFLauncherDatabase database,
-  List<CategoryWithApps> categoriesWithApps,
-) async {
+  List<Category> categories, {
+  List<App> initialApplications = const [],
+}) async {
+  _stubIconAndBannerLookups(channel);
   when(channel.getApplications()).thenAnswer((_) => Future.value([]));
-  when(database.listApplications()).thenAnswer((_) => Future.value([]));
-  when(database.listCategoriesWithVisibleApps()).thenAnswer((_) => Future.value(categoriesWithApps));
+  when(database.getApplications()).thenAnswer((_) => Future.value(initialApplications));
+  when(database.getCategories()).thenAnswer((_) => Future.value(categories));
+  when(database.getAppsCategories()).thenAnswer((_) => Future.value(<AppCategory>[]));
+  when(database.getLauncherSpacers()).thenAnswer((_) => Future.value(<LauncherSpacer>[]));
   when(database.transaction(any)).thenAnswer((realInvocation) => realInvocation.positionalArguments[0]());
   when(database.wasCreated).thenReturn(false);
+  // initialApplications are absent from channel.getApplications() (stubbed to []) above, so
+  // AppsService._refreshState treats them as candidates for uninstallation and checks
+  // channel.applicationExists for each; report them as still installed.
+  when(channel.applicationExists(any)).thenAnswer((_) => Future.value(true));
   final appsService = AppsService(channel, database);
   await untilCalled(channel.addAppsChangedListener(any));
   clearInteractions(channel);

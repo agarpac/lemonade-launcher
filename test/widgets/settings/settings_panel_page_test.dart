@@ -16,13 +16,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import 'package:flauncher/l10n/app_localizations.dart';
 import 'package:flauncher/providers/apps_service.dart';
 import 'package:flauncher/providers/settings_service.dart';
+import 'package:flauncher/widgets/settings/general_settings_page.dart';
+import 'package:flauncher/widgets/settings/interface_settings_page.dart';
 import 'package:flauncher/widgets/settings/applications_panel_page.dart';
-import 'package:flauncher/widgets/settings/launcher_sections_panel_page.dart';
 import 'package:flauncher/widgets/settings/flauncher_about_dialog.dart';
 import 'package:flauncher/widgets/settings/settings_panel_page.dart';
-import 'package:flauncher/widgets/settings/wallpaper_panel_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -32,9 +33,15 @@ import 'package:package_info_plus_platform_interface/package_info_platform_inter
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 import 'package:provider/provider.dart';
 
-import '../../flauncher_test.dart';
 import '../../mocks.mocks.dart';
 
+// SettingsPanelPage's top-level menu was consolidated: "Categories" and "Wallpaper" moved one
+// level deeper into InterfaceSettingsPage (behind a new "Interface" entry), "24-hour time format"
+// moved into DateTimeFormatPage behind GeneralSettingsPage's "System" entry, and the "Crash
+// Reporting"/"Analytics Reporting" toggles were removed outright (no telemetry setting exists
+// anywhere in the app anymore). The top level now is: Applications, Interface, System, [divider],
+// System Settings, [Update check, only if kSelfUpdaterAvailable which defaults to false], About.
+// The about dialog class was also renamed from FLauncherAboutDialog to LTvLauncherAboutDialog.
 void main() {
   setUpAll(() async {
     final binding = TestWidgetsFlutterBinding.ensureInitialized();
@@ -47,23 +54,32 @@ void main() {
   testWidgets("'Applications' opens ApplicationsPanelPage", (tester) async {
     final settingsService = MockSettingsService();
     final appsService = MockAppsService();
-    when(appsService.categoriesWithApps).thenReturn([]);
-    when(appsService.applications).thenReturn([]);
     when(settingsService.appHighlightAnimationEnabled).thenReturn(true);
 
     await _pumpWidgetWithProviders(tester, settingsService, appsService);
 
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    // "Applications" is the first tile and is autofocused.
     await tester.sendKeyEvent(LogicalKeyboardKey.enter);
     await tester.pumpAndSettle();
     expect(find.byKey(Key("ApplicationsPanelPage")), findsOneWidget);
   });
 
-  testWidgets("'Categories' opens CategoriesPanelPage", (tester) async {
+  testWidgets("'Interface' opens InterfaceSettingsPage", (tester) async {
     final settingsService = MockSettingsService();
     final appsService = MockAppsService();
-    when(appsService.categoriesWithApps).thenReturn([]);
-    when(appsService.applications).thenReturn([]);
+    when(settingsService.appHighlightAnimationEnabled).thenReturn(true);
+
+    await _pumpWidgetWithProviders(tester, settingsService, appsService);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pumpAndSettle();
+    expect(find.byKey(Key("InterfaceSettingsPage")), findsOneWidget);
+  });
+
+  testWidgets("'System' opens GeneralSettingsPage", (tester) async {
+    final settingsService = MockSettingsService();
+    final appsService = MockAppsService();
     when(settingsService.appHighlightAnimationEnabled).thenReturn(true);
 
     await _pumpWidgetWithProviders(tester, settingsService, appsService);
@@ -72,36 +88,16 @@ void main() {
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
     await tester.sendKeyEvent(LogicalKeyboardKey.enter);
     await tester.pumpAndSettle();
-    expect(find.byKey(Key("CategoriesPanelPage")), findsOneWidget);
+    expect(find.byKey(Key("GeneralSettingsPage")), findsOneWidget);
   });
 
-  testWidgets("'Wallpaper' navigates to WallpaperPanelPage", (tester) async {
+  testWidgets("'System Settings' calls AppsService.openSettings", (tester) async {
     final settingsService = MockSettingsService();
     final appsService = MockAppsService();
-    when(appsService.categoriesWithApps).thenReturn([]);
-    when(appsService.applications).thenReturn([]);
     when(settingsService.appHighlightAnimationEnabled).thenReturn(true);
 
     await _pumpWidgetWithProviders(tester, settingsService, appsService);
 
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
-    await tester.pumpAndSettle();
-    expect(find.byKey(Key("WallpaperPanelPage")), findsOneWidget);
-  });
-
-  testWidgets("'Android settings' calls AppsService", (tester) async {
-    final settingsService = MockSettingsService();
-    final appsService = MockAppsService();
-    when(appsService.categoriesWithApps).thenReturn([]);
-    when(appsService.applications).thenReturn([]);
-    when(settingsService.appHighlightAnimationEnabled).thenReturn(true);
-
-    await _pumpWidgetWithProviders(tester, settingsService, appsService);
-
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
@@ -110,70 +106,9 @@ void main() {
     verify(appsService.openSettings());
   });
 
-
-  testWidgets("'Use 24-hour time format' toggle calls SettingsService", (tester) async {
-    final appsService = MockAppsService();
-    when(appsService.categoriesWithApps).thenReturn([]);
-    when(appsService.applications).thenReturn([]);
-
-    await _pumpWidgetWithProviders(tester, mkSettingsService(), appsService);
-
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
-    await tester.pumpAndSettle();
-    //verify(settingsService.setDateTimeFormat("EEE", "HHH"));
-  });
-
-  testWidgets("'Crash Reporting' toggle calls SettingsService", (tester) async {
+  testWidgets("'About FLauncher' opens the about dialog", (tester) async {
     final settingsService = MockSettingsService();
     final appsService = MockAppsService();
-    when(appsService.categoriesWithApps).thenReturn([]);
-    when(appsService.applications).thenReturn([]);
-    when(settingsService.appHighlightAnimationEnabled).thenReturn(true);
-
-    await _pumpWidgetWithProviders(tester, settingsService, appsService);
-
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
-    await tester.pumpAndSettle();
-  });
-
-  testWidgets("'Analytics Reporting' toggle calls SettingsService", (tester) async {
-    final settingsService = MockSettingsService();
-    final appsService = MockAppsService();
-    when(appsService.categoriesWithApps).thenReturn([]);
-    when(appsService.applications).thenReturn([]);
-    when(settingsService.appHighlightAnimationEnabled).thenReturn(true);
-
-    await _pumpWidgetWithProviders(tester, settingsService, appsService);
-
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
-    await tester.pumpAndSettle();
-  });
-
-  testWidgets("'About FLauncher' opens about dialog", (tester) async {
-    final settingsService = MockSettingsService();
-    final appsService = MockAppsService();
-    when(appsService.categoriesWithApps).thenReturn([]);
-    when(appsService.applications).thenReturn([]);
     when(settingsService.appHighlightAnimationEnabled).thenReturn(true);
     PackageInfoPlatform.instance = _MockPackageInfoPlatform();
 
@@ -183,14 +118,9 @@ void main() {
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
     await tester.sendKeyEvent(LogicalKeyboardKey.enter);
     await tester.pumpAndSettle();
-    expect(find.byType(FLauncherAboutDialog), findsOneWidget);
+    expect(find.byType(LTvLauncherAboutDialog), findsOneWidget);
   });
 }
 
@@ -206,9 +136,11 @@ Future<void> _pumpWidgetWithProviders(
         ChangeNotifierProvider<AppsService>.value(value: appsService),
       ],
       builder: (_, __) => MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         routes: {
-          LauncherSectionsPanelPage.routeName: (_) => Container(key: Key("CategoriesPanelPage")),
-          WallpaperPanelPage.routeName: (_) => Container(key: Key("WallpaperPanelPage")),
+          InterfaceSettingsPage.routeName: (_) => Container(key: Key("InterfaceSettingsPage")),
+          GeneralSettingsPage.routeName: (_) => Container(key: Key("GeneralSettingsPage")),
           ApplicationsPanelPage.routeName: (_) => Container(key: Key("ApplicationsPanelPage")),
         },
         home: Material(child: SettingsPanelPage()),

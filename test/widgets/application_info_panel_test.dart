@@ -16,11 +16,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import 'package:flauncher/database.dart';
+import 'package:flauncher/l10n/app_localizations.dart';
+import 'package:flauncher/models/app.dart';
+import 'package:flauncher/models/category.dart';
 import 'package:flauncher/providers/apps_service.dart';
 import 'package:flauncher/widgets/application_info_panel.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:provider/provider.dart';
@@ -37,6 +38,12 @@ void main() {
     binding.platformDispatcher.textScaleFactorTestValue = 0.8;
   });
 
+  // ApplicationInfoPanel now unconditionally reads AppsService.hasCustomBanner (custom banner
+  // section) and AppsService.isAppInFavorites (favorites toggle button), so every test must stub
+  // them. Selecting an action now works through plain TextButton.onPressed rather than a
+  // remote-control-style key navigation (the previous tests simulated arrow-key presses assuming a
+  // fixed button order); using tester.tap on the button's label is equivalent and more robust to
+  // future button reordering.
   testWidgets("'Open' calls launchApp on AppsService", (tester) async {
     final appsService = MockAppsService();
     final app = fakeApp(
@@ -44,12 +51,13 @@ void main() {
       name: "FLauncher",
       version: "1.0.0",
     );
-    when(appsService.applications).thenReturn([app]);
+    when(appsService.hasCustomBanner(app.packageName)).thenAnswer((_) => Future.value(false));
+    when(appsService.isAppInFavorites(app)).thenReturn(false);
     await _pumpWidgetWithProviders(tester, appsService, null, app);
 
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.tap(find.text("Open"));
     await tester.pumpAndSettle();
+
     verify(appsService.launchApp(app));
   });
 
@@ -61,16 +69,13 @@ void main() {
       name: "FLauncher",
       version: "1.0.0",
     );
-    when(appsService.categoriesWithApps).thenReturn([
-      CategoryWithApps(category, [app]),
-    ]);
-    when(appsService.applications).thenReturn([]);
+    when(appsService.hasCustomBanner(app.packageName)).thenAnswer((_) => Future.value(false));
+    when(appsService.isAppInFavorites(app)).thenReturn(false);
     await _pumpWidgetWithProviders(tester, appsService, category, app);
 
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.tap(find.text("Hide"));
+    await tester.pumpAndSettle();
+
     verify(appsService.hideApplication(app));
   });
 
@@ -82,17 +87,13 @@ void main() {
       name: "FLauncher",
       version: "1.0.0",
     );
-    when(appsService.categoriesWithApps).thenReturn([
-      CategoryWithApps(category, [app]),
-    ]);
-    when(appsService.applications).thenReturn([]);
+    when(appsService.hasCustomBanner(app.packageName)).thenAnswer((_) => Future.value(false));
+    when(appsService.isAppInFavorites(app)).thenReturn(false);
     await _pumpWidgetWithProviders(tester, appsService, category, app);
 
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.tap(find.text("Remove from Category 1"));
+    await tester.pumpAndSettle();
+
     verify(appsService.removeFromCategory(app, category));
   });
 
@@ -104,18 +105,13 @@ void main() {
       name: "FLauncher",
       version: "1.0.0",
     );
-    when(appsService.categoriesWithApps).thenReturn([
-      CategoryWithApps(category, [app]),
-    ]);
-    when(appsService.applications).thenReturn([]);
+    when(appsService.hasCustomBanner(app.packageName)).thenAnswer((_) => Future.value(false));
+    when(appsService.isAppInFavorites(app)).thenReturn(false);
     await _pumpWidgetWithProviders(tester, appsService, category, app);
 
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.tap(find.text("Application info"));
+    await tester.pumpAndSettle();
+
     verify(appsService.openAppInfo(app));
   });
 
@@ -127,19 +123,13 @@ void main() {
       name: "FLauncher",
       version: "1.0.0",
     );
-    when(appsService.categoriesWithApps).thenReturn([
-      CategoryWithApps(category, [app]),
-    ]);
-    when(appsService.applications).thenReturn([]);
+    when(appsService.hasCustomBanner(app.packageName)).thenAnswer((_) => Future.value(false));
+    when(appsService.isAppInFavorites(app)).thenReturn(false);
     await _pumpWidgetWithProviders(tester, appsService, category, app);
 
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.tap(find.text("Uninstall"));
+    await tester.pumpAndSettle();
+
     verify(appsService.uninstallApp(app));
   });
 }
@@ -156,6 +146,8 @@ Future<void> _pumpWidgetWithProviders(
         ChangeNotifierProvider<AppsService>.value(value: appsService),
       ],
       builder: (_, __) => MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: ApplicationInfoPanel(
           category: category,
           application: application,
