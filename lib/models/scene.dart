@@ -20,6 +20,7 @@ import 'dart:convert';
 import 'dart:math';
 
 import 'package:crypto/crypto.dart';
+import 'package:flauncher/gradients.dart';
 
 /// Stable identifiers of the scenes seeded on first run.
 ///
@@ -356,19 +357,46 @@ class Scene {
 
   /// The three scenes seeded on first run, in display order.
   ///
-  /// No scene seeds a wallpaper: picking a specific file or gradient is a UI-
-  /// phase product decision. The "cinema" and "night" scenes ship without a
-  /// PIN for the same reason a hardcoded default PIN never protects anything.
+  /// "Cinema" and "Night" come pre-configured with a real preset, so each is
+  /// useful the moment it is picked; "Normal" stays empty by design, since it
+  /// is the user's own configuration and must never diverge from it. Neither
+  /// preset seeds a `wallpaperPath`: a file override needs a file only the
+  /// user can provide. Both share the `pitchBlack` gradient rather than one
+  /// of the photo-like gradients, since a flat black background is what makes
+  /// the rest of each preset's overrides (no blur, hidden chrome) coherent.
+  /// The "cinema" and "night" scenes ship without a PIN for the same reason a
+  /// hardcoded default PIN never protects anything.
   static List<Scene> defaults() => [
         Scene(key: SceneKeys.normal, name: "Normal"),
         Scene(
           key: SceneKeys.cinema,
           name: "Cinema",
+          // Nothing should compete with the film: flat black, no chrome, no
+          // navigation aids, and no blur (there is nothing to blur over a
+          // flat background, and skipping it buys back GPU at 4K).
+          gradientUuid: FLauncherGradients.pitchBlack.uuid,
           hideAppBar: true,
           showWatchNext: false,
           showAppNames: false,
+          showCategoryTitles: false,
+          disableBackgroundBlur: true,
         ),
-        Scene(key: SceneKeys.night, name: "Night", disableBackgroundBlur: true),
+        Scene(
+          key: SceneKeys.night,
+          name: "Night",
+          // Minimum emitted light late at night: flat black and no blur.
+          // Navigation aids are intentionally left as `null` (no override):
+          // at night the user may still want to find something to watch, so
+          // this preset does not strip them the way "Cinema" does.
+          gradientUuid: FLauncherGradients.pitchBlack.uuid,
+          hideAppBar: true,
+          disableBackgroundBlur: true,
+          // Matches ACCENT_COLOR_AMBER in settings_service.dart: a warm tone
+          // reads as less harsh than the app's default white in a dark room.
+          // Not imported directly, to keep this model free of a dependency
+          // on the providers layer.
+          accentColorHex: "FFAB00",
+        ),
       ];
 
   static String _generateSalt() {

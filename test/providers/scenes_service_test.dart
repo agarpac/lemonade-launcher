@@ -18,6 +18,7 @@
 
 import 'dart:convert';
 
+import 'package:flauncher/gradients.dart';
 import 'package:flauncher/models/scene.dart';
 import 'package:flauncher/providers/scenes_service.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -542,9 +543,13 @@ void main() async {
       expect(scenesService.sceneByKey(SceneKeys.night)!.wallpaperPath, "/wallpapers/night");
     });
 
-    test("no default scene seeds a gradient", () {
+    test("only normal seeds no gradient; cinema and night seed pitch black", () {
       for (final scene in restart().scenes) {
-        expect(scene.gradientUuid, null, reason: "${scene.key} must not seed a gradient");
+        if (scene.key == SceneKeys.normal) {
+          expect(scene.gradientUuid, null, reason: "${scene.key} must not seed a gradient");
+        } else {
+          expect(scene.gradientUuid, FLauncherGradients.pitchBlack.uuid, reason: "${scene.key} must seed pitch black");
+        }
       }
     });
   });

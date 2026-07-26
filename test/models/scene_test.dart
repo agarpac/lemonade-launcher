@@ -18,6 +18,7 @@
 
 import 'dart:convert';
 
+import 'package:flauncher/gradients.dart';
 import 'package:flauncher/models/scene.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -42,32 +43,56 @@ void main() {
       expect(normal.overridesWallpaper, false);
     });
 
-    test("cinema hides the app bar, watch next and app names", () {
+    test("cinema hides the app bar, watch next, app names and category titles, over pitch black", () {
       final cinema = Scene.defaults().firstWhere((scene) => scene.key == SceneKeys.cinema);
 
+      expect(cinema.gradientUuid, FLauncherGradients.pitchBlack.uuid);
+      expect(cinema.wallpaperPath, null);
       expect(cinema.hideAppBar, true);
       expect(cinema.showWatchNext, false);
       expect(cinema.showAppNames, false);
-      expect(cinema.disableBackgroundBlur, null);
-      expect(cinema.showCategoryTitles, null);
+      expect(cinema.showCategoryTitles, false);
+      expect(cinema.disableBackgroundBlur, true);
       expect(cinema.accentColorHex, null);
     });
 
-    test("night only disables the background blur", () {
+    test("night dims the launcher to pitch black with a warm accent, but keeps navigation aids", () {
       final night = Scene.defaults().firstWhere((scene) => scene.key == SceneKeys.night);
 
+      expect(night.gradientUuid, FLauncherGradients.pitchBlack.uuid);
+      expect(night.wallpaperPath, null);
+      expect(night.hideAppBar, true);
       expect(night.disableBackgroundBlur, true);
-      expect(night.hideAppBar, null);
+      expect(night.accentColorHex, "FFAB00");
       expect(night.showWatchNext, null);
       expect(night.showAppNames, null);
       expect(night.showCategoryTitles, null);
-      expect(night.accentColorHex, null);
     });
 
-    test("leaves the wallpaper and the PIN untouched", () {
+    test("no default seeds a wallpaperPath: a file override needs a file only the user can provide", () {
       for (final scene in Scene.defaults()) {
-        expect(scene.overridesWallpaper, false, reason: "${scene.key} should not override the wallpaper");
+        expect(scene.wallpaperPath, null, reason: "${scene.key} should not seed a wallpaperPath");
+      }
+    });
+
+    test("leaves the PIN untouched", () {
+      for (final scene in Scene.defaults()) {
         expect(scene.isPinProtected, false, reason: "${scene.key} should not ship with a PIN");
+      }
+    });
+
+    test("every seeded gradient uuid resolves to a real gradient", () {
+      final knownUuids = FLauncherGradients.all.map((gradient) => gradient.uuid);
+
+      for (final scene in Scene.defaults()) {
+        final uuid = scene.gradientUuid;
+        if (uuid != null) {
+          expect(
+            knownUuids,
+            contains(uuid),
+            reason: "${scene.key} references a gradient uuid absent from FLauncherGradients.all",
+          );
+        }
       }
     });
   });

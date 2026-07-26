@@ -11,6 +11,16 @@ Launcher personalizado para Android TV, optimizado para **Xiaomi TV Box S de 3.�
 
 Base de código: fork del proyecto open source **Arc Launcher** (que desciende de LTvLauncher y de FLauncher). El launcher nativo de Google TV se deshabilita por ADB, por lo que Lemonade Launcher es el entorno absoluto del sistema.
 
+### 1.1 Montaje real y lo que implica
+
+El launcher se ejecuta en la **caja Xiaomi TV Box S**, conectada por HDMI a un televisor **Sony XH9096**. La distinción no es anecdótica:
+
+| Hecho | Consecuencia de diseño |
+| --- | --- |
+| El launcher corre en la caja, no en el televisor | Los ajustes de brillo del sistema Android **no tienen ningún efecto sobre el panel de la Sony**: una caja HDMI no controla el brillo del televisor. Cualquier funcionalidad basada en `Settings.System.SCREEN_BRIGHTNESS` es inerte en este montaje |
+| La Sony XH9096 es LED con retroiluminación full-array, **no OLED** | El negro puro sigue siendo una buena elección estética (los paneles VA tienen contraste nativo alto y la atenuación por zonas lo refuerza), pero la justificación por **quemado de panel** no aplica. El salvapantallas anti-quemado y la etiqueta «optimización OLED» del fondo negro son argumentos de otro tipo de pantalla |
+| Salida a 4K sobre una GPU de gama baja | Un desenfoque a pantalla completa cuesta del orden de cuatro veces lo que a 1080 p. Desactivarlo donde no aporta es una decisión de rendimiento, no de gusto — coherente con que Impeller ya esté desactivado a propósito |
+
 ## 2. Stack técnico
 
 | Aspecto | Realidad del proyecto |
@@ -188,7 +198,7 @@ Escenas de partida:
 
 ❌ **«Niños» se elimina.** Su único propósito era filtrar el dock, y eso ya no ocurre. Con el PIN aparcado (9.1.2), sería una etiqueta que no hace nada.
 
-❌ **El brillo se elimina de las escenas.** La variante no destructiva solo afecta a la ventana del launcher: deja de aplicarse en cuanto cualquier aplicación pasa a primer plano, que es justo cuando una escena «Cine» debería servir para algo. Y la propia interfaz de ajustes ya advierte de que muchos televisores no admiten el control de brillo a nivel de aplicación. La variante que sí funciona escribe un ajuste global del sistema y es irreversible: ver la sección 13. Con el fondo y los seis ajustes de presentación restantes, una escena ya cambia la cara del launcher de forma clara y sin efectos colaterales fuera de la aplicación.
+❌ **El brillo se elimina de las escenas.** El argumento definitivo es el montaje (sección 1.1): el launcher corre en una caja HDMI, así que el brillo del sistema Android **no toca el panel del televisor**. No es que la variante útil sea destructiva: es que en este montaje ninguna de las dos hace nada visible. Además, la variante no destructiva solo afecta a la ventana del launcher: deja de aplicarse en cuanto cualquier aplicación pasa a primer plano, que es justo cuando una escena «Cine» debería servir para algo. Y la propia interfaz de ajustes ya advierte de que muchos televisores no admiten el control de brillo a nivel de aplicación. La variante que sí funciona escribe un ajuste global del sistema y es irreversible: ver la sección 13. Con el fondo y los seis ajustes de presentación restantes, una escena ya cambia la cara del launcher de forma clara y sin efectos colaterales fuera de la aplicación.
 
 **Consecuencia arquitectónica, y es la parte difícil:** todos estos ajustes son preferencias **globales** persistidas. Si activar una escena las escribe, destruye la configuración del usuario sin vuelta atrás. La solución está en 9.1.4.
 
@@ -231,6 +241,10 @@ Reaprovecha lo que ya existe: categorías en Drift, `lib/providers/brightness_se
 Sobrescrituras opcionales por escena: aplicaciones visibles del dock (por `packageName`, no por identificador de base de datos, para que sobrevivan a reinstalaciones), brillo, y fondo — este último por fichero **o** por gradiente, mutuamente excluyentes y validado en el constructor. `null` significa siempre «no cambiar nada».
 
 El PIN se guarda como SHA-256 con sal aleatoria por escritura, se compara en tiempo constante, y se verifica **en el servicio**, no en la interfaz: quitar el PIN, cambiarlo o restaurar los valores por defecto exigen conocerlo. `saveScene` transfiere siempre el estado de PIN almacenado, de modo que no existe forma de expresar «guarda esta escena sin su bloqueo».
+
+**Cómo se sale de una escena que oculta la barra superior.** «Cine» y «Noche» traen `hideAppBar` activado, y el selector de escenas vive en esa barra. No queda inaccesible: subir desde el dock no usa navegación geométrica sino un intent explícito (`MoveFocusToSettingsIntent` → `focusSettings()` → `requestFocus()`), que funciona aunque la barra esté a altura cero; al recibir el foco, la barra se despliega y desde ahí la navegación entre sus iconos ya es normal.
+
+Conviene no romper eso: si algún día ese camino pasara a depender de la travesía direccional, un widget de altura cero tiene un rectángulo degenerado y la barra podría volverse imposible de alcanzar — dejando al usuario encerrado en la escena.
 
 ### 9.1.2 El PIN queda aplazado
 
@@ -363,7 +377,7 @@ Agravantes en el mismo método:
 - **`setSystemBrightness` devuelve `true` desde dentro de su propio `catch`** (líneas 680-682). Es decir, en `lib/providers/brightness_service.dart:206` la variable `success` significa «teníamos permiso», no «la escritura funcionó». Un fallo real se interpreta como éxito.
 - **El permiso se consulta una sola vez, en el constructor** (`brightness_service.dart:84`), con `_hasPermission` inicializado a `true` (:80) y con fallback a `true` si el canal falla (:95-98). Como `WRITE_SETTINGS` se concede **fuera** de la aplicación —por ADB o por el diálogo del sistema—, tras concederlo el launcher sigue creyendo el valor obsoleto hasta que se reinicia el proceso. El arreglo natural es volver a comprobarlo en `AppLifecycleState.resumed`, donde `lib/flauncher.dart:79-84` ya atiende ese evento para otro servicio.
 
-Por qué no se arregla ahora: la funcionalidad está marcada como experimental, viene desactivada por defecto y requiere un permiso que hay que conceder a mano por ADB, así que nadie la sufre sin haberla buscado. Arreglarlo bien exige capturar una línea base del valor **y del modo** antes de la primera escritura, con garantía de escritura única, y restaurarla — es decir, el mismo problema de línea base envenenada descrito en 9.1.4, pero sobre un ajuste del sistema que ni siquiera es nuestro.
+Por qué no se arregla ahora: la funcionalidad está marcada como experimental, viene desactivada por defecto y requiere un permiso que hay que conceder a mano por ADB, así que nadie la sufre sin haberla buscado. En el montaje de este proyecto (sección 1.1) es directamente **placebo**: escribe un ajuste de brillo en una caja que no tiene panel. El daño descrito arriba solo se materializa en dispositivos donde el launcher corre en el propio televisor — que es exactamente el caso de quien use este launcher en un Android TV integrado. Arreglarlo bien exige capturar una línea base del valor **y del modo** antes de la primera escritura, con garantía de escritura única, y restaurarla — es decir, el mismo problema de línea base envenenada descrito en 9.1.4, pero sobre un ajuste del sistema que ni siquiera es nuestro.
 
 Si algún día se retoma, el orden correcto es: primero arreglar el `catch` que miente, después la comprobación de permiso obsoleta, y solo entonces plantearse la restauración.
 
