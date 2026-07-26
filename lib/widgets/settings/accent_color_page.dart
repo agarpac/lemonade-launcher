@@ -53,7 +53,7 @@ class AccentColorPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<SettingsService>(
       builder: (context, settingsService, _) {
-        final currentColor = settingsService.accentColorHex;
+        final currentColor = settingsService.userAccentColorHex;
         
         return Column(
           children: [

@@ -143,8 +143,8 @@ void main() {
 
     // First "process": build the full, real service graph and activate a
     // scene with a gradient override.
-    final settingsService = SettingsService(sharedPreferences);
     final scenesService = ScenesService(sharedPreferences);
+    final settingsService = SettingsService(sharedPreferences, scenesService);
     await scenesService.setSceneGradientUuid(SceneKeys.cinema, FLauncherGradients.viciousStance.uuid);
     final wallpaperService = WallpaperService(settingsService, scenesService);
     await untilCalled(pathProviderPlatform.getApplicationDocumentsPath());
@@ -160,8 +160,8 @@ void main() {
     // service and rebuild from the exact same persisted store. There is no
     // save/restore step to race, because there is nothing to restore: the
     // override was never written anywhere.
-    final settingsServiceAfterRestart = SettingsService(sharedPreferences);
     final scenesServiceAfterRestart = ScenesService(sharedPreferences);
+    final settingsServiceAfterRestart = SettingsService(sharedPreferences, scenesServiceAfterRestart);
     final wallpaperServiceAfterRestart = WallpaperService(settingsServiceAfterRestart, scenesServiceAfterRestart);
     await untilCalled(pathProviderPlatform.getApplicationDocumentsPath());
 

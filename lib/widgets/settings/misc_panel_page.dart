@@ -38,13 +38,13 @@ class MiscPanelPage extends StatelessWidget {
                 secondary: Icon(Icons.notifications_active),
               ),
               RoundedSwitchListTile(
-                value: settingsService.showCategoryTitles,
+                value: settingsService.userShowCategoryTitles,
                 onChanged: (value) => settingsService.setShowCategoryTitles(value),
                 title: Text(localizations.showCategoryTitles, style: Theme.of(context).textTheme.bodyMedium),
                 secondary: Icon(Icons.abc),
               ),
               RoundedSwitchListTile(
-                value: settingsService.showAppNamesBelowIcons,
+                value: settingsService.userShowAppNamesBelowIcons,
                 onChanged: (value) => settingsService.setShowAppNamesBelowIcons(value),
                 title: Text("Show App Names Below Icons", style: Theme.of(context).textTheme.bodyMedium),
                 secondary: Icon(Icons.subtitles),
@@ -56,7 +56,7 @@ class MiscPanelPage extends StatelessWidget {
                 secondary: Icon(Icons.border_outer),
               ),
               RoundedSwitchListTile(
-                value: settingsService.showWatchNextSection,
+                value: settingsService.userShowWatchNextSection,
                 onChanged: (value) async {
                   await settingsService.setShowWatchNextSection(value);
                   if (value && context.mounted) {
@@ -69,7 +69,7 @@ class MiscPanelPage extends StatelessWidget {
                 title: Text(localizations.showWatchNextSection, style: Theme.of(context).textTheme.bodyMedium),
                 secondary: Icon(Icons.play_circle_outline),
               ),
-              if (settingsService.showWatchNextSection)
+              if (settingsService.userShowWatchNextSection)
                 Consumer<WatchNextService>(
                   builder: (context, watchNextService, _) {
                     if (watchNextService.hasPermission) {

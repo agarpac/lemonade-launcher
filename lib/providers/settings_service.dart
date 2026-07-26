@@ -18,6 +18,7 @@
 
 import 'dart:async';
 
+import 'package:flauncher/providers/scenes_service.dart';
 import 'package:flauncher/widgets/settings/back_button_actions.dart';
 import 'package:flutter/material.dart';
 
@@ -72,18 +73,42 @@ class SettingsService extends ChangeNotifier {
   static final defaultDateFormat = "EEEE d";
   static final defaultTimeFormat = "H:mm";
   final SharedPreferences _sharedPreferences;
-
+  final ScenesService _scenesService;
 
   bool get appHighlightAnimationEnabled =>
       showFocusBorders && (_sharedPreferences.getBool(_appHighlightAnimationEnabledKey) ?? false);
 
   bool get appKeyClickEnabled => _sharedPreferences.getBool(_appKeyClickEnabledKey) ?? true;
 
-  bool get autoHideAppBarEnabled => _sharedPreferences.getBool(_autoHideAppBar) ?? false;
+  /// The user's own "auto-hide app bar" preference, ignoring any active scene
+  /// override. Settings UI must read this one, never [autoHideAppBarEnabled]:
+  /// showing the effective (possibly scene-overridden) value on a
+  /// configuration screen would make a toggle look broken the moment a scene
+  /// masks it.
+  bool get userAutoHideAppBarEnabled => _sharedPreferences.getBool(_autoHideAppBar) ?? false;
 
-  bool get showCategoryTitles => _sharedPreferences.getBool(_showCategoryTitles) ?? false;
+  /// The effective "auto-hide app bar" setting: the active scene's override
+  /// when it has one, otherwise [userAutoHideAppBarEnabled]. Every consumer
+  /// outside the settings UI (e.g. the app bar itself) must read this one,
+  /// never the user-only getter, so a scene applies wherever the app bar is
+  /// actually rendered.
+  bool get autoHideAppBarEnabled => _scenesService.activeScene.hideAppBar ?? userAutoHideAppBarEnabled;
 
-  bool get showAppNamesBelowIcons => _sharedPreferences.getBool(_showAppNamesBelowIcons) ?? false;
+  /// The user's own "show category titles" preference. See
+  /// [userAutoHideAppBarEnabled] for why the settings UI must use this getter.
+  bool get userShowCategoryTitles => _sharedPreferences.getBool(_showCategoryTitles) ?? false;
+
+  /// The effective "show category titles" setting. See
+  /// [autoHideAppBarEnabled] for why every other consumer must use this getter.
+  bool get showCategoryTitles => _scenesService.activeScene.showCategoryTitles ?? userShowCategoryTitles;
+
+  /// The user's own "show app names below icons" preference. See
+  /// [userAutoHideAppBarEnabled] for why the settings UI must use this getter.
+  bool get userShowAppNamesBelowIcons => _sharedPreferences.getBool(_showAppNamesBelowIcons) ?? false;
+
+  /// The effective "show app names below icons" setting. See
+  /// [autoHideAppBarEnabled] for why every other consumer must use this getter.
+  bool get showAppNamesBelowIcons => _scenesService.activeScene.showAppNames ?? userShowAppNamesBelowIcons;
 
   bool get showDateInStatusBar => _sharedPreferences.getBool(_showDateInStatusBar) ?? false;
 
@@ -103,15 +128,50 @@ class SettingsService extends ChangeNotifier {
 
   bool get showNetworkIndicatorInStatusBar => _sharedPreferences.getBool(_showNetworkIndicatorInStatusBar) ?? true;
 
-  String get accentColorHex => _sharedPreferences.getString(_accentColor) ?? ACCENT_COLOR_WHITE;
+  /// The user's own accent color, ignoring any active scene override. See
+  /// [userAutoHideAppBarEnabled] for why the settings UI must use this getter.
+  String get userAccentColorHex => _sharedPreferences.getString(_accentColor) ?? ACCENT_COLOR_WHITE;
+
+  /// The effective accent color: the active scene's override when it has one
+  /// and it is a well-formed 6-digit hex color, otherwise [userAccentColorHex].
+  /// See [autoHideAppBarEnabled] for why every other consumer (including the
+  /// theme built in `flauncher_app.dart`) must use this getter.
+  ///
+  /// A scene override that is missing, malformed, or otherwise not a valid hex
+  /// color degrades to the user's own accent color rather than throwing or
+  /// rendering something arbitrary — same rule as an unknown gradient uuid
+  /// (see `WallpaperService._sceneGradientOverride`).
+  String get accentColorHex {
+    final sceneOverride = _scenesService.activeScene.accentColorHex;
+    if (sceneOverride != null && _isValidHexColor(sceneOverride)) {
+      return sceneOverride;
+    }
+    return userAccentColorHex;
+  }
+
+  /// Whether [hex] is exactly 6 hexadecimal digits, i.e. safe to feed into
+  /// `Color(int.parse("0xFF$hex"))` without throwing.
+  static bool _isValidHexColor(String hex) => hex.length == 6 && int.tryParse(hex, radix: 16) != null;
 
   String get screensaverClockStyle => _sharedPreferences.getString(_screensaverClockStyle) ?? "minimal";
 
   bool get dockBackdropFilterDisabled => _sharedPreferences.getBool(_dockBackdropFilterDisabled) ?? false;
 
-  bool get backgroundBlurDisabled => _sharedPreferences.getBool(_backgroundBlurDisabled) ?? false;
+  /// The user's own "disable background blur" preference. See
+  /// [userAutoHideAppBarEnabled] for why the settings UI must use this getter.
+  bool get userBackgroundBlurDisabled => _sharedPreferences.getBool(_backgroundBlurDisabled) ?? false;
 
-  bool get showWatchNextSection => _sharedPreferences.getBool(_showWatchNextSection) ?? false;
+  /// The effective "disable background blur" setting. See
+  /// [autoHideAppBarEnabled] for why every other consumer must use this getter.
+  bool get backgroundBlurDisabled => _scenesService.activeScene.disableBackgroundBlur ?? userBackgroundBlurDisabled;
+
+  /// The user's own "show Watch Next section" preference. See
+  /// [userAutoHideAppBarEnabled] for why the settings UI must use this getter.
+  bool get userShowWatchNextSection => _sharedPreferences.getBool(_showWatchNextSection) ?? false;
+
+  /// The effective "show Watch Next section" setting. See
+  /// [autoHideAppBarEnabled] for why every other consumer must use this getter.
+  bool get showWatchNextSection => _scenesService.activeScene.showWatchNext ?? userShowWatchNextSection;
 
   bool get dockDarkBackground => _sharedPreferences.getBool(_dockDarkBackground) ?? false;
 
@@ -119,14 +179,38 @@ class SettingsService extends ChangeNotifier {
 
   bool get showFocusBorders => _sharedPreferences.getBool(_showFocusBorders) ?? true;
 
+  /// Built from the effective [accentColorHex], not the user-only one: the
+  /// whole `ColorScheme` in `flauncher_app.dart` is derived from this getter,
+  /// so a scene's accent override reaches the theme the same way it reaches
+  /// every other consumer.
   Color get accentColor {
     final hex = accentColorHex;
     return Color(int.parse("0xFF$hex"));
   }
 
+  /// Composes the active scene's presentation overrides into the six getters
+  /// above, exactly the way `WallpaperService` composes scene wallpaper
+  /// overrides: [_scenesService] is listened to here (see [_onScenesChanged])
+  /// so every consumer of this service repaints when the active scene
+  /// changes, without any of them having to know scenes exist.
   SettingsService(
-    this._sharedPreferences
-  );
+    this._sharedPreferences,
+    this._scenesService
+  ) {
+    _scenesService.addListener(_onScenesChanged);
+  }
+
+  /// A scene change may change any of the six effective getters above, so this
+  /// always notifies rather than checking which ones actually differ: the
+  /// cost is a handful of extra reads, and false negatives here would mean a
+  /// scene silently not applying somewhere.
+  void _onScenesChanged() => notifyListeners();
+
+  @override
+  void dispose() {
+    _scenesService.removeListener(_onScenesChanged);
+    super.dispose();
+  }
 
   Future<void> set(String key, bool value) async {
     await _sharedPreferences.setBool(key, value);

@@ -45,11 +45,18 @@ Future<void> main() async {
 
   runApp(MultiProvider(
       providers: [
-        ChangeNotifierProvider(
-            create: (_) => SettingsService(sharedPreferences),
-            lazy: false),
+        // ScenesService must be created before SettingsService: the latter
+        // composes the active scene's presentation overrides into its own
+        // getters (see SettingsService's constructor doc), the same way
+        // WallpaperService below depends on both.
         ChangeNotifierProvider(
             create: (_) => ScenesService(sharedPreferences),
+            lazy: false),
+        ChangeNotifierProvider(
+            create: (context) {
+              ScenesService scenesService = Provider.of(context, listen: false);
+              return SettingsService(sharedPreferences, scenesService);
+            },
             lazy: false),
         ChangeNotifierProvider(create: (_) => AppsService(fLauncherChannel, fLauncherDatabase)),
         ChangeNotifierProvider(create: (_) => LauncherState()),

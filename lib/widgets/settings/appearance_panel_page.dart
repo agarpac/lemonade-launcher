@@ -30,7 +30,7 @@ class AppearancePanelPage extends StatelessWidget {
                 secondary: const Icon(Icons.blur_circular),
               ),
               RoundedSwitchListTile(
-                value: !settingsService.backgroundBlurDisabled,
+                value: !settingsService.userBackgroundBlurDisabled,
                 onChanged: (value) => settingsService.setBackgroundBlurDisabled(!value),
                 title: Text(localizations.backgroundBlur, style: Theme.of(context).textTheme.bodyMedium),
                 secondary: const Icon(Icons.blur_on),

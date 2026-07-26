@@ -41,7 +41,7 @@ class StatusBarPanelPage extends StatelessWidget {
               children: [
                 RoundedSwitchListTile(
                   autofocus: true,
-                  value: settingsService.autoHideAppBarEnabled,
+                  value: settingsService.userAutoHideAppBarEnabled,
                   onChanged: (value) => settingsService.setAutoHideAppBarEnabled(value),
                   title: Text(localizations.autoHideAppBar, style: Theme.of(context).textTheme.bodyMedium),
                   secondary: Icon(Icons.visibility_off_outlined),

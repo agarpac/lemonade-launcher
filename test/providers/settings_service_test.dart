@@ -18,6 +18,7 @@
 
 //import 'dart:html';
 
+import 'package:flauncher/providers/scenes_service.dart';
 import 'package:flauncher/providers/settings_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -28,7 +29,10 @@ import 'package:shared_preferences_platform_interface/shared_preferences_platfor
 void main() async {
   SharedPreferencesStorePlatform.instance = InMemorySharedPreferencesStore.empty();
   final sharedPreferences = await SharedPreferences.getInstance();
-  final settingsService = SettingsService(sharedPreferences);
+  // A real ScenesService seeded with the default scenes (none of which override
+  // anything): none of the tests in this file care about scenes, so this just
+  // satisfies SettingsService's dependency without masking any preference.
+  final settingsService = SettingsService(sharedPreferences, ScenesService(sharedPreferences));
 
   setUp(() async {
     await sharedPreferences.clear();
@@ -37,7 +41,7 @@ void main() async {
 
   test("setUse24HourTimeFormat", () async {
     final sharedPreferences = await SharedPreferences.getInstance();
-    final settingsService = SettingsService(sharedPreferences);
+    final settingsService = SettingsService(sharedPreferences, ScenesService(sharedPreferences));
     final expected = "XYZ";
 
     await settingsService.setDateTimeFormat("", expected);
@@ -47,7 +51,7 @@ void main() async {
 
   test("setGradientUuid", () async {
     final sharedPreferences = await SharedPreferences.getInstance();
-    final settingsService = SettingsService(sharedPreferences);
+    final settingsService = SettingsService(sharedPreferences, ScenesService(sharedPreferences));
 
     await settingsService.setGradientUuid("4730aa2d-1a90-49a6-9942-ffe82f470e26");
 
@@ -59,7 +63,7 @@ void main() async {
     test("without uuid from shared preferences", () async {
       final sharedPreferences = await SharedPreferences.getInstance();
       await sharedPreferences.clear();
-      final settingsService = SettingsService(sharedPreferences);
+      final settingsService = SettingsService(sharedPreferences, ScenesService(sharedPreferences));
 
       final gradientUuid = settingsService.gradientUuid;
 
@@ -70,7 +74,7 @@ void main() async {
       final sharedPreferences = await SharedPreferences.getInstance();
       await sharedPreferences.clear();
       sharedPreferences.setString("gradient_uuid", "4730aa2d-1a90-49a6-9942-ffe82f470e26");
-      final settingsService = SettingsService(sharedPreferences);
+      final settingsService = SettingsService(sharedPreferences, ScenesService(sharedPreferences));
 
       final gradientUuid = settingsService.gradientUuid;
 

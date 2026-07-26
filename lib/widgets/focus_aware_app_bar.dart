@@ -60,32 +60,38 @@ class FocusAwareAppBarState extends State<FocusAwareAppBar>
 
   @override
   Widget build(BuildContext context) {
-    return Selector<SettingsService, bool>(
-      selector: (_, settings) => settings.autoHideAppBarEnabled,
-      builder: (context, autoHide, widget) {
-        if (autoHide) {
-          return Focus(
-            canRequestFocus: false,
-            child: AnimatedContainer(
-              curve: Curves.decelerate,
-              duration: Duration(milliseconds: 150),
-              height: focused ? kToolbarHeight : 0,
-              child: widget!
-            ),
-            onFocusChange: (hasFocus) {
-              if (hasFocus) {
-                context.read<LauncherState>().setAppGridFocused(false);
-              }
-              this.setState(() {
-                focused = hasFocus;
-              });
-            }
-          );
+    // The Focus wrapper (and its focus tracking) stays mounted unconditionally,
+    // regardless of `autoHide`. It used to be built only inside the `autoHide`
+    // branch, which meant toggling `autoHide` — e.g. a scene activation, which
+    // can happen instantly rather than through a user tapping this exact
+    // button — inserted/removed this FocusNode from the tree at the same
+    // moment `focused` was read to decide the height, so a descendant that
+    // already held focus at that instant could be judged "not focused" for a
+    // frame before the focus manager caught up. Keeping it always mounted
+    // means `focused` is already accurate by the time `autoHide` changes, so
+    // the bar never collapses out from under a focused control.
+    return Focus(
+      canRequestFocus: false,
+      onFocusChange: (hasFocus) {
+        if (hasFocus) {
+          context.read<LauncherState>().setAppGridFocused(false);
         }
-
-        return widget!;
+        this.setState(() {
+          focused = hasFocus;
+        });
       },
-      child: RepaintBoundary(
+      child: Selector<SettingsService, bool>(
+        selector: (_, settings) => settings.autoHideAppBarEnabled,
+        builder: (context, autoHide, widget) {
+          final visible = !autoHide || focused;
+          return AnimatedContainer(
+            curve: Curves.decelerate,
+            duration: Duration(milliseconds: 150),
+            height: visible ? kToolbarHeight : 0,
+            child: widget
+          );
+        },
+        child: RepaintBoundary(
         child: AppBar(
           elevation: 0,
           scrolledUnderElevation: 0,
@@ -190,6 +196,7 @@ class FocusAwareAppBarState extends State<FocusAwareAppBar>
             ),
           ],
         ),
+      ),
       ),
     );
   }
