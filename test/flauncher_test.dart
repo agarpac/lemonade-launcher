@@ -124,7 +124,6 @@ void main() {
       activeScene: Scene(
         key: SceneKeys.cinema,
         name: "Cinema",
-        dockPackageNames: ["me.efesser.app3", "me.efesser.app1"],
       ),
     );
 

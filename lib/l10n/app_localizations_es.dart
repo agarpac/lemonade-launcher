@@ -204,9 +204,6 @@ class AppLocalizationsEs extends AppLocalizations {
   String get sceneNight => 'Noche';
 
   @override
-  String get sceneKids => 'Niños';
-
-  @override
   String get sceneActiveSemanticLabel => 'Escena activa';
 
   @override

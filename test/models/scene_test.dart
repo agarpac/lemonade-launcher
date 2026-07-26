@@ -23,25 +23,49 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group("defaults", () {
-    test("seeds the four scenes from the PRD with stable keys", () {
+    test("seeds the three scenes from the PRD with stable keys", () {
       final defaults = Scene.defaults();
 
-      expect(defaults.map((scene) => scene.key), [SceneKeys.normal, SceneKeys.cinema, SceneKeys.night, SceneKeys.kids]);
-      expect(defaults.map((scene) => scene.name), ["Normal", "Cinema", "Night", "Kids"]);
+      expect(defaults.map((scene) => scene.key), [SceneKeys.normal, SceneKeys.cinema, SceneKeys.night]);
+      expect(defaults.map((scene) => scene.name), ["Normal", "Cinema", "Night"]);
     });
 
-    test("only overrides brightness where the PRD asks for it", () {
-      final defaults = {for (final scene in Scene.defaults()) scene.key: scene};
+    test("normal overrides nothing", () {
+      final normal = Scene.defaults().firstWhere((scene) => scene.key == SceneKeys.normal);
 
-      expect(defaults[SceneKeys.normal]!.brightness, null);
-      expect(defaults[SceneKeys.cinema]!.brightness, 100);
-      expect(defaults[SceneKeys.night]!.brightness, lessThan(20));
-      expect(defaults[SceneKeys.kids]!.brightness, null);
+      expect(normal.hideAppBar, null);
+      expect(normal.showWatchNext, null);
+      expect(normal.showAppNames, null);
+      expect(normal.disableBackgroundBlur, null);
+      expect(normal.showCategoryTitles, null);
+      expect(normal.accentColorHex, null);
+      expect(normal.overridesWallpaper, false);
     });
 
-    test("leaves the dock, the wallpaper and the PIN untouched", () {
+    test("cinema hides the app bar, watch next and app names", () {
+      final cinema = Scene.defaults().firstWhere((scene) => scene.key == SceneKeys.cinema);
+
+      expect(cinema.hideAppBar, true);
+      expect(cinema.showWatchNext, false);
+      expect(cinema.showAppNames, false);
+      expect(cinema.disableBackgroundBlur, null);
+      expect(cinema.showCategoryTitles, null);
+      expect(cinema.accentColorHex, null);
+    });
+
+    test("night only disables the background blur", () {
+      final night = Scene.defaults().firstWhere((scene) => scene.key == SceneKeys.night);
+
+      expect(night.disableBackgroundBlur, true);
+      expect(night.hideAppBar, null);
+      expect(night.showWatchNext, null);
+      expect(night.showAppNames, null);
+      expect(night.showCategoryTitles, null);
+      expect(night.accentColorHex, null);
+    });
+
+    test("leaves the wallpaper and the PIN untouched", () {
       for (final scene in Scene.defaults()) {
-        expect(scene.overridesDock, false, reason: "${scene.key} should not override the dock");
         expect(scene.overridesWallpaper, false, reason: "${scene.key} should not override the wallpaper");
         expect(scene.isPinProtected, false, reason: "${scene.key} should not ship with a PIN");
       }
@@ -50,7 +74,7 @@ void main() {
 
   group("PIN", () {
     test("accepts the right PIN and rejects a wrong one", () {
-      final scene = Scene(key: SceneKeys.kids, name: "Kids").withPin("1234");
+      final scene = Scene(key: SceneKeys.night, name: "Night").withPin("1234");
 
       expect(scene.isPinProtected, true);
       expect(scene.verifyPin("1234"), true);
@@ -59,14 +83,14 @@ void main() {
     });
 
     test("is never stored in plain text", () {
-      final scene = Scene(key: SceneKeys.kids, name: "Kids").withPin("1234");
+      final scene = Scene(key: SceneKeys.night, name: "Night").withPin("1234");
 
       expect(jsonEncode(scene.toJson()), isNot(contains("1234")));
     });
 
     test("uses a different salt per scene, so the same PIN yields a different hash", () {
-      final first = Scene(key: SceneKeys.kids, name: "Kids").withPin("1234");
-      final second = Scene(key: SceneKeys.night, name: "Night").withPin("1234");
+      final first = Scene(key: SceneKeys.night, name: "Night").withPin("1234");
+      final second = Scene(key: SceneKeys.cinema, name: "Cinema").withPin("1234");
 
       expect(first.toJson()["pinSalt"], isNot(second.toJson()["pinSalt"]));
       expect(first.toJson()["pinHash"], isNot(second.toJson()["pinHash"]));
@@ -82,23 +106,23 @@ void main() {
 
     test("withoutPin removes the lock but keeps the rest of the configuration", () {
       final scene = Scene(
-        key: SceneKeys.kids,
-        name: "Kids",
-        dockPackageNames: const ["com.kids.tv"],
-        brightness: 40,
-        wallpaperPath: "/wallpapers/kids",
+        key: SceneKeys.night,
+        name: "Night",
+        hideAppBar: true,
+        disableBackgroundBlur: true,
+        wallpaperPath: "/wallpapers/night",
       ).withPin("1234");
 
       final unlocked = scene.withoutPin();
 
       expect(unlocked.isPinProtected, false);
-      expect(unlocked.dockPackageNames, ["com.kids.tv"]);
-      expect(unlocked.brightness, 40);
-      expect(unlocked.wallpaperPath, "/wallpapers/kids");
+      expect(unlocked.hideAppBar, true);
+      expect(unlocked.disableBackgroundBlur, true);
+      expect(unlocked.wallpaperPath, "/wallpapers/night");
     });
 
     test("a PIN survives a JSON round-trip", () {
-      final scene = Scene(key: SceneKeys.kids, name: "Kids").withPin("1234");
+      final scene = Scene(key: SceneKeys.night, name: "Night").withPin("1234");
 
       final restored = Scene.fromJson(jsonDecode(jsonEncode(scene.toJson())) as Map<String, dynamic>);
 
@@ -113,8 +137,12 @@ void main() {
       final scene = Scene(
         key: SceneKeys.cinema,
         name: "Cinema",
-        dockPackageNames: const ["com.netflix.ninja", "com.disney.disneyplus"],
-        brightness: 100,
+        hideAppBar: true,
+        showWatchNext: false,
+        showAppNames: false,
+        disableBackgroundBlur: true,
+        showCategoryTitles: false,
+        accentColorHex: "7C4DFF",
         wallpaperPath: "/wallpapers/cinema",
       );
 
@@ -122,34 +150,44 @@ void main() {
 
       expect(restored.key, SceneKeys.cinema);
       expect(restored.name, "Cinema");
-      expect(restored.dockPackageNames, ["com.netflix.ninja", "com.disney.disneyplus"]);
-      expect(restored.brightness, 100);
+      expect(restored.hideAppBar, true);
+      expect(restored.showWatchNext, false);
+      expect(restored.showAppNames, false);
+      expect(restored.disableBackgroundBlur, true);
+      expect(restored.showCategoryTitles, false);
+      expect(restored.accentColorHex, "7C4DFF");
       expect(restored.wallpaperPath, "/wallpapers/cinema");
       expect(restored.isPinProtected, false);
     });
 
-    test("treats a missing dock list as no override", () {
+    test("treats every missing presentation override as no override", () {
       final restored = Scene.fromJson({"key": SceneKeys.normal, "name": "Normal"});
 
-      expect(restored.dockPackageNames, isEmpty);
-      expect(restored.overridesDock, false);
-      expect(restored.brightness, null);
+      expect(restored.hideAppBar, null);
+      expect(restored.showWatchNext, null);
+      expect(restored.showAppNames, null);
+      expect(restored.disableBackgroundBlur, null);
+      expect(restored.showCategoryTitles, null);
+      expect(restored.accentColorHex, null);
       expect(restored.wallpaperPath, null);
     });
 
-    test("drops dock entries that are not usable package names", () {
+    test("ignores the retired dockPackageNames and brightness fields instead of rejecting the entry", () {
+      // A payload written by the build that still had these two fields must
+      // keep loading after they are removed from the model: see the PRD,
+      // section 9.1.4, and ScenesService._scenesPayloadVersion.
       final restored = Scene.fromJson({
-        "key": SceneKeys.kids,
-        "name": "Kids",
-        "dockPackageNames": ["com.kids.tv", 42, null, ""],
+        "key": SceneKeys.cinema,
+        "name": "Cinema",
+        "dockPackageNames": ["com.netflix.ninja"],
+        "brightness": 100,
+        "wallpaperPath": "/wallpapers/cinema",
       });
 
-      expect(restored.dockPackageNames, ["com.kids.tv"]);
-    });
-
-    test("clamps an out-of-range brightness instead of rejecting the scene", () {
-      expect(Scene.fromJson({"key": "a", "name": "A", "brightness": 300}).brightness, 100);
-      expect(Scene.fromJson({"key": "a", "name": "A", "brightness": -5}).brightness, 0);
+      expect(restored.key, SceneKeys.cinema);
+      expect(restored.name, "Cinema");
+      expect(restored.wallpaperPath, "/wallpapers/cinema");
+      expect(restored.hideAppBar, null);
     });
 
     test("rejects an entry without a usable key or name", () {
@@ -161,22 +199,23 @@ void main() {
 
     test("rejects a half-written PIN lock", () {
       expect(
-        () => Scene.fromJson({"key": SceneKeys.kids, "name": "Kids", "pinSalt": "c2FsdA=="}),
+        () => Scene.fromJson({"key": SceneKeys.night, "name": "Night", "pinSalt": "c2FsdA=="}),
         throwsFormatException,
       );
       expect(
-        () => Scene.fromJson({"key": SceneKeys.kids, "name": "Kids", "pinHash": "abc"}),
+        () => Scene.fromJson({"key": SceneKeys.night, "name": "Night", "pinHash": "abc"}),
         throwsFormatException,
       );
     });
 
     test("rejects fields of the wrong type", () {
-      expect(
-        () => Scene.fromJson({"key": "a", "name": "A", "dockPackageNames": "com.kids.tv"}),
-        throwsFormatException,
-      );
-      expect(() => Scene.fromJson({"key": "a", "name": "A", "brightness": "100"}), throwsFormatException);
       expect(() => Scene.fromJson({"key": "a", "name": "A", "wallpaperPath": 3}), throwsFormatException);
+      expect(() => Scene.fromJson({"key": "a", "name": "A", "hideAppBar": "yes"}), throwsFormatException);
+      expect(() => Scene.fromJson({"key": "a", "name": "A", "showWatchNext": 1}), throwsFormatException);
+      expect(() => Scene.fromJson({"key": "a", "name": "A", "showAppNames": "no"}), throwsFormatException);
+      expect(() => Scene.fromJson({"key": "a", "name": "A", "disableBackgroundBlur": "no"}), throwsFormatException);
+      expect(() => Scene.fromJson({"key": "a", "name": "A", "showCategoryTitles": "no"}), throwsFormatException);
+      expect(() => Scene.fromJson({"key": "a", "name": "A", "accentColorHex": 7}), throwsFormatException);
     });
 
     test("never leaks the PIN hash in an error message", () {
@@ -192,25 +231,49 @@ void main() {
 
   group("copyWith", () {
     test("replaces the given fields and keeps the others", () {
-      final scene = Scene(key: SceneKeys.cinema, name: "Cinema", brightness: 100).withPin("1234");
+      final scene = Scene(key: SceneKeys.cinema, name: "Cinema", hideAppBar: true).withPin("1234");
 
-      final updated = scene.copyWith(name: "Movies", dockPackageNames: const ["com.netflix.ninja"]);
+      final updated = scene.copyWith(name: "Movies", showWatchNext: false);
 
       expect(updated.key, SceneKeys.cinema);
       expect(updated.name, "Movies");
-      expect(updated.dockPackageNames, ["com.netflix.ninja"]);
-      expect(updated.brightness, 100);
+      expect(updated.hideAppBar, true);
+      expect(updated.showWatchNext, false);
       expect(updated.verifyPin("1234"), true);
     });
 
     test("clears the optional overrides only when asked to", () {
-      final scene = Scene(key: SceneKeys.night, name: "Night", brightness: 10, wallpaperPath: "/wallpapers/night");
+      final scene = Scene(
+        key: SceneKeys.night,
+        name: "Night",
+        hideAppBar: true,
+        showWatchNext: false,
+        showAppNames: true,
+        disableBackgroundBlur: true,
+        showCategoryTitles: false,
+        accentColorHex: "00BFA5",
+        wallpaperPath: "/wallpapers/night",
+      );
 
-      expect(scene.copyWith().brightness, 10);
-      expect(scene.copyWith(clearBrightness: true).brightness, null);
-      expect(scene.copyWith(clearBrightness: true).wallpaperPath, "/wallpapers/night");
+      expect(scene.copyWith().hideAppBar, true);
+      expect(scene.copyWith(clearHideAppBar: true).hideAppBar, null);
+      expect(scene.copyWith(clearHideAppBar: true).wallpaperPath, "/wallpapers/night");
+
+      expect(scene.copyWith(clearShowWatchNext: true).showWatchNext, null);
+      expect(scene.copyWith(clearShowAppNames: true).showAppNames, null);
+      expect(scene.copyWith(clearDisableBackgroundBlur: true).disableBackgroundBlur, null);
+      expect(scene.copyWith(clearShowCategoryTitles: true).showCategoryTitles, null);
+      expect(scene.copyWith(clearAccentColorHex: true).accentColorHex, null);
+
       expect(scene.copyWith(clearWallpaper: true).wallpaperPath, null);
-      expect(scene.copyWith(clearWallpaper: true).brightness, 10);
+      expect(scene.copyWith(clearWallpaper: true).hideAppBar, true);
+    });
+
+    test("a bool override can be flipped from true to false and back", () {
+      final scene = Scene(key: SceneKeys.cinema, name: "Cinema", showAppNames: true);
+
+      expect(scene.copyWith(showAppNames: false).showAppNames, false);
+      expect(scene.copyWith(showAppNames: false).copyWith(showAppNames: true).showAppNames, true);
     });
   });
 
@@ -269,21 +332,19 @@ void main() {
     });
 
     test("a gradient survives a JSON round-trip", () {
-      final scene = Scene(key: SceneKeys.night, name: "Night", brightness: 10, gradientUuid: "uuid");
+      final scene = Scene(key: SceneKeys.night, name: "Night", disableBackgroundBlur: true, gradientUuid: "uuid");
 
       final restored = Scene.fromJson(jsonDecode(jsonEncode(scene.toJson())) as Map<String, dynamic>);
 
       expect(restored.gradientUuid, "uuid");
       expect(restored.wallpaperPath, null);
-      expect(restored.brightness, 10);
+      expect(restored.disableBackgroundBlur, true);
     });
 
     test("a payload written before gradients existed still loads", () {
       final restored = Scene.fromJson({
         "key": SceneKeys.cinema,
         "name": "Cinema",
-        "dockPackageNames": ["com.netflix.ninja"],
-        "brightness": 100,
         "wallpaperPath": "/wallpapers/cinema",
         "pinSalt": null,
         "pinHash": null,
@@ -317,50 +378,21 @@ void main() {
     });
   });
 
-  group("brightness range", () {
-    test("the constructor clamps an out-of-range value", () {
-      expect(Scene(key: "a", name: "A", brightness: 300).brightness, Scene.maxBrightness);
-      expect(Scene(key: "a", name: "A", brightness: -5).brightness, Scene.minBrightness);
-      expect(Scene(key: "a", name: "A", brightness: 55).brightness, 55);
-      expect(Scene(key: "a", name: "A").brightness, null);
-    });
-
-    test("copyWith clamps too, so nothing out of range is ever stored", () {
-      final scene = Scene(key: SceneKeys.cinema, name: "Cinema");
-
-      expect(scene.copyWith(brightness: 500).brightness, Scene.maxBrightness);
-      expect(scene.copyWith(brightness: -100).brightness, Scene.minBrightness);
-    });
-
-    test("a clamped value is stable across a JSON round-trip", () {
-      final scene = Scene(key: "a", name: "A").copyWith(brightness: 500);
-
-      final restored = Scene.fromJson(jsonDecode(jsonEncode(scene.toJson())) as Map<String, dynamic>);
-
-      expect(restored.brightness, scene.brightness, reason: "a restart must not silently change the value");
-    });
-
-    test("the bounds match the 0-100 scale of BrightnessService", () {
-      expect(Scene.minBrightness, 0);
-      expect(Scene.maxBrightness, 100);
-    });
-  });
-
   group("withPinOf", () {
     test("transfers the lock of another scene", () {
-      final locked = Scene(key: SceneKeys.kids, name: "Kids").withPin("1234");
-      final unlocked = Scene(key: SceneKeys.kids, name: "Kids", brightness: 30);
+      final locked = Scene(key: SceneKeys.night, name: "Night").withPin("1234");
+      final unlocked = Scene(key: SceneKeys.night, name: "Night", disableBackgroundBlur: true);
 
       final result = unlocked.withPinOf(locked);
 
       expect(result.isPinProtected, true);
       expect(result.verifyPin("1234"), true);
-      expect(result.brightness, 30, reason: "the rest of the configuration must be the receiver's");
+      expect(result.disableBackgroundBlur, true, reason: "the rest of the configuration must be the receiver's");
     });
 
     test("transfers the absence of a lock too", () {
-      final locked = Scene(key: SceneKeys.kids, name: "Kids").withPin("1234");
-      final unlocked = Scene(key: SceneKeys.kids, name: "Kids");
+      final locked = Scene(key: SceneKeys.night, name: "Night").withPin("1234");
+      final unlocked = Scene(key: SceneKeys.night, name: "Night");
 
       final result = locked.withPinOf(unlocked);
 
@@ -374,15 +406,5 @@ void main() {
       expect(gradient.withPinOf(file).gradientUuid, "uuid");
       expect(file.withPinOf(gradient).wallpaperPath, "/wallpapers/cinema");
     });
-  });
-
-  test("dockPackageNames cannot be mutated from the outside", () {
-    final source = ["com.kids.tv"];
-    final scene = Scene(key: SceneKeys.kids, name: "Kids", dockPackageNames: source);
-
-    source.add("com.adult.tv");
-
-    expect(scene.dockPackageNames, ["com.kids.tv"]);
-    expect(() => scene.dockPackageNames.add("com.adult.tv"), throwsUnsupportedError);
   });
 }

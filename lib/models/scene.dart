@@ -29,17 +29,18 @@ class SceneKeys {
   static const String normal = "normal";
   static const String cinema = "cinema";
   static const String night = "night";
-  static const String kids = "kids";
 
   SceneKeys._();
 }
 
-/// Lowest brightness the "night" scene ships with. Not zero: a black screen on
-/// a TV launcher looks like a broken device.
-const int _nightSceneBrightness = 10;
-
-/// A user-selected preset grouping dock visibility, brightness, wallpaper and
-/// an optional exit PIN.
+/// A user-selected preset grouping presentation settings and an optional exit
+/// PIN.
+///
+/// A scene never touches the dock: every favourite application is always
+/// visible, in every scene, in its usual order (see the PRD, section 9.1).
+/// What a scene groups instead is **presentation**: the wallpaper and a
+/// handful of display toggles that otherwise live scattered across the
+/// Settings panel.
 ///
 /// Activation is manual only. A [Scene] holds no schedule, timer or trigger of
 /// any kind, by product decision.
@@ -49,25 +50,6 @@ class Scene {
 
   /// Display label. English for now; localization arrives with the UI phase.
   final String name;
-
-  /// Package names of the applications visible in the dock while this scene is
-  /// active. Empty means "no override": the normal dock is shown.
-  ///
-  /// Package names are stored instead of database ids so the configuration
-  /// survives reinstalls and database rebuilds.
-  final List<String> dockPackageNames;
-
-  /// System brightness, [minBrightness] to [maxBrightness], matching
-  /// `BrightnessService`. `null` means "no override": whatever the user has set
-  /// is left alone.
-  ///
-  /// Always in range: the constructor clamps, so no path can store a value that
-  /// would silently change on the next restart.
-  final int? brightness;
-
-  /// Bounds of [brightness], matching the 0-100 scale of `BrightnessService`.
-  static const int minBrightness = 0;
-  static const int maxBrightness = 100;
 
   /// Path of the wallpaper file associated with this scene. `null` means the
   /// scene does not override the wallpaper with a file.
@@ -83,27 +65,52 @@ class Scene {
   /// Mutually exclusive with [wallpaperPath].
   final String? gradientUuid;
 
+  /// Overrides `SettingsService.autoHideAppBarEnabled`. `null` means "no
+  /// override": whatever the user has set is left alone.
+  final bool? hideAppBar;
+
+  /// Overrides `SettingsService.showWatchNextSection`. `null` means "no
+  /// override".
+  final bool? showWatchNext;
+
+  /// Overrides `SettingsService.showAppNamesBelowIcons`. `null` means "no
+  /// override".
+  final bool? showAppNames;
+
+  /// Overrides `SettingsService.backgroundBlurDisabled`. `null` means "no
+  /// override".
+  final bool? disableBackgroundBlur;
+
+  /// Overrides `SettingsService.showCategoryTitles`. `null` means "no
+  /// override".
+  final bool? showCategoryTitles;
+
+  /// Overrides `SettingsService.accentColorHex`. `null` means "no override".
+  final String? accentColorHex;
+
   /// Base64 salt used to derive [_pinHash]. `null` when the scene has no PIN.
   final String? _pinSalt;
 
   /// Hex SHA-256 of salt + PIN. Never exposed, never logged.
   final String? _pinHash;
 
-  /// Clamps [brightness] into range, and throws [ArgumentError] when both
-  /// wallpaper overrides are supplied: both invariants are enforced here rather
-  /// than trusted to callers, so `copyWith` and [Scene.fromJson] inherit them.
+  /// Throws [ArgumentError] when both wallpaper overrides are supplied: the
+  /// invariant is enforced here rather than trusted to callers, so `copyWith`
+  /// and [Scene.fromJson] inherit it.
   Scene({
     required this.key,
     required this.name,
-    List<String> dockPackageNames = const [],
-    int? brightness,
     this.wallpaperPath,
     this.gradientUuid,
+    this.hideAppBar,
+    this.showWatchNext,
+    this.showAppNames,
+    this.disableBackgroundBlur,
+    this.showCategoryTitles,
+    this.accentColorHex,
     String? pinSalt,
     String? pinHash,
-  })  : dockPackageNames = List.unmodifiable(dockPackageNames),
-        brightness = brightness?.clamp(minBrightness, maxBrightness),
-        _pinSalt = pinSalt,
+  })  : _pinSalt = pinSalt,
         _pinHash = pinHash {
     if (wallpaperPath != null && gradientUuid != null) {
       throw ArgumentError("Scene '$key' cannot override the wallpaper with a file and a gradient at the same time");
@@ -112,11 +119,6 @@ class Scene {
 
   /// Whether leaving this scene requires a PIN.
   bool get isPinProtected => _pinSalt != null && _pinHash != null;
-
-  /// Whether this scene restricts the dock. `false` means the normal dock wins.
-  bool get overridesDock => dockPackageNames.isNotEmpty;
-
-  bool get overridesBrightness => brightness != null;
 
   /// Whether this scene replaces the wallpaper, with either a file or a
   /// gradient.
@@ -144,10 +146,14 @@ class Scene {
   Scene withoutPin() => Scene(
         key: key,
         name: name,
-        dockPackageNames: dockPackageNames,
-        brightness: brightness,
         wallpaperPath: wallpaperPath,
         gradientUuid: gradientUuid,
+        hideAppBar: hideAppBar,
+        showWatchNext: showWatchNext,
+        showAppNames: showAppNames,
+        disableBackgroundBlur: disableBackgroundBlur,
+        showCategoryTitles: showCategoryTitles,
+        accentColorHex: accentColorHex,
       );
 
   /// Copy of this scene carrying the exact PIN state of [other], including the
@@ -158,10 +164,14 @@ class Scene {
   Scene withPinOf(Scene other) => Scene(
         key: key,
         name: name,
-        dockPackageNames: dockPackageNames,
-        brightness: brightness,
         wallpaperPath: wallpaperPath,
         gradientUuid: gradientUuid,
+        hideAppBar: hideAppBar,
+        showWatchNext: showWatchNext,
+        showAppNames: showAppNames,
+        disableBackgroundBlur: disableBackgroundBlur,
+        showCategoryTitles: showCategoryTitles,
+        accentColorHex: accentColorHex,
         pinSalt: other._pinSalt,
         pinHash: other._pinHash,
       );
@@ -169,21 +179,30 @@ class Scene {
   /// Copy of this scene with the given fields replaced.
   ///
   /// Optional overrides cannot be cleared by passing `null` (that is
-  /// indistinguishable from "not provided"); use [clearBrightness],
-  /// [clearWallpaper] and [withoutPin] instead.
+  /// indistinguishable from "not provided"); use the matching `clearXxx` flag
+  /// instead (e.g. [clearHideAppBar]), or [clearWallpaper] and [withoutPin].
   ///
   /// Setting one wallpaper override clears the other, so the mutual exclusion
   /// cannot be broken by a copy. Supplying both throws [ArgumentError].
   Scene copyWith({
     String? name,
-    List<String>? dockPackageNames,
-    int? brightness,
     String? wallpaperPath,
     String? gradientUuid,
+    bool? hideAppBar,
+    bool? showWatchNext,
+    bool? showAppNames,
+    bool? disableBackgroundBlur,
+    bool? showCategoryTitles,
+    String? accentColorHex,
     String? pinSalt,
     String? pinHash,
-    bool clearBrightness = false,
     bool clearWallpaper = false,
+    bool clearHideAppBar = false,
+    bool clearShowWatchNext = false,
+    bool clearShowAppNames = false,
+    bool clearDisableBackgroundBlur = false,
+    bool clearShowCategoryTitles = false,
+    bool clearAccentColorHex = false,
   }) {
     if (wallpaperPath != null && gradientUuid != null) {
       throw ArgumentError("Scene '$key' cannot override the wallpaper with a file and a gradient at the same time");
@@ -208,10 +227,14 @@ class Scene {
     return Scene(
       key: key,
       name: name ?? this.name,
-      dockPackageNames: dockPackageNames ?? this.dockPackageNames,
-      brightness: clearBrightness ? null : (brightness ?? this.brightness),
       wallpaperPath: resolvedWallpaperPath,
       gradientUuid: resolvedGradientUuid,
+      hideAppBar: clearHideAppBar ? null : (hideAppBar ?? this.hideAppBar),
+      showWatchNext: clearShowWatchNext ? null : (showWatchNext ?? this.showWatchNext),
+      showAppNames: clearShowAppNames ? null : (showAppNames ?? this.showAppNames),
+      disableBackgroundBlur: clearDisableBackgroundBlur ? null : (disableBackgroundBlur ?? this.disableBackgroundBlur),
+      showCategoryTitles: clearShowCategoryTitles ? null : (showCategoryTitles ?? this.showCategoryTitles),
+      accentColorHex: clearAccentColorHex ? null : (accentColorHex ?? this.accentColorHex),
       pinSalt: pinSalt ?? _pinSalt,
       pinHash: pinHash ?? _pinHash,
     );
@@ -220,18 +243,25 @@ class Scene {
   Map<String, dynamic> toJson() => {
         "key": key,
         "name": name,
-        "dockPackageNames": dockPackageNames,
-        "brightness": brightness,
         "wallpaperPath": wallpaperPath,
         "gradientUuid": gradientUuid,
+        "hideAppBar": hideAppBar,
+        "showWatchNext": showWatchNext,
+        "showAppNames": showAppNames,
+        "disableBackgroundBlur": disableBackgroundBlur,
+        "showCategoryTitles": showCategoryTitles,
+        "accentColorHex": accentColorHex,
         "pinSalt": _pinSalt,
         "pinHash": _pinHash,
       };
 
   /// Reads a scene from its persisted form.
   ///
-  /// Accepts payloads written before `gradientUuid` existed: a missing field is
-  /// simply "no gradient override".
+  /// Unrecognized keys are ignored rather than rejected, so a payload written
+  /// by an older or newer build of this same shape loads unchanged. In
+  /// particular this is what lets a payload holding the retired
+  /// `dockPackageNames` and `brightness` fields keep loading after they were
+  /// removed from this class: those keys are simply never read.
   ///
   /// Throws [FormatException] when the entry cannot be understood, so the
   /// caller can fall back to the default scenes instead of starting with a
@@ -244,21 +274,6 @@ class Scene {
     }
     if (name is! String || name.isEmpty) {
       throw FormatException("Scene '$key' is missing a valid 'name'");
-    }
-
-    final rawDock = json["dockPackageNames"];
-    final List<String> dockPackageNames;
-    if (rawDock == null) {
-      dockPackageNames = const [];
-    } else if (rawDock is List) {
-      dockPackageNames = rawDock.whereType<String>().where((packageName) => packageName.isNotEmpty).toList();
-    } else {
-      throw FormatException("Scene '$key' has an invalid 'dockPackageNames'");
-    }
-
-    final rawBrightness = json["brightness"];
-    if (rawBrightness != null && rawBrightness is! int) {
-      throw FormatException("Scene '$key' has an invalid 'brightness'");
     }
 
     final rawWallpaperPath = json["wallpaperPath"];
@@ -275,6 +290,36 @@ class Scene {
     final gradientUuid = (rawGradientUuid as String?)?.nullIfEmpty;
     if (wallpaperPath != null && gradientUuid != null) {
       throw FormatException("Scene '$key' overrides the wallpaper with a file and a gradient at the same time");
+    }
+
+    final rawHideAppBar = json["hideAppBar"];
+    if (rawHideAppBar != null && rawHideAppBar is! bool) {
+      throw FormatException("Scene '$key' has an invalid 'hideAppBar'");
+    }
+
+    final rawShowWatchNext = json["showWatchNext"];
+    if (rawShowWatchNext != null && rawShowWatchNext is! bool) {
+      throw FormatException("Scene '$key' has an invalid 'showWatchNext'");
+    }
+
+    final rawShowAppNames = json["showAppNames"];
+    if (rawShowAppNames != null && rawShowAppNames is! bool) {
+      throw FormatException("Scene '$key' has an invalid 'showAppNames'");
+    }
+
+    final rawDisableBackgroundBlur = json["disableBackgroundBlur"];
+    if (rawDisableBackgroundBlur != null && rawDisableBackgroundBlur is! bool) {
+      throw FormatException("Scene '$key' has an invalid 'disableBackgroundBlur'");
+    }
+
+    final rawShowCategoryTitles = json["showCategoryTitles"];
+    if (rawShowCategoryTitles != null && rawShowCategoryTitles is! bool) {
+      throw FormatException("Scene '$key' has an invalid 'showCategoryTitles'");
+    }
+
+    final rawAccentColorHex = json["accentColorHex"];
+    if (rawAccentColorHex != null && rawAccentColorHex is! String) {
+      throw FormatException("Scene '$key' has an invalid 'accentColorHex'");
     }
 
     final rawSalt = json["pinSalt"];
@@ -296,30 +341,34 @@ class Scene {
     return Scene(
       key: key,
       name: name,
-      dockPackageNames: dockPackageNames,
-      // The constructor clamps, so an out-of-range stored value is corrected
-      // rather than costing the user the whole scene set.
-      brightness: rawBrightness as int?,
       wallpaperPath: wallpaperPath,
       gradientUuid: gradientUuid,
+      hideAppBar: rawHideAppBar as bool?,
+      showWatchNext: rawShowWatchNext as bool?,
+      showAppNames: rawShowAppNames as bool?,
+      disableBackgroundBlur: rawDisableBackgroundBlur as bool?,
+      showCategoryTitles: rawShowCategoryTitles as bool?,
+      accentColorHex: rawAccentColorHex as String?,
       pinSalt: hasSalt ? rawSalt : null,
       pinHash: hasHash ? rawHash : null,
     );
   }
 
-  /// The four scenes seeded on first run, in display order.
+  /// The three scenes seeded on first run, in display order.
   ///
-  /// Dock overrides start empty on purpose: the installed applications are not
-  /// known at seeding time, so every scene shows the normal dock until the user
-  /// curates it. No scene seeds a wallpaper or a gradient either — picking one
-  /// is a product decision that belongs to the UI phase. The kids scene ships
-  /// without a PIN for the same reason: a hardcoded default PIN would be no
-  /// protection at all.
+  /// No scene seeds a wallpaper: picking a specific file or gradient is a UI-
+  /// phase product decision. The "cinema" and "night" scenes ship without a
+  /// PIN for the same reason a hardcoded default PIN never protects anything.
   static List<Scene> defaults() => [
         Scene(key: SceneKeys.normal, name: "Normal"),
-        Scene(key: SceneKeys.cinema, name: "Cinema", brightness: 100),
-        Scene(key: SceneKeys.night, name: "Night", brightness: _nightSceneBrightness),
-        Scene(key: SceneKeys.kids, name: "Kids"),
+        Scene(
+          key: SceneKeys.cinema,
+          name: "Cinema",
+          hideAppBar: true,
+          showWatchNext: false,
+          showAppNames: false,
+        ),
+        Scene(key: SceneKeys.night, name: "Night", disableBackgroundBlur: true),
       ];
 
   static String _generateSalt() {
@@ -343,7 +392,7 @@ class Scene {
   }
 
   @override
-  String toString() => "Scene($key, brightness: $brightness, dock: ${dockPackageNames.length}, pin: $isPinProtected)";
+  String toString() => "Scene($key, wallpaper: $overridesWallpaper, pin: $isPinProtected)";
 }
 
 extension _NullIfEmpty on String {

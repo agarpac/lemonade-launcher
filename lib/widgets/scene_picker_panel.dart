@@ -114,8 +114,6 @@ String sceneDisplayName(AppLocalizations localizations, Scene scene) {
       return localizations.sceneCinema;
     case SceneKeys.night:
       return localizations.sceneNight;
-    case SceneKeys.kids:
-      return localizations.sceneKids;
     default:
       return scene.name;
   }
@@ -131,8 +129,6 @@ IconData sceneIconFor(String key) {
       return Icons.theaters_outlined;
     case SceneKeys.night:
       return Icons.bedtime_outlined;
-    case SceneKeys.kids:
-      return Icons.child_care_outlined;
     default:
       return Icons.dashboard_customize_outlined;
   }

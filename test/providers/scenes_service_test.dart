@@ -36,12 +36,12 @@ void main() async {
   ScenesService restart() => ScenesService(sharedPreferences);
 
   group("first run", () {
-    test("seeds the four default scenes", () {
+    test("seeds the three default scenes", () {
       final scenesService = restart();
 
       expect(
         scenesService.scenes.map((scene) => scene.key),
-        [SceneKeys.normal, SceneKeys.cinema, SceneKeys.night, SceneKeys.kids],
+        [SceneKeys.normal, SceneKeys.cinema, SceneKeys.night],
       );
     });
 
@@ -73,7 +73,7 @@ void main() async {
 
       expect(result, SceneActivationResult.activated);
       expect(scenesService.activeSceneKey, SceneKeys.cinema);
-      expect(scenesService.activeScene.brightness, 100);
+      expect(scenesService.activeScene.hideAppBar, true);
       expect(notifications, 1);
     });
 
@@ -118,41 +118,44 @@ void main() async {
   });
 
   group("PIN protection", () {
-    /// Locks the kids scene with [pin] and activates it, as the user would.
-    Future<ScenesService> lockedInKidsScene(String pin) async {
+    /// Locks the night scene with [pin] and activates it, as the user would.
+    ///
+    /// The PIN capability is dormant (no seeded scene ships with one) but
+    /// remains fully wired in the service; any scene works to exercise it.
+    Future<ScenesService> lockedInNightScene(String pin) async {
       final scenesService = restart();
-      await scenesService.setScenePin(SceneKeys.kids, pin);
-      await scenesService.activateScene(SceneKeys.kids);
+      await scenesService.setScenePin(SceneKeys.night, pin);
+      await scenesService.activateScene(SceneKeys.night);
       return scenesService;
     }
 
     test("entering a PIN-protected scene requires no PIN", () async {
-      final scenesService = await lockedInKidsScene("1234");
+      final scenesService = await lockedInNightScene("1234");
 
-      expect(scenesService.activeSceneKey, SceneKeys.kids);
+      expect(scenesService.activeSceneKey, SceneKeys.night);
       expect(scenesService.activeSceneRequiresPinToExit, true);
     });
 
     test("leaving without a PIN is refused", () async {
-      final scenesService = await lockedInKidsScene("1234");
+      final scenesService = await lockedInNightScene("1234");
 
       final result = await scenesService.activateScene(SceneKeys.normal);
 
       expect(result, SceneActivationResult.pinRequired);
-      expect(scenesService.activeSceneKey, SceneKeys.kids);
+      expect(scenesService.activeSceneKey, SceneKeys.night);
     });
 
     test("leaving with a wrong PIN is refused", () async {
-      final scenesService = await lockedInKidsScene("1234");
+      final scenesService = await lockedInNightScene("1234");
 
       final result = await scenesService.activateScene(SceneKeys.normal, pin: "4321");
 
       expect(result, SceneActivationResult.pinRejected);
-      expect(scenesService.activeSceneKey, SceneKeys.kids);
+      expect(scenesService.activeSceneKey, SceneKeys.night);
     });
 
     test("leaving with the right PIN is accepted", () async {
-      final scenesService = await lockedInKidsScene("1234");
+      final scenesService = await lockedInNightScene("1234");
 
       final result = await scenesService.activateScene(SceneKeys.normal, pin: "1234");
 
@@ -161,27 +164,27 @@ void main() async {
     });
 
     test("verifyExitPin checks the active scene", () async {
-      final scenesService = await lockedInKidsScene("1234");
+      final scenesService = await lockedInNightScene("1234");
 
       expect(scenesService.verifyExitPin("1234"), true);
       expect(scenesService.verifyExitPin("0000"), false);
     });
 
     test("the PIN survives a restart and is never stored in plain text", () async {
-      await restart().setScenePin(SceneKeys.kids, "1234");
+      await restart().setScenePin(SceneKeys.night, "1234");
 
       expect(sharedPreferences.getString("scenes"), isNot(contains("1234")));
 
       final afterRestart = restart();
 
-      expect(afterRestart.sceneByKey(SceneKeys.kids)!.verifyPin("1234"), true);
-      expect(afterRestart.sceneByKey(SceneKeys.kids)!.verifyPin("9999"), false);
+      expect(afterRestart.sceneByKey(SceneKeys.night)!.verifyPin("1234"), true);
+      expect(afterRestart.sceneByKey(SceneKeys.night)!.verifyPin("9999"), false);
     });
 
     test("clearScenePin removes the lock when the PIN is supplied", () async {
-      final scenesService = await lockedInKidsScene("1234");
+      final scenesService = await lockedInNightScene("1234");
 
-      expect(await scenesService.clearScenePin(SceneKeys.kids, pin: "1234"), SceneUpdateResult.applied);
+      expect(await scenesService.clearScenePin(SceneKeys.night, pin: "1234"), SceneUpdateResult.applied);
 
       expect(scenesService.activeSceneRequiresPinToExit, false);
       expect(await scenesService.activateScene(SceneKeys.normal), SceneActivationResult.activated);
@@ -189,39 +192,39 @@ void main() async {
   });
 
   group("the PIN cannot be removed or reset away without it", () {
-    /// Locks the kids scene with [pin] and activates it, as the user would.
-    Future<ScenesService> lockedInKidsScene(String pin) async {
+    /// Locks the night scene with [pin] and activates it, as the user would.
+    Future<ScenesService> lockedInNightScene(String pin) async {
       final scenesService = restart();
-      await scenesService.setScenePin(SceneKeys.kids, pin);
-      await scenesService.activateScene(SceneKeys.kids);
+      await scenesService.setScenePin(SceneKeys.night, pin);
+      await scenesService.activateScene(SceneKeys.night);
       return scenesService;
     }
 
     test("clearScenePin without a PIN is refused and the lock survives a restart", () async {
-      final scenesService = await lockedInKidsScene("1234");
+      final scenesService = await lockedInNightScene("1234");
 
-      expect(await scenesService.clearScenePin(SceneKeys.kids), SceneUpdateResult.pinRequired);
+      expect(await scenesService.clearScenePin(SceneKeys.night), SceneUpdateResult.pinRequired);
 
-      expect(scenesService.sceneByKey(SceneKeys.kids)!.isPinProtected, true);
-      expect(restart().sceneByKey(SceneKeys.kids)!.verifyPin("1234"), true);
+      expect(scenesService.sceneByKey(SceneKeys.night)!.isPinProtected, true);
+      expect(restart().sceneByKey(SceneKeys.night)!.verifyPin("1234"), true);
     });
 
     test("clearScenePin with a wrong PIN is refused", () async {
-      final scenesService = await lockedInKidsScene("1234");
+      final scenesService = await lockedInNightScene("1234");
 
-      expect(await scenesService.clearScenePin(SceneKeys.kids, pin: "4321"), SceneUpdateResult.pinRejected);
+      expect(await scenesService.clearScenePin(SceneKeys.night, pin: "4321"), SceneUpdateResult.pinRejected);
 
-      expect(scenesService.sceneByKey(SceneKeys.kids)!.isPinProtected, true);
+      expect(scenesService.sceneByKey(SceneKeys.night)!.isPinProtected, true);
     });
 
     test("clearScenePin still requires the PIN from outside the protected scene", () async {
-      final scenesService = await lockedInKidsScene("1234");
+      final scenesService = await lockedInNightScene("1234");
       await scenesService.activateScene(SceneKeys.normal, pin: "1234");
 
       expect(scenesService.activeSceneRequiresPinToExit, false);
-      expect(await scenesService.clearScenePin(SceneKeys.kids), SceneUpdateResult.pinRequired);
-      expect(await scenesService.clearScenePin(SceneKeys.kids, pin: "0000"), SceneUpdateResult.pinRejected);
-      expect(await scenesService.clearScenePin(SceneKeys.kids, pin: "1234"), SceneUpdateResult.applied);
+      expect(await scenesService.clearScenePin(SceneKeys.night), SceneUpdateResult.pinRequired);
+      expect(await scenesService.clearScenePin(SceneKeys.night, pin: "0000"), SceneUpdateResult.pinRejected);
+      expect(await scenesService.clearScenePin(SceneKeys.night, pin: "1234"), SceneUpdateResult.applied);
     });
 
     test("clearScenePin on an unprotected scene needs no PIN", () async {
@@ -231,51 +234,51 @@ void main() async {
     });
 
     test("setScenePin cannot replace an existing PIN without the current one", () async {
-      final scenesService = await lockedInKidsScene("1234");
+      final scenesService = await lockedInNightScene("1234");
 
-      expect(await scenesService.setScenePin(SceneKeys.kids, "9999"), SceneUpdateResult.pinRequired);
-      expect(await scenesService.setScenePin(SceneKeys.kids, "9999", currentPin: "0000"), SceneUpdateResult.pinRejected);
-      expect(scenesService.sceneByKey(SceneKeys.kids)!.verifyPin("1234"), true);
+      expect(await scenesService.setScenePin(SceneKeys.night, "9999"), SceneUpdateResult.pinRequired);
+      expect(await scenesService.setScenePin(SceneKeys.night, "9999", currentPin: "0000"), SceneUpdateResult.pinRejected);
+      expect(scenesService.sceneByKey(SceneKeys.night)!.verifyPin("1234"), true);
 
-      expect(await scenesService.setScenePin(SceneKeys.kids, "9999", currentPin: "1234"), SceneUpdateResult.applied);
-      expect(scenesService.sceneByKey(SceneKeys.kids)!.verifyPin("9999"), true);
-      expect(scenesService.sceneByKey(SceneKeys.kids)!.verifyPin("1234"), false);
+      expect(await scenesService.setScenePin(SceneKeys.night, "9999", currentPin: "1234"), SceneUpdateResult.applied);
+      expect(scenesService.sceneByKey(SceneKeys.night)!.verifyPin("9999"), true);
+      expect(scenesService.sceneByKey(SceneKeys.night)!.verifyPin("1234"), false);
     });
 
     test("setScenePin on an unprotected scene needs no current PIN", () async {
       final scenesService = restart();
 
-      expect(await scenesService.setScenePin(SceneKeys.kids, "1234"), SceneUpdateResult.applied);
-      expect(scenesService.sceneByKey(SceneKeys.kids)!.verifyPin("1234"), true);
+      expect(await scenesService.setScenePin(SceneKeys.night, "1234"), SceneUpdateResult.applied);
+      expect(scenesService.sceneByKey(SceneKeys.night)!.verifyPin("1234"), true);
     });
 
     test("setScenePin on another scene is refused while locked inside a protected one", () async {
-      final scenesService = await lockedInKidsScene("1234");
+      final scenesService = await lockedInNightScene("1234");
 
-      expect(await scenesService.setScenePin(SceneKeys.night, "5555"), SceneUpdateResult.pinRequired);
-      expect(scenesService.sceneByKey(SceneKeys.night)!.isPinProtected, false);
+      expect(await scenesService.setScenePin(SceneKeys.cinema, "5555"), SceneUpdateResult.pinRequired);
+      expect(scenesService.sceneByKey(SceneKeys.cinema)!.isPinProtected, false);
     });
 
     test("restoreDefaults without the PIN is refused and the lock survives", () async {
-      final scenesService = await lockedInKidsScene("1234");
+      final scenesService = await lockedInNightScene("1234");
 
       expect(await scenesService.restoreDefaults(), SceneUpdateResult.pinRequired);
 
-      expect(scenesService.activeSceneKey, SceneKeys.kids);
-      expect(scenesService.sceneByKey(SceneKeys.kids)!.verifyPin("1234"), true);
-      expect(restart().sceneByKey(SceneKeys.kids)!.isPinProtected, true);
+      expect(scenesService.activeSceneKey, SceneKeys.night);
+      expect(scenesService.sceneByKey(SceneKeys.night)!.verifyPin("1234"), true);
+      expect(restart().sceneByKey(SceneKeys.night)!.isPinProtected, true);
     });
 
     test("restoreDefaults with a wrong PIN is refused", () async {
-      final scenesService = await lockedInKidsScene("1234");
+      final scenesService = await lockedInNightScene("1234");
 
       expect(await scenesService.restoreDefaults(pin: "4321"), SceneUpdateResult.pinRejected);
 
-      expect(scenesService.sceneByKey(SceneKeys.kids)!.isPinProtected, true);
+      expect(scenesService.sceneByKey(SceneKeys.night)!.isPinProtected, true);
     });
 
     test("restoreDefaults is refused from outside the protected scene as well", () async {
-      final scenesService = await lockedInKidsScene("1234");
+      final scenesService = await lockedInNightScene("1234");
       await scenesService.activateScene(SceneKeys.normal, pin: "1234");
 
       expect(await scenesService.restoreDefaults(), SceneUpdateResult.pinRequired);
@@ -290,42 +293,42 @@ void main() async {
 
     test("restoreDefaults fails closed when two scenes carry different PINs", () async {
       final scenesService = restart();
-      await scenesService.setScenePin(SceneKeys.kids, "1111");
-      await scenesService.setScenePin(SceneKeys.night, "2222");
+      await scenesService.setScenePin(SceneKeys.night, "1111");
+      await scenesService.setScenePin(SceneKeys.cinema, "2222");
 
       expect(await scenesService.restoreDefaults(pin: "1111"), SceneUpdateResult.pinRejected);
       expect(await scenesService.restoreDefaults(pin: "2222"), SceneUpdateResult.pinRejected);
 
       // Not a dead end: clearing the locks one by one, each with its own PIN,
       // leaves a reachable path to the reset.
-      expect(await scenesService.clearScenePin(SceneKeys.night, pin: "2222"), SceneUpdateResult.applied);
+      expect(await scenesService.clearScenePin(SceneKeys.cinema, pin: "2222"), SceneUpdateResult.applied);
       expect(await scenesService.restoreDefaults(pin: "1111"), SceneUpdateResult.applied);
-      expect(scenesService.sceneByKey(SceneKeys.kids)!.isPinProtected, false);
+      expect(scenesService.sceneByKey(SceneKeys.night)!.isPinProtected, false);
     });
   });
 
   group("saveScene cannot be used to bypass the PIN", () {
     test("a scene handed over with the lock stripped does not remove it", () async {
       final scenesService = restart();
-      await scenesService.setScenePin(SceneKeys.kids, "1234");
+      await scenesService.setScenePin(SceneKeys.night, "1234");
 
-      final stripped = scenesService.sceneByKey(SceneKeys.kids)!.withoutPin();
+      final stripped = scenesService.sceneByKey(SceneKeys.night)!.withoutPin();
       await scenesService.saveScene(stripped);
 
-      expect(scenesService.sceneByKey(SceneKeys.kids)!.isPinProtected, true);
-      expect(scenesService.sceneByKey(SceneKeys.kids)!.verifyPin("1234"), true);
-      expect(restart().sceneByKey(SceneKeys.kids)!.verifyPin("1234"), true);
+      expect(scenesService.sceneByKey(SceneKeys.night)!.isPinProtected, true);
+      expect(scenesService.sceneByKey(SceneKeys.night)!.verifyPin("1234"), true);
+      expect(restart().sceneByKey(SceneKeys.night)!.verifyPin("1234"), true);
     });
 
     test("a scene handed over with a replaced lock keeps the stored one", () async {
       final scenesService = restart();
-      await scenesService.setScenePin(SceneKeys.kids, "1234");
+      await scenesService.setScenePin(SceneKeys.night, "1234");
 
-      final relocked = scenesService.sceneByKey(SceneKeys.kids)!.withPin("9999");
+      final relocked = scenesService.sceneByKey(SceneKeys.night)!.withPin("9999");
       await scenesService.saveScene(relocked);
 
-      expect(scenesService.sceneByKey(SceneKeys.kids)!.verifyPin("1234"), true);
-      expect(scenesService.sceneByKey(SceneKeys.kids)!.verifyPin("9999"), false);
+      expect(scenesService.sceneByKey(SceneKeys.night)!.verifyPin("1234"), true);
+      expect(scenesService.sceneByKey(SceneKeys.night)!.verifyPin("9999"), false);
     });
 
     test("a scene rebuilt from scratch cannot smuggle a lock onto an existing key", () async {
@@ -339,20 +342,20 @@ void main() async {
 
     test("configuration changes still go through while the lock is preserved", () async {
       final scenesService = restart();
-      await scenesService.setScenePin(SceneKeys.kids, "1234");
+      await scenesService.setScenePin(SceneKeys.night, "1234");
 
       await scenesService.saveScene(
-        scenesService.sceneByKey(SceneKeys.kids)!.withoutPin().copyWith(
-              name: "Children",
-              brightness: 35,
-              dockPackageNames: const ["com.kids.tv"],
+        scenesService.sceneByKey(SceneKeys.night)!.withoutPin().copyWith(
+              name: "Bedtime",
+              disableBackgroundBlur: true,
+              hideAppBar: true,
             ),
       );
 
-      final stored = restart().sceneByKey(SceneKeys.kids)!;
-      expect(stored.name, "Children");
-      expect(stored.brightness, 35);
-      expect(stored.dockPackageNames, ["com.kids.tv"]);
+      final stored = restart().sceneByKey(SceneKeys.night)!;
+      expect(stored.name, "Bedtime");
+      expect(stored.disableBackgroundBlur, true);
+      expect(stored.hideAppBar, true);
       expect(stored.verifyPin("1234"), true);
     });
 
@@ -371,8 +374,8 @@ void main() async {
       await scenesService.saveScene(
         scenesService.sceneByKey(SceneKeys.cinema)!.copyWith(
               name: "Movies",
-              dockPackageNames: const ["com.netflix.ninja", "com.disney.disneyplus"],
-              brightness: 90,
+              hideAppBar: true,
+              showWatchNext: false,
               wallpaperPath: "/wallpapers/cinema",
             ),
       );
@@ -380,42 +383,78 @@ void main() async {
       final restored = restart().sceneByKey(SceneKeys.cinema)!;
 
       expect(restored.name, "Movies");
-      expect(restored.dockPackageNames, ["com.netflix.ninja", "com.disney.disneyplus"]);
-      expect(restored.brightness, 90);
+      expect(restored.hideAppBar, true);
+      expect(restored.showWatchNext, false);
       expect(restored.wallpaperPath, "/wallpapers/cinema");
     });
 
     test("saving an unknown key appends a new scene", () async {
       final scenesService = restart();
 
-      await scenesService.saveScene(Scene(key: "party", name: "Party", brightness: 70));
+      await scenesService.saveScene(Scene(key: "party", name: "Party", disableBackgroundBlur: true));
 
-      expect(scenesService.scenes.length, 5);
-      expect(restart().sceneByKey("party")!.brightness, 70);
+      expect(scenesService.scenes.length, 4);
+      expect(restart().sceneByKey("party")!.disableBackgroundBlur, true);
     });
 
-    test("setSceneDockPackageNames sets and clears the dock override", () async {
+    test("setSceneHideAppBar sets and clears the override", () async {
       final scenesService = restart();
 
-      await scenesService.setSceneDockPackageNames(SceneKeys.kids, ["com.kids.tv"]);
-      expect(scenesService.sceneByKey(SceneKeys.kids)!.overridesDock, true);
+      await scenesService.setSceneHideAppBar(SceneKeys.normal, true);
+      expect(scenesService.sceneByKey(SceneKeys.normal)!.hideAppBar, true);
 
-      await scenesService.setSceneDockPackageNames(SceneKeys.kids, []);
-      expect(scenesService.sceneByKey(SceneKeys.kids)!.overridesDock, false);
+      await scenesService.setSceneHideAppBar(SceneKeys.normal, null);
+      expect(scenesService.sceneByKey(SceneKeys.normal)!.hideAppBar, null);
     });
 
-    test("setSceneBrightness sets, clamps and clears the brightness override", () async {
+    test("setSceneShowWatchNext sets and clears the override", () async {
       final scenesService = restart();
 
-      await scenesService.setSceneBrightness(SceneKeys.normal, 55);
-      expect(scenesService.sceneByKey(SceneKeys.normal)!.brightness, 55);
+      await scenesService.setSceneShowWatchNext(SceneKeys.normal, false);
+      expect(scenesService.sceneByKey(SceneKeys.normal)!.showWatchNext, false);
 
-      await scenesService.setSceneBrightness(SceneKeys.normal, 200);
-      expect(scenesService.sceneByKey(SceneKeys.normal)!.brightness, 100);
+      await scenesService.setSceneShowWatchNext(SceneKeys.normal, null);
+      expect(scenesService.sceneByKey(SceneKeys.normal)!.showWatchNext, null);
+    });
 
-      await scenesService.setSceneBrightness(SceneKeys.normal, null);
-      expect(scenesService.sceneByKey(SceneKeys.normal)!.brightness, null);
-      expect(scenesService.sceneByKey(SceneKeys.normal)!.overridesBrightness, false);
+    test("setSceneShowAppNames sets and clears the override", () async {
+      final scenesService = restart();
+
+      await scenesService.setSceneShowAppNames(SceneKeys.normal, false);
+      expect(scenesService.sceneByKey(SceneKeys.normal)!.showAppNames, false);
+
+      await scenesService.setSceneShowAppNames(SceneKeys.normal, null);
+      expect(scenesService.sceneByKey(SceneKeys.normal)!.showAppNames, null);
+    });
+
+    test("setSceneDisableBackgroundBlur sets and clears the override", () async {
+      final scenesService = restart();
+
+      await scenesService.setSceneDisableBackgroundBlur(SceneKeys.normal, true);
+      expect(scenesService.sceneByKey(SceneKeys.normal)!.disableBackgroundBlur, true);
+
+      await scenesService.setSceneDisableBackgroundBlur(SceneKeys.normal, null);
+      expect(scenesService.sceneByKey(SceneKeys.normal)!.disableBackgroundBlur, null);
+    });
+
+    test("setSceneShowCategoryTitles sets and clears the override", () async {
+      final scenesService = restart();
+
+      await scenesService.setSceneShowCategoryTitles(SceneKeys.normal, true);
+      expect(scenesService.sceneByKey(SceneKeys.normal)!.showCategoryTitles, true);
+
+      await scenesService.setSceneShowCategoryTitles(SceneKeys.normal, null);
+      expect(scenesService.sceneByKey(SceneKeys.normal)!.showCategoryTitles, null);
+    });
+
+    test("setSceneAccentColorHex sets and clears the override", () async {
+      final scenesService = restart();
+
+      await scenesService.setSceneAccentColorHex(SceneKeys.normal, "7C4DFF");
+      expect(scenesService.sceneByKey(SceneKeys.normal)!.accentColorHex, "7C4DFF");
+
+      await scenesService.setSceneAccentColorHex(SceneKeys.normal, null);
+      expect(scenesService.sceneByKey(SceneKeys.normal)!.accentColorHex, null);
     });
 
     test("setSceneWallpaperPath sets and clears the wallpaper override", () async {
@@ -433,11 +472,15 @@ void main() async {
       var notifications = 0;
       scenesService.addListener(() => notifications++);
 
-      expect(await scenesService.setSceneBrightness("does-not-exist", 50), SceneUpdateResult.unknownScene);
+      expect(await scenesService.setSceneHideAppBar("does-not-exist", true), SceneUpdateResult.unknownScene);
+      expect(await scenesService.setSceneShowWatchNext("does-not-exist", true), SceneUpdateResult.unknownScene);
+      expect(await scenesService.setSceneShowAppNames("does-not-exist", true), SceneUpdateResult.unknownScene);
       expect(
-        await scenesService.setSceneDockPackageNames("does-not-exist", ["com.kids.tv"]),
+        await scenesService.setSceneDisableBackgroundBlur("does-not-exist", true),
         SceneUpdateResult.unknownScene,
       );
+      expect(await scenesService.setSceneShowCategoryTitles("does-not-exist", true), SceneUpdateResult.unknownScene);
+      expect(await scenesService.setSceneAccentColorHex("does-not-exist", "7C4DFF"), SceneUpdateResult.unknownScene);
       expect(
         await scenesService.setSceneWallpaperPath("does-not-exist", "/wallpapers/none"),
         SceneUpdateResult.unknownScene,
@@ -446,22 +489,22 @@ void main() async {
       expect(await scenesService.setScenePin("does-not-exist", "1234"), SceneUpdateResult.unknownScene);
       expect(await scenesService.clearScenePin("does-not-exist"), SceneUpdateResult.unknownScene);
 
-      expect(scenesService.scenes.length, 4);
+      expect(scenesService.scenes.length, 3);
       expect(notifications, 0);
     });
 
     test("restoreDefaults discards customizations and activates the normal scene", () async {
       final scenesService = restart();
-      await scenesService.setScenePin(SceneKeys.kids, "1234");
-      await scenesService.setSceneDockPackageNames(SceneKeys.kids, ["com.kids.tv"]);
+      await scenesService.setScenePin(SceneKeys.night, "1234");
+      await scenesService.setSceneShowCategoryTitles(SceneKeys.night, true);
       await scenesService.activateScene(SceneKeys.cinema);
 
       expect(await scenesService.restoreDefaults(pin: "1234"), SceneUpdateResult.applied);
 
       expect(scenesService.activeSceneKey, SceneKeys.normal);
-      expect(scenesService.sceneByKey(SceneKeys.kids)!.isPinProtected, false);
-      expect(scenesService.sceneByKey(SceneKeys.kids)!.overridesDock, false);
-      expect(restart().sceneByKey(SceneKeys.kids)!.overridesDock, false);
+      expect(scenesService.sceneByKey(SceneKeys.night)!.isPinProtected, false);
+      expect(scenesService.sceneByKey(SceneKeys.night)!.showCategoryTitles, null);
+      expect(restart().sceneByKey(SceneKeys.night)!.showCategoryTitles, null);
     });
   });
 
@@ -528,7 +571,7 @@ void main() async {
 
           expect(
             scenesService.scenes.map((scene) => scene.key),
-            [SceneKeys.normal, SceneKeys.cinema, SceneKeys.night, SceneKeys.kids],
+            [SceneKeys.normal, SceneKeys.cinema, SceneKeys.night],
           );
           expect(scenesService.activeSceneKey, SceneKeys.normal);
         });
@@ -536,12 +579,12 @@ void main() async {
     }
 
     test("a readable payload survives an unreadable active scene key", () async {
-      await restart().setSceneBrightness(SceneKeys.cinema, 42);
+      await restart().setSceneHideAppBar(SceneKeys.cinema, true);
       sharedPreferences.setBool("active_scene_key", true);
 
       final scenesService = restart();
 
-      expect(scenesService.sceneByKey(SceneKeys.cinema)!.brightness, 42, reason: "the scenes are still readable");
+      expect(scenesService.sceneByKey(SceneKeys.cinema)!.hideAppBar, true, reason: "the scenes are still readable");
       expect(scenesService.activeSceneKey, SceneKeys.normal, reason: "only the active key falls back");
     });
 
@@ -549,7 +592,7 @@ void main() async {
       sharedPreferences.setInt("scenes", 1);
       sharedPreferences.setInt("active_scene_key", 2);
 
-      expect(restart().scenes.length, 4);
+      expect(restart().scenes.length, 3);
     });
   });
 
@@ -573,9 +616,9 @@ void main() async {
       final scenesService = restart();
       breakWrites();
 
-      expect(await scenesService.setSceneBrightness(SceneKeys.normal, 55), SceneUpdateResult.persistenceFailed);
+      expect(await scenesService.setSceneHideAppBar(SceneKeys.normal, true), SceneUpdateResult.persistenceFailed);
       expect(
-        await scenesService.setSceneDockPackageNames(SceneKeys.kids, ["com.kids.tv"]),
+        await scenesService.setSceneShowCategoryTitles(SceneKeys.night, true),
         SceneUpdateResult.persistenceFailed,
       );
       expect(
@@ -588,7 +631,7 @@ void main() async {
       expect(await scenesService.clearScenePin(SceneKeys.normal), SceneUpdateResult.persistenceFailed);
       // Last on purpose: see the test below for why a failed PIN write still
       // changes what the following calls observe.
-      expect(await scenesService.setScenePin(SceneKeys.kids, "1234"), SceneUpdateResult.persistenceFailed);
+      expect(await scenesService.setScenePin(SceneKeys.night, "1234"), SceneUpdateResult.persistenceFailed);
     });
 
     test("a PIN whose write failed is still honoured for the rest of the session", () async {
@@ -600,9 +643,9 @@ void main() async {
       final scenesService = restart();
       breakWrites();
 
-      expect(await scenesService.setScenePin(SceneKeys.kids, "1234"), SceneUpdateResult.persistenceFailed);
+      expect(await scenesService.setScenePin(SceneKeys.night, "1234"), SceneUpdateResult.persistenceFailed);
 
-      expect(scenesService.sceneByKey(SceneKeys.kids)!.verifyPin("1234"), true);
+      expect(scenesService.sceneByKey(SceneKeys.night)!.verifyPin("1234"), true);
       expect(await scenesService.restoreDefaults(), SceneUpdateResult.pinRequired);
       expect(await scenesService.restoreDefaults(pin: "1234"), SceneUpdateResult.persistenceFailed);
     });
@@ -611,21 +654,24 @@ void main() async {
       final scenesService = restart();
       breakWrites();
 
-      await scenesService.setSceneBrightness(SceneKeys.cinema, 42);
+      await scenesService.setSceneHideAppBar(SceneKeys.cinema, true);
       await scenesService.activateScene(SceneKeys.night);
 
       final asStored = restart();
-      expect(scenesService.sceneByKey(SceneKeys.cinema)!.brightness, asStored.sceneByKey(SceneKeys.cinema)!.brightness);
+      expect(
+        scenesService.sceneByKey(SceneKeys.cinema)!.hideAppBar,
+        asStored.sceneByKey(SceneKeys.cinema)!.hideAppBar,
+      );
       expect(scenesService.activeSceneKey, asStored.activeSceneKey);
     });
 
     test("a failure while locked in a protected scene does not unlock it", () async {
       final scenesService = restart();
-      await scenesService.setScenePin(SceneKeys.kids, "1234");
-      await scenesService.activateScene(SceneKeys.kids);
+      await scenesService.setScenePin(SceneKeys.night, "1234");
+      await scenesService.activateScene(SceneKeys.night);
       breakWrites();
 
-      expect(await scenesService.clearScenePin(SceneKeys.kids), SceneUpdateResult.pinRequired);
+      expect(await scenesService.clearScenePin(SceneKeys.night), SceneUpdateResult.pinRequired);
       expect(await scenesService.activateScene(SceneKeys.normal), SceneActivationResult.pinRequired);
       expect(scenesService.activeSceneRequiresPinToExit, true);
     });
@@ -636,18 +682,18 @@ void main() async {
       final scenesService = restart();
 
       await Future.wait([
-        scenesService.setSceneBrightness(SceneKeys.cinema, 42),
-        scenesService.setSceneDockPackageNames(SceneKeys.night, ["com.music.tv"]),
+        scenesService.setSceneHideAppBar(SceneKeys.cinema, true),
+        scenesService.setSceneShowCategoryTitles(SceneKeys.night, true),
         scenesService.saveScene(Scene(key: "party", name: "Party")),
       ]);
 
-      expect(scenesService.sceneByKey(SceneKeys.cinema)!.brightness, 42);
-      expect(scenesService.sceneByKey(SceneKeys.night)!.dockPackageNames, ["com.music.tv"]);
+      expect(scenesService.sceneByKey(SceneKeys.cinema)!.hideAppBar, true);
+      expect(scenesService.sceneByKey(SceneKeys.night)!.showCategoryTitles, true);
       expect(scenesService.sceneByKey("party"), isNotNull);
 
       final asStored = restart();
-      expect(asStored.sceneByKey(SceneKeys.cinema)!.brightness, 42);
-      expect(asStored.sceneByKey(SceneKeys.night)!.dockPackageNames, ["com.music.tv"]);
+      expect(asStored.sceneByKey(SceneKeys.cinema)!.hideAppBar, true);
+      expect(asStored.sceneByKey(SceneKeys.night)!.showCategoryTitles, true);
       expect(asStored.sceneByKey("party"), isNotNull);
     });
   });
@@ -659,12 +705,10 @@ void main() async {
         jsonEncode({
           "version": 1,
           "scenes": [
-            {"key": SceneKeys.normal, "name": "Normal", "dockPackageNames": [], "brightness": null},
+            {"key": SceneKeys.normal, "name": "Normal"},
             {
               "key": SceneKeys.cinema,
               "name": "Movies",
-              "dockPackageNames": ["com.netflix.ninja"],
-              "brightness": 100,
               "wallpaperPath": "/wallpapers/cinema",
               "pinSalt": null,
               "pinHash": null,
@@ -679,23 +723,92 @@ void main() async {
       expect(scenesService.sceneByKey(SceneKeys.cinema)!.name, "Movies");
       expect(scenesService.sceneByKey(SceneKeys.cinema)!.wallpaperPath, "/wallpapers/cinema");
       expect(scenesService.sceneByKey(SceneKeys.cinema)!.gradientUuid, null);
-      expect(scenesService.sceneByKey(SceneKeys.cinema)!.dockPackageNames, ["com.netflix.ninja"]);
     });
 
     test("a version 1 PIN still unlocks after the bump", () {
-      final locked = Scene(key: SceneKeys.kids, name: "Kids").withPin("1234").toJson()..remove("gradientUuid");
+      final locked = Scene(key: SceneKeys.night, name: "Night").withPin("1234").toJson()..remove("gradientUuid");
       sharedPreferences.setString("scenes", jsonEncode({"version": 1, "scenes": [locked]}));
 
-      expect(restart().sceneByKey(SceneKeys.kids)!.verifyPin("1234"), true);
+      expect(restart().sceneByKey(SceneKeys.night)!.verifyPin("1234"), true);
     });
 
     test("saving rewrites the payload at the current version", () async {
-      await restart().setSceneBrightness(SceneKeys.normal, 50);
+      await restart().setSceneHideAppBar(SceneKeys.normal, true);
 
       final payload = jsonDecode(sharedPreferences.getString("scenes")!) as Map<String, dynamic>;
 
       expect(payload["version"], 2);
     });
+
+    test(
+      "a version 2 payload written by the previous build, still holding dockPackageNames and brightness, "
+      "still loads",
+      () {
+        // This is the exact shape written by the build immediately before the
+        // Scene reshape: it still carries the two retired fields and none of
+        // the six new presentation overrides. The payload version was
+        // deliberately not bumped for this reshape (see
+        // ScenesService._scenesPayloadVersion), so this must load without
+        // throwing and without losing the user's configuration, silently
+        // ignoring the two retired keys.
+        sharedPreferences.setString(
+          "scenes",
+          jsonEncode({
+            "version": 2,
+            "scenes": [
+              {
+                "key": SceneKeys.normal,
+                "name": "Normal",
+                "dockPackageNames": [],
+                "brightness": null,
+                "wallpaperPath": null,
+                "gradientUuid": null,
+                "pinSalt": null,
+                "pinHash": null,
+              },
+              {
+                "key": SceneKeys.cinema,
+                "name": "Movies",
+                "dockPackageNames": ["com.netflix.ninja", "com.disney.disneyplus"],
+                "brightness": 100,
+                "wallpaperPath": "/wallpapers/cinema",
+                "gradientUuid": null,
+                "pinSalt": null,
+                "pinHash": null,
+              },
+              {
+                "key": SceneKeys.night,
+                "name": "Night",
+                "dockPackageNames": ["com.music.tv"],
+                "brightness": 10,
+                "wallpaperPath": null,
+                "gradientUuid": "4730aa2d-1a90-49a6-9942-ffe82f470e26",
+                "pinSalt": null,
+                "pinHash": null,
+              },
+            ],
+          }),
+        );
+
+        final scenesService = restart();
+
+        expect(scenesService.scenes.map((scene) => scene.key), [SceneKeys.normal, SceneKeys.cinema, SceneKeys.night]);
+        expect(scenesService.activeSceneKey, SceneKeys.normal);
+
+        final cinema = scenesService.sceneByKey(SceneKeys.cinema)!;
+        expect(cinema.name, "Movies");
+        expect(cinema.wallpaperPath, "/wallpapers/cinema");
+        // None of the retired fields exist on Scene any more; the proof that
+        // they were ignored rather than causing a fallback to the defaults is
+        // that the rest of the entry (name, wallpaper, gradient) survived.
+        expect(cinema.hideAppBar, null);
+        expect(cinema.showWatchNext, null);
+
+        final night = scenesService.sceneByKey(SceneKeys.night)!;
+        expect(night.gradientUuid, "4730aa2d-1a90-49a6-9942-ffe82f470e26");
+        expect(night.disableBackgroundBlur, null);
+      },
+    );
   });
 
   group("stored data that cannot be read", () {
@@ -708,7 +821,7 @@ void main() async {
 
       expect(
         scenesService.scenes.map((scene) => scene.key),
-        [SceneKeys.normal, SceneKeys.cinema, SceneKeys.night, SceneKeys.kids],
+        [SceneKeys.normal, SceneKeys.cinema, SceneKeys.night],
         reason: reason,
       );
       expect(scenesService.activeSceneKey, SceneKeys.normal, reason: reason);
@@ -791,7 +904,7 @@ void main() async {
         jsonEncode({
           "version": 1,
           "scenes": [
-            {"key": SceneKeys.kids, "name": "Kids", "pinHash": "abc"},
+            {"key": SceneKeys.night, "name": "Night", "pinHash": "abc"},
           ],
         }),
         "a lock without its salt can never be unlocked",

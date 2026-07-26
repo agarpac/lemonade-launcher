@@ -33,7 +33,6 @@ void main() {
     expect(find.text("Normal"), findsOneWidget);
     expect(find.text("Cinema"), findsOneWidget);
     expect(find.text("Night"), findsOneWidget);
-    expect(find.text("Kids"), findsOneWidget);
   });
 
   testWidgets("Marks the active scene and autofocuses it", (tester) async {

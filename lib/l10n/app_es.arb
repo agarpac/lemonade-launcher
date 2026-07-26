@@ -86,7 +86,6 @@
     "sceneNormal": "Normal",
     "sceneCinema": "Cine",
     "sceneNight": "Noche",
-    "sceneKids": "Niños",
     "sceneActiveSemanticLabel": "Escena activa",
     "sceneActivationFailed": "No se ha podido cambiar de escena.",
     "scenePinProtected": "Esta escena requiere un PIN, que todavía no está disponible.",

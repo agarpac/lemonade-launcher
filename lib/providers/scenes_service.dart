@@ -31,6 +31,17 @@ const String _activeSceneKey = "active_scene_key";
 /// * 1 — initial shape.
 /// * 2 — added the optional `gradientUuid` wallpaper override. A version 1
 ///   payload loads unchanged: the missing field means "no gradient".
+///
+/// Still 2 — deliberately not bumped when `dockPackageNames` and `brightness`
+/// were removed and six presentation overrides (`hideAppBar`, `showWatchNext`,
+/// `showAppNames`, `disableBackgroundBlur`, `showCategoryTitles`,
+/// `accentColorHex`) were added. [Scene.fromJson] ignores unrecognized keys
+/// instead of rejecting them, and a missing key already means "no override",
+/// so a payload written by the previous build loads unchanged: the two
+/// retired fields are silently dropped and the six new ones start absent.
+/// Bumping here would make [_decodeScenes] reject that same payload once an
+/// older APK is reinstalled over a newer one, discarding the user's scenes —
+/// see the PRD, section 9.1.4.
 const int _scenesPayloadVersion = 2;
 
 /// Outcome of a scene activation request.
@@ -171,21 +182,6 @@ class ScenesService extends ChangeNotifier {
     return _replaceScene(stored == null ? scene : scene.withPinOf(stored));
   }
 
-  /// Replaces the dock override of the scene identified by [key].
-  ///
-  /// An empty list clears the override, so the normal dock is shown again.
-  Future<SceneUpdateResult> setSceneDockPackageNames(String key, List<String> packageNames) =>
-      _updateScene(key, (scene) => scene.copyWith(dockPackageNames: packageNames));
-
-  /// Sets the brightness override of the scene identified by [key], or clears it
-  /// when [brightness] is `null`.
-  ///
-  /// Out-of-range values are clamped by [Scene] itself.
-  Future<SceneUpdateResult> setSceneBrightness(String key, int? brightness) => _updateScene(
-        key,
-        (scene) => brightness == null ? scene.copyWith(clearBrightness: true) : scene.copyWith(brightness: brightness),
-      );
-
   /// Sets the wallpaper file override of the scene identified by [key], or
   /// clears the wallpaper override when [wallpaperPath] is `null`.
   ///
@@ -205,6 +201,59 @@ class ScenesService extends ChangeNotifier {
         key,
         (scene) =>
             gradientUuid == null ? scene.copyWith(clearWallpaper: true) : scene.copyWith(gradientUuid: gradientUuid),
+      );
+
+  /// Sets the `autoHideAppBarEnabled` override of the scene identified by
+  /// [key], or clears it when [hideAppBar] is `null`.
+  Future<SceneUpdateResult> setSceneHideAppBar(String key, bool? hideAppBar) => _updateScene(
+        key,
+        (scene) =>
+            hideAppBar == null ? scene.copyWith(clearHideAppBar: true) : scene.copyWith(hideAppBar: hideAppBar),
+      );
+
+  /// Sets the `showWatchNextSection` override of the scene identified by
+  /// [key], or clears it when [showWatchNext] is `null`.
+  Future<SceneUpdateResult> setSceneShowWatchNext(String key, bool? showWatchNext) => _updateScene(
+        key,
+        (scene) => showWatchNext == null
+            ? scene.copyWith(clearShowWatchNext: true)
+            : scene.copyWith(showWatchNext: showWatchNext),
+      );
+
+  /// Sets the `showAppNamesBelowIcons` override of the scene identified by
+  /// [key], or clears it when [showAppNames] is `null`.
+  Future<SceneUpdateResult> setSceneShowAppNames(String key, bool? showAppNames) => _updateScene(
+        key,
+        (scene) => showAppNames == null
+            ? scene.copyWith(clearShowAppNames: true)
+            : scene.copyWith(showAppNames: showAppNames),
+      );
+
+  /// Sets the `backgroundBlurDisabled` override of the scene identified by
+  /// [key], or clears it when [disableBackgroundBlur] is `null`.
+  Future<SceneUpdateResult> setSceneDisableBackgroundBlur(String key, bool? disableBackgroundBlur) => _updateScene(
+        key,
+        (scene) => disableBackgroundBlur == null
+            ? scene.copyWith(clearDisableBackgroundBlur: true)
+            : scene.copyWith(disableBackgroundBlur: disableBackgroundBlur),
+      );
+
+  /// Sets the `showCategoryTitles` override of the scene identified by [key],
+  /// or clears it when [showCategoryTitles] is `null`.
+  Future<SceneUpdateResult> setSceneShowCategoryTitles(String key, bool? showCategoryTitles) => _updateScene(
+        key,
+        (scene) => showCategoryTitles == null
+            ? scene.copyWith(clearShowCategoryTitles: true)
+            : scene.copyWith(showCategoryTitles: showCategoryTitles),
+      );
+
+  /// Sets the `accentColorHex` override of the scene identified by [key], or
+  /// clears it when [accentColorHex] is `null`.
+  Future<SceneUpdateResult> setSceneAccentColorHex(String key, String? accentColorHex) => _updateScene(
+        key,
+        (scene) => accentColorHex == null
+            ? scene.copyWith(clearAccentColorHex: true)
+            : scene.copyWith(accentColorHex: accentColorHex),
       );
 
   /// Protects the scene identified by [key] with [pin].

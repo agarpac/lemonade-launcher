@@ -464,12 +464,6 @@ abstract class AppLocalizations {
   /// **'Night'**
   String get sceneNight;
 
-  /// No description provided for @sceneKids.
-  ///
-  /// In en, this message translates to:
-  /// **'Kids'**
-  String get sceneKids;
-
   /// No description provided for @sceneActiveSemanticLabel.
   ///
   /// In en, this message translates to:

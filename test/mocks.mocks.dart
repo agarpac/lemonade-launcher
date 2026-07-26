@@ -2058,40 +2058,6 @@ class MockScenesService extends _i1.Mock implements _i21.ScenesService {
       ) as _i10.Future<_i21.SceneUpdateResult>);
 
   @override
-  _i10.Future<_i21.SceneUpdateResult> setSceneDockPackageNames(
-    String? key,
-    List<String>? packageNames,
-  ) =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #setSceneDockPackageNames,
-          [
-            key,
-            packageNames,
-          ],
-        ),
-        returnValue: _i10.Future<_i21.SceneUpdateResult>.value(
-            _i21.SceneUpdateResult.applied),
-      ) as _i10.Future<_i21.SceneUpdateResult>);
-
-  @override
-  _i10.Future<_i21.SceneUpdateResult> setSceneBrightness(
-    String? key,
-    int? brightness,
-  ) =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #setSceneBrightness,
-          [
-            key,
-            brightness,
-          ],
-        ),
-        returnValue: _i10.Future<_i21.SceneUpdateResult>.value(
-            _i21.SceneUpdateResult.applied),
-      ) as _i10.Future<_i21.SceneUpdateResult>);
-
-  @override
   _i10.Future<_i21.SceneUpdateResult> setSceneWallpaperPath(
     String? key,
     String? wallpaperPath,
@@ -2119,6 +2085,108 @@ class MockScenesService extends _i1.Mock implements _i21.ScenesService {
           [
             key,
             gradientUuid,
+          ],
+        ),
+        returnValue: _i10.Future<_i21.SceneUpdateResult>.value(
+            _i21.SceneUpdateResult.applied),
+      ) as _i10.Future<_i21.SceneUpdateResult>);
+
+  @override
+  _i10.Future<_i21.SceneUpdateResult> setSceneHideAppBar(
+    String? key,
+    bool? hideAppBar,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #setSceneHideAppBar,
+          [
+            key,
+            hideAppBar,
+          ],
+        ),
+        returnValue: _i10.Future<_i21.SceneUpdateResult>.value(
+            _i21.SceneUpdateResult.applied),
+      ) as _i10.Future<_i21.SceneUpdateResult>);
+
+  @override
+  _i10.Future<_i21.SceneUpdateResult> setSceneShowWatchNext(
+    String? key,
+    bool? showWatchNext,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #setSceneShowWatchNext,
+          [
+            key,
+            showWatchNext,
+          ],
+        ),
+        returnValue: _i10.Future<_i21.SceneUpdateResult>.value(
+            _i21.SceneUpdateResult.applied),
+      ) as _i10.Future<_i21.SceneUpdateResult>);
+
+  @override
+  _i10.Future<_i21.SceneUpdateResult> setSceneShowAppNames(
+    String? key,
+    bool? showAppNames,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #setSceneShowAppNames,
+          [
+            key,
+            showAppNames,
+          ],
+        ),
+        returnValue: _i10.Future<_i21.SceneUpdateResult>.value(
+            _i21.SceneUpdateResult.applied),
+      ) as _i10.Future<_i21.SceneUpdateResult>);
+
+  @override
+  _i10.Future<_i21.SceneUpdateResult> setSceneDisableBackgroundBlur(
+    String? key,
+    bool? disableBackgroundBlur,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #setSceneDisableBackgroundBlur,
+          [
+            key,
+            disableBackgroundBlur,
+          ],
+        ),
+        returnValue: _i10.Future<_i21.SceneUpdateResult>.value(
+            _i21.SceneUpdateResult.applied),
+      ) as _i10.Future<_i21.SceneUpdateResult>);
+
+  @override
+  _i10.Future<_i21.SceneUpdateResult> setSceneShowCategoryTitles(
+    String? key,
+    bool? showCategoryTitles,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #setSceneShowCategoryTitles,
+          [
+            key,
+            showCategoryTitles,
+          ],
+        ),
+        returnValue: _i10.Future<_i21.SceneUpdateResult>.value(
+            _i21.SceneUpdateResult.applied),
+      ) as _i10.Future<_i21.SceneUpdateResult>);
+
+  @override
+  _i10.Future<_i21.SceneUpdateResult> setSceneAccentColorHex(
+    String? key,
+    String? accentColorHex,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #setSceneAccentColorHex,
+          [
+            key,
+            accentColorHex,
           ],
         ),
         returnValue: _i10.Future<_i21.SceneUpdateResult>.value(
