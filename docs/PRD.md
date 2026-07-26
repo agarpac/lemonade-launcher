@@ -369,7 +369,7 @@ Además solo existen instantáneas de la v1 a la v5, mientras el esquema vivo va
 
 Arreglo posible: regenerar las instantáneas v1-v5 desde los JSON, que sí son correctos.
 
-### 13.3 Un fondo de vídeo recrea su widget cada 60 segundos
+### 13.3 Un fondo de vídeo recrea su widget cada 60 segundos — ✅ ARREGLADO
 
 `lib/providers/wallpaper_service.dart` sube `_wallpaperRevision` de forma incondicional mientras hay un fondo de vídeo activo, porque la condición incluye «hay vídeo» sin comprobar si el fichero ha cambiado. El temporizador de día/noche se dispara cada minuto, así que la revisión avanza cada minuto aunque nada haya cambiado.
 
@@ -377,4 +377,6 @@ Para el desenfoque es inocuo: `cached_blur_backdrop.dart` esquiva la ruta de cac
 
 Verificado al hacer la fase 0 del fondo por escena. No se arregló ahí porque esa fase tenía como contrato no alterar ningún comportamiento observable.
 
-Arreglo: comparar el fichero de vídeo efectivo con el anterior en lugar de dar por cambiado cualquier vídeo. Es un cambio pequeño y localizado, y afecta a quien use fondo de vídeo — precisamente la funcionalidad que el propio README advierte que consume RAM y puede dar tirones.
+Arreglado comparando la ruta del fichero de vídeo efectivo con la anterior, en lugar de dar por cambiado cualquier vídeo. La condición `hay vídeo` desaparece de la comprobación; el contrato `force: true` de las rutas que guardan o eligen un fichero sigue cubriendo el caso de sobrescribir el mismo nombre con contenido nuevo.
+
+Nota: no existía **ninguna** prueba que cubriera la ruta del vídeo, lo que explica que el defecto pasara desapercibido. Para poder probar el cambio real de día a noche hizo falta un punto de inyección del reloj (`debugNow`), siguiendo el patrón `debugResolveNow` que ya existía en el mismo fichero.

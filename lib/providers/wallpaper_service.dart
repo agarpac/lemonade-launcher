@@ -123,6 +123,13 @@ class WallpaperService extends ChangeNotifier {
   /// listener) actually runs it.
   FLauncherGradient? _lastGradient;
 
+  /// Bookkeeping only, for the revision-bump comparison in [_updateWallpaper].
+  /// Compared by *path*, not by [File] identity/equality (two [File] instances
+  /// for the same path are not `==`), so a day/night tick that re-resolves to
+  /// the same video does not bump the revision. `null` means "no video
+  /// resolved yet", matching [_lastGradient]'s convention.
+  File? _lastVideoFile;
+
   WallpaperService(this._settingsService, this._scenesService) :
     _wallpaper = null
   {
@@ -130,6 +137,14 @@ class WallpaperService extends ChangeNotifier {
     _scenesService.addListener(_onScenesChanged);
     _init();
   }
+
+  /// Test-only seam for the "current time" used by day/night resolution
+  /// ([_resolveActiveVideoFile], [_resolveUserLayer]), matching the existing
+  /// [debugResolveNow] pattern. Defaults to the real wall clock in
+  /// production; tests override it to deterministically exercise a
+  /// day-to-night (or night-to-day) switch without waiting on real time.
+  @visibleForTesting
+  DateTime Function() debugNow = DateTime.now;
 
   bool _lastTimeBasedEnabled = false;
 
@@ -185,7 +200,7 @@ class WallpaperService extends ChangeNotifier {
   File? _resolveActiveVideoFile() {
     if (!isInitialized) return null;
 
-    final now = DateTime.now();
+    final now = debugNow();
     final isDay = now.hour >= 6 && now.hour < 18;
     final enabled = _settingsService.timeBasedWallpaperEnabled;
 
@@ -215,7 +230,7 @@ class WallpaperService extends ChangeNotifier {
   // scenes.
   // ---------------------------------------------------------------------
   _WallpaperLayer _resolveUserLayer() {
-    final now = DateTime.now();
+    final now = debugNow();
     final isDay = now.hour >= 6 && now.hour < 18;
     final enabled = _settingsService.timeBasedWallpaperEnabled;
 
@@ -266,12 +281,14 @@ class WallpaperService extends ChangeNotifier {
   //
   // `image` uses FileImage's path+scale equality, so a re-resolution that
   // lands on the same file path (e.g. a day/night tick with no actual
-  // change) does NOT bump the revision. An active video always bumps,
-  // matching the pre-refactor behaviour (video wallpapers are not static and
-  // are rendered via a live blur that does not consult the revision at all).
-  // `force` covers the case a user overwrites a fixed wallpaper path (e.g.
-  // pickWallpaper) with new file *content*: the path-based identity would
-  // otherwise be unchanged, so pick/save call sites explicitly force a bump.
+  // change) does NOT bump the revision. The video file is compared by
+  // *path* the same way (see [_lastVideoFile]): a day/night tick that
+  // resolves to the same video file does NOT bump the revision either,
+  // while a genuine day/night switch to a *different* video path does.
+  // `force` covers the case a user overwrites a fixed wallpaper/video path
+  // (e.g. pickWallpaper, pickVideoWallpaper) with new file *content*: the
+  // path-based identity would otherwise be unchanged, so pick/save call
+  // sites explicitly force a bump.
   //
   // The effective gradient (identity-compared against `FLauncherGradients.all`
   // instances, never rebuilt, so `!=` is reference equality) is bumped the
@@ -282,10 +299,13 @@ class WallpaperService extends ChangeNotifier {
     final userLayer = _resolveUserLayer();
     final effectiveLayer = _resolveEffectiveLayer(userLayer);
 
-    final identityChanged = _wallpaper != effectiveLayer.image || _lastGradient != effectiveLayer.gradient;
-    if (identityChanged || effectiveLayer.videoFile != null || force) {
+    final identityChanged = _wallpaper != effectiveLayer.image ||
+        _lastGradient != effectiveLayer.gradient ||
+        _lastVideoFile?.path != effectiveLayer.videoFile?.path;
+    if (identityChanged || force) {
       _wallpaper = effectiveLayer.image;
       _lastGradient = effectiveLayer.gradient;
+      _lastVideoFile = effectiveLayer.videoFile;
       _wallpaperRevision++;
       notifyListeners();
     }
