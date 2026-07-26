@@ -9,7 +9,7 @@ class AppLocalizationsEs extends AppLocalizations {
   AppLocalizationsEs([String locale = 'es']) : super(locale);
 
   @override
-  String get aboutFlauncher => 'Acerca de FLauncher';
+  String get aboutFlauncher => 'Acerca de Lemonade Launcher';
 
   @override
   String get addCategory => 'Agregar categoría';
@@ -277,7 +277,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get updateInstallPermissionBody =>
-      'Permite que Arc Launcher instale apps desconocidas y vuelve a intentar la actualización.';
+      'Permite que Lemonade Launcher instale apps desconocidas y vuelve a intentar la actualización.';
 
   @override
   String get updateOpenPermissionSettingsButton => 'Abrir ajustes de permisos';
@@ -288,7 +288,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String textAboutDialog(String repoUrl) {
-    return 'Arc Launcher es un lanzador de código abierto personalizado para Android TV, basado en FLauncher.\n\nDesarrollado por Meddouri Badis.\nCódigo fuente disponible en $repoUrl.';
+    return 'Lemonade Launcher es un fork de Arc Launcher de Meddouri Badis, que a su vez está basado en FLauncher de Étienne Fesser.\n\nCódigo fuente de Arc Launcher (proyecto original): $repoUrl';
   }
 
   @override
