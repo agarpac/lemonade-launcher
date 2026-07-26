@@ -506,6 +506,152 @@ void main() async {
     });
   });
 
+  group("stored values of the wrong type", () {
+    // `SharedPreferences.getString` casts, so a value of another type under one
+    // of our keys throws a TypeError on the startup path. The planned
+    // backup/restore feature imports a user-supplied JSON file into
+    // shared_preferences, so this is reachable, and on this device a launcher
+    // that does not start needs a computer and an ADB cable to recover.
+    final writers = <String, void Function(String key)>{
+      "a bool": (key) => sharedPreferences.setBool(key, true),
+      "an int": (key) => sharedPreferences.setInt(key, 7),
+      "a double": (key) => sharedPreferences.setDouble(key, 1.5),
+      "a string list": (key) => sharedPreferences.setStringList(key, ["normal"]),
+    };
+
+    for (final key in ["scenes", "active_scene_key"]) {
+      for (final writer in writers.entries) {
+        test("'$key' holding ${writer.key} still starts on the defaults", () {
+          writer.value(key);
+
+          final scenesService = restart();
+
+          expect(
+            scenesService.scenes.map((scene) => scene.key),
+            [SceneKeys.normal, SceneKeys.cinema, SceneKeys.night, SceneKeys.kids],
+          );
+          expect(scenesService.activeSceneKey, SceneKeys.normal);
+        });
+      }
+    }
+
+    test("a readable payload survives an unreadable active scene key", () async {
+      await restart().setSceneBrightness(SceneKeys.cinema, 42);
+      sharedPreferences.setBool("active_scene_key", true);
+
+      final scenesService = restart();
+
+      expect(scenesService.sceneByKey(SceneKeys.cinema)!.brightness, 42, reason: "the scenes are still readable");
+      expect(scenesService.activeSceneKey, SceneKeys.normal, reason: "only the active key falls back");
+    });
+
+    test("both keys unreadable at once still starts", () {
+      sharedPreferences.setInt("scenes", 1);
+      sharedPreferences.setInt("active_scene_key", 2);
+
+      expect(restart().scenes.length, 4);
+    });
+  });
+
+  group("a storage failure never escapes into the caller", () {
+    /// Swaps in a store whose writes throw, restoring the working one after the
+    /// test so `setUp`'s clear() is not affected.
+    void breakWrites() {
+      final workingStore = SharedPreferencesStorePlatform.instance;
+      SharedPreferencesStorePlatform.instance = _FailingWriteStore();
+      addTearDown(() => SharedPreferencesStorePlatform.instance = workingStore);
+    }
+
+    test("activateScene reports the failure instead of throwing", () async {
+      final scenesService = restart();
+      breakWrites();
+
+      expect(await scenesService.activateScene(SceneKeys.cinema), SceneActivationResult.persistenceFailed);
+    });
+
+    test("every configuration mutator reports the failure instead of throwing", () async {
+      final scenesService = restart();
+      breakWrites();
+
+      expect(await scenesService.setSceneBrightness(SceneKeys.normal, 55), SceneUpdateResult.persistenceFailed);
+      expect(
+        await scenesService.setSceneDockPackageNames(SceneKeys.kids, ["com.kids.tv"]),
+        SceneUpdateResult.persistenceFailed,
+      );
+      expect(
+        await scenesService.setSceneWallpaperPath(SceneKeys.night, "/wallpapers/night"),
+        SceneUpdateResult.persistenceFailed,
+      );
+      expect(await scenesService.setSceneGradientUuid(SceneKeys.night, "uuid"), SceneUpdateResult.persistenceFailed);
+      expect(await scenesService.saveScene(Scene(key: "party", name: "Party")), SceneUpdateResult.persistenceFailed);
+      expect(await scenesService.restoreDefaults(), SceneUpdateResult.persistenceFailed);
+      expect(await scenesService.clearScenePin(SceneKeys.normal), SceneUpdateResult.persistenceFailed);
+      // Last on purpose: see the test below for why a failed PIN write still
+      // changes what the following calls observe.
+      expect(await scenesService.setScenePin(SceneKeys.kids, "1234"), SceneUpdateResult.persistenceFailed);
+    });
+
+    test("a PIN whose write failed is still honoured for the rest of the session", () async {
+      // shared_preferences updates its own read cache before delegating to the
+      // platform store (shared_preferences_legacy.dart `_setValue`), so a write
+      // that fails is still what every later read returns until a restart.
+      // Resynchronizing from storage therefore adopts the lock, and the next
+      // reset fails closed rather than treating it as absent.
+      final scenesService = restart();
+      breakWrites();
+
+      expect(await scenesService.setScenePin(SceneKeys.kids, "1234"), SceneUpdateResult.persistenceFailed);
+
+      expect(scenesService.sceneByKey(SceneKeys.kids)!.verifyPin("1234"), true);
+      expect(await scenesService.restoreDefaults(), SceneUpdateResult.pinRequired);
+      expect(await scenesService.restoreDefaults(pin: "1234"), SceneUpdateResult.persistenceFailed);
+    });
+
+    test("in-memory state still agrees with what storage reports", () async {
+      final scenesService = restart();
+      breakWrites();
+
+      await scenesService.setSceneBrightness(SceneKeys.cinema, 42);
+      await scenesService.activateScene(SceneKeys.night);
+
+      final asStored = restart();
+      expect(scenesService.sceneByKey(SceneKeys.cinema)!.brightness, asStored.sceneByKey(SceneKeys.cinema)!.brightness);
+      expect(scenesService.activeSceneKey, asStored.activeSceneKey);
+    });
+
+    test("a failure while locked in a protected scene does not unlock it", () async {
+      final scenesService = restart();
+      await scenesService.setScenePin(SceneKeys.kids, "1234");
+      await scenesService.activateScene(SceneKeys.kids);
+      breakWrites();
+
+      expect(await scenesService.clearScenePin(SceneKeys.kids), SceneUpdateResult.pinRequired);
+      expect(await scenesService.activateScene(SceneKeys.normal), SceneActivationResult.pinRequired);
+      expect(scenesService.activeSceneRequiresPinToExit, true);
+    });
+  });
+
+  group("concurrent mutators", () {
+    test("do not lose each other's change", () async {
+      final scenesService = restart();
+
+      await Future.wait([
+        scenesService.setSceneBrightness(SceneKeys.cinema, 42),
+        scenesService.setSceneDockPackageNames(SceneKeys.night, ["com.music.tv"]),
+        scenesService.saveScene(Scene(key: "party", name: "Party")),
+      ]);
+
+      expect(scenesService.sceneByKey(SceneKeys.cinema)!.brightness, 42);
+      expect(scenesService.sceneByKey(SceneKeys.night)!.dockPackageNames, ["com.music.tv"]);
+      expect(scenesService.sceneByKey("party"), isNotNull);
+
+      final asStored = restart();
+      expect(asStored.sceneByKey(SceneKeys.cinema)!.brightness, 42);
+      expect(asStored.sceneByKey(SceneKeys.night)!.dockPackageNames, ["com.music.tv"]);
+      expect(asStored.sceneByKey("party"), isNotNull);
+    });
+  });
+
   group("payload versions", () {
     test("a version 1 payload, written before gradients existed, still loads", () {
       sharedPreferences.setString(
@@ -660,4 +806,13 @@ void main() async {
       expect(sharedPreferences.getString("scenes"), "}{ not json");
     });
   });
+}
+
+/// A store whose writes always fail, to exercise the persistence error path.
+class _FailingWriteStore extends InMemorySharedPreferencesStore {
+  _FailingWriteStore() : super.empty();
+
+  @override
+  Future<bool> setValue(String valueType, String key, Object value) async =>
+      throw Exception("simulated storage failure");
 }

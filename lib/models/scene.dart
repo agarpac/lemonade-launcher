@@ -57,9 +57,17 @@ class Scene {
   /// survives reinstalls and database rebuilds.
   final List<String> dockPackageNames;
 
-  /// System brightness, 0-100, matching `BrightnessService`. `null` means "no
-  /// override": whatever the user has set is left alone.
+  /// System brightness, [minBrightness] to [maxBrightness], matching
+  /// `BrightnessService`. `null` means "no override": whatever the user has set
+  /// is left alone.
+  ///
+  /// Always in range: the constructor clamps, so no path can store a value that
+  /// would silently change on the next restart.
   final int? brightness;
+
+  /// Bounds of [brightness], matching the 0-100 scale of `BrightnessService`.
+  static const int minBrightness = 0;
+  static const int maxBrightness = 100;
 
   /// Path of the wallpaper file associated with this scene. `null` means the
   /// scene does not override the wallpaper with a file.
@@ -81,18 +89,20 @@ class Scene {
   /// Hex SHA-256 of salt + PIN. Never exposed, never logged.
   final String? _pinHash;
 
-  /// Throws [ArgumentError] when both wallpaper overrides are supplied: the
-  /// invariant is enforced here rather than trusted to callers.
+  /// Clamps [brightness] into range, and throws [ArgumentError] when both
+  /// wallpaper overrides are supplied: both invariants are enforced here rather
+  /// than trusted to callers, so `copyWith` and [Scene.fromJson] inherit them.
   Scene({
     required this.key,
     required this.name,
     List<String> dockPackageNames = const [],
-    this.brightness,
+    int? brightness,
     this.wallpaperPath,
     this.gradientUuid,
     String? pinSalt,
     String? pinHash,
   })  : dockPackageNames = List.unmodifiable(dockPackageNames),
+        brightness = brightness?.clamp(minBrightness, maxBrightness),
         _pinSalt = pinSalt,
         _pinHash = pinHash {
     if (wallpaperPath != null && gradientUuid != null) {
@@ -287,7 +297,9 @@ class Scene {
       key: key,
       name: name,
       dockPackageNames: dockPackageNames,
-      brightness: rawBrightness == null ? null : (rawBrightness as int).clamp(0, 100),
+      // The constructor clamps, so an out-of-range stored value is corrected
+      // rather than costing the user the whole scene set.
+      brightness: rawBrightness as int?,
       wallpaperPath: wallpaperPath,
       gradientUuid: gradientUuid,
       pinSalt: hasSalt ? rawSalt : null,

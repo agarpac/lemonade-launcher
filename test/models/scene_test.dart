@@ -317,6 +317,35 @@ void main() {
     });
   });
 
+  group("brightness range", () {
+    test("the constructor clamps an out-of-range value", () {
+      expect(Scene(key: "a", name: "A", brightness: 300).brightness, Scene.maxBrightness);
+      expect(Scene(key: "a", name: "A", brightness: -5).brightness, Scene.minBrightness);
+      expect(Scene(key: "a", name: "A", brightness: 55).brightness, 55);
+      expect(Scene(key: "a", name: "A").brightness, null);
+    });
+
+    test("copyWith clamps too, so nothing out of range is ever stored", () {
+      final scene = Scene(key: SceneKeys.cinema, name: "Cinema");
+
+      expect(scene.copyWith(brightness: 500).brightness, Scene.maxBrightness);
+      expect(scene.copyWith(brightness: -100).brightness, Scene.minBrightness);
+    });
+
+    test("a clamped value is stable across a JSON round-trip", () {
+      final scene = Scene(key: "a", name: "A").copyWith(brightness: 500);
+
+      final restored = Scene.fromJson(jsonDecode(jsonEncode(scene.toJson())) as Map<String, dynamic>);
+
+      expect(restored.brightness, scene.brightness, reason: "a restart must not silently change the value");
+    });
+
+    test("the bounds match the 0-100 scale of BrightnessService", () {
+      expect(Scene.minBrightness, 0);
+      expect(Scene.maxBrightness, 100);
+    });
+  });
+
   group("withPinOf", () {
     test("transfers the lock of another scene", () {
       final locked = Scene(key: SceneKeys.kids, name: "Kids").withPin("1234");

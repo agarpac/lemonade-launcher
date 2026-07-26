@@ -49,6 +49,10 @@ enum SceneActivationResult {
 
   /// The supplied PIN did not match.
   pinRejected,
+
+  /// The change could not be written to storage. In-memory state has been
+  /// resynchronized with what storage reports, so nothing is left half-applied.
+  persistenceFailed,
 }
 
 /// Outcome of a request that changes a scene's configuration.
@@ -68,6 +72,10 @@ enum SceneUpdateResult {
 
   /// The supplied PIN did not match; nothing changed.
   pinRejected,
+
+  /// The change could not be written to storage. In-memory state has been
+  /// resynchronized with what storage reports, so nothing is left half-applied.
+  persistenceFailed,
 }
 
 /// Holds the scene presets and the active scene.
@@ -141,9 +149,13 @@ class ScenesService extends ChangeNotifier {
       }
     }
 
+    // Adopted synchronously, before the first await. See [_replaceScene].
     _activeKey = key;
-    await _sharedPreferences.setString(_activeSceneKey, key);
     notifyListeners();
+    if (!await _persistString(_activeSceneKey, key)) {
+      _resyncWithStoredState();
+      return SceneActivationResult.persistenceFailed;
+    }
     return SceneActivationResult.activated;
   }
 
@@ -154,10 +166,9 @@ class ScenesService extends ChangeNotifier {
   /// therefore cannot remove or replace a lock — that goes through
   /// [setScenePin] and [clearScenePin], which verify it. A brand-new key has no
   /// stored lock to protect, so it keeps whatever it arrives with.
-  Future<SceneUpdateResult> saveScene(Scene scene) async {
+  Future<SceneUpdateResult> saveScene(Scene scene) {
     final stored = sceneByKey(scene.key);
-    await _replaceScene(stored == null ? scene : scene.withPinOf(stored));
-    return SceneUpdateResult.applied;
+    return _replaceScene(stored == null ? scene : scene.withPinOf(stored));
   }
 
   /// Replaces the dock override of the scene identified by [key].
@@ -168,11 +179,11 @@ class ScenesService extends ChangeNotifier {
 
   /// Sets the brightness override of the scene identified by [key], or clears it
   /// when [brightness] is `null`.
+  ///
+  /// Out-of-range values are clamped by [Scene] itself.
   Future<SceneUpdateResult> setSceneBrightness(String key, int? brightness) => _updateScene(
         key,
-        (scene) => brightness == null
-            ? scene.copyWith(clearBrightness: true)
-            : scene.copyWith(brightness: brightness.clamp(0, 100)),
+        (scene) => brightness == null ? scene.copyWith(clearBrightness: true) : scene.copyWith(brightness: brightness),
       );
 
   /// Sets the wallpaper file override of the scene identified by [key], or
@@ -209,8 +220,7 @@ class ScenesService extends ChangeNotifier {
     if (refusal != null) {
       return refusal;
     }
-    await _replaceScene(scene.withPin(pin));
-    return SceneUpdateResult.applied;
+    return _replaceScene(scene.withPin(pin));
   }
 
   /// Removes the PIN lock of the scene identified by [key].
@@ -226,8 +236,7 @@ class ScenesService extends ChangeNotifier {
     if (refusal != null) {
       return refusal;
     }
-    await _replaceScene(scene.withoutPin());
-    return SceneUpdateResult.applied;
+    return _replaceScene(scene.withoutPin());
   }
 
   /// Discards every customization and restores the seeded scenes, activating
@@ -243,11 +252,17 @@ class ScenesService extends ChangeNotifier {
       return refusal;
     }
 
-    _scenes = Scene.defaults();
+    final defaults = Scene.defaults();
+    // Adopted synchronously, before the first await. See [_replaceScene].
+    _scenes = defaults;
     _activeKey = SceneKeys.normal;
-    await _persistScenes();
-    await _sharedPreferences.setString(_activeSceneKey, _activeKey);
     notifyListeners();
+    // Short-circuits: the second write is skipped when the first one failed.
+    if (!await _persistString(_scenesKey, _encodeScenes(defaults)) ||
+        !await _persistString(_activeSceneKey, SceneKeys.normal)) {
+      _resyncWithStoredState();
+      return SceneUpdateResult.persistenceFailed;
+    }
     return SceneUpdateResult.applied;
   }
 
@@ -280,18 +295,24 @@ class ScenesService extends ChangeNotifier {
   /// Applies [change] to the stored scene identified by [key].
   ///
   /// [change] receives the stored scene, so the PIN lock rides along untouched.
-  Future<SceneUpdateResult> _updateScene(String key, Scene Function(Scene scene) change) async {
+  Future<SceneUpdateResult> _updateScene(String key, Scene Function(Scene scene) change) {
     final scene = sceneByKey(key);
     if (scene == null) {
-      return SceneUpdateResult.unknownScene;
+      return Future.value(SceneUpdateResult.unknownScene);
     }
-    await _replaceScene(change(scene));
-    return SceneUpdateResult.applied;
+    return _replaceScene(change(scene));
   }
 
   /// Writes [scene] verbatim. Private: every public caller has already either
   /// preserved or verified the PIN lock.
-  Future<void> _replaceScene(Scene scene) async {
+  ///
+  /// The whole read-modify-assign runs synchronously, before the first `await`.
+  /// Dart's run-to-completion then guarantees a second concurrent mutator reads
+  /// this version rather than a stale snapshot, so no change is lost. Deferring
+  /// the assignment until after the write would reintroduce exactly that race,
+  /// which is why a failed write resynchronizes from storage instead of rolling
+  /// back to a snapshot that a concurrent caller may already have superseded.
+  Future<SceneUpdateResult> _replaceScene(Scene scene) async {
     final scenes = List<Scene>.from(_scenes);
     final index = scenes.indexWhere((existing) => existing.key == scene.key);
     if (index >= 0) {
@@ -300,19 +321,57 @@ class ScenesService extends ChangeNotifier {
       scenes.add(scene);
     }
     _scenes = scenes;
-    await _persistScenes();
     notifyListeners();
+
+    if (!await _persistString(_scenesKey, _encodeScenes(scenes))) {
+      _resyncWithStoredState();
+      return SceneUpdateResult.persistenceFailed;
+    }
+    return SceneUpdateResult.applied;
   }
 
   /// Loads the stored scenes, seeding the defaults on first run.
   ///
   /// This runs on the launcher's startup path on the user's only television, so
-  /// it never throws: anything unreadable falls back to the defaults.
+  /// it never throws: anything unreadable falls back to the defaults. That
+  /// includes values of the wrong type — `SharedPreferences.getString` casts,
+  /// and the planned backup/restore feature will let a hand-edited file put a
+  /// bool or a list under these keys. Stored values are untrusted input.
   void _load() {
-    _scenes = _decodeScenes(_sharedPreferences.getString(_scenesKey));
+    try {
+      _scenes = _decodeScenes(_readString(_scenesKey));
 
-    final storedActiveKey = _sharedPreferences.getString(_activeSceneKey);
-    _activeKey = _scenes.any((scene) => scene.key == storedActiveKey) ? storedActiveKey! : _scenes.first.key;
+      final storedActiveKey = _readString(_activeSceneKey);
+      _activeKey = _scenes.any((scene) => scene.key == storedActiveKey) ? storedActiveKey! : _scenes.first.key;
+    } catch (e) {
+      // Belt and braces: nothing above is expected to throw, and if it ever
+      // does, starting with the defaults beats not starting at all.
+      debugPrint("ScenesService: could not load the stored scenes, falling back to defaults ($e)");
+      _scenes = Scene.defaults();
+      _activeKey = SceneKeys.normal;
+    }
+    if (_scenes.isEmpty) {
+      // Invariant relied upon by [activeScene] and by _load's own fallback.
+      _scenes = Scene.defaults();
+      _activeKey = SceneKeys.normal;
+    }
+  }
+
+  /// Reads a string value, treating a value of any other type as absent.
+  String? _readString(String key) {
+    try {
+      return _sharedPreferences.getString(key);
+    } catch (e) {
+      debugPrint("ScenesService: stored value under '$key' is not a string, ignoring it ($e)");
+      return null;
+    }
+  }
+
+  /// Rebuilds in-memory state from storage, so a failed write can never leave
+  /// the service reporting something storage does not.
+  void _resyncWithStoredState() {
+    _load();
+    notifyListeners();
   }
 
   List<Scene> _decodeScenes(String? payload) {
@@ -354,13 +413,23 @@ class ScenesService extends ChangeNotifier {
     }
   }
 
-  Future<void> _persistScenes() async {
-    await _sharedPreferences.setString(
-      _scenesKey,
-      jsonEncode({
+  String _encodeScenes(List<Scene> scenes) => jsonEncode({
         "version": _scenesPayloadVersion,
-        "scenes": _scenes.map((scene) => scene.toJson()).toList(),
-      }),
-    );
+        "scenes": scenes.map((scene) => scene.toJson()).toList(),
+      });
+
+  /// Writes [value] under [key], reporting failure instead of throwing.
+  ///
+  /// A storage failure must not escape into the widget tree: after this round
+  /// the callers are dock and settings code reacting to a remote-control press,
+  /// and an uncaught exception there is a visible crash on the television.
+  Future<bool> _persistString(String key, String value) async {
+    try {
+      await _sharedPreferences.setString(key, value);
+      return true;
+    } catch (e) {
+      debugPrint("ScenesService: could not persist '$key' ($e)");
+      return false;
+    }
   }
 }
