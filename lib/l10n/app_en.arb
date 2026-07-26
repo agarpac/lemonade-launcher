@@ -110,6 +110,11 @@
         }
     },
     "sceneOverrideUpdateFailed": "Could not save this change.",
+    "sceneOverrideImage": "Image",
+    "sceneOverrideImageSet": "Image set",
+    "sceneOverrideImageNotSet": "No image",
+    "sceneOverrideChooseImage": "Choose image",
+    "sceneOverrideClearImage": "Clear image",
     "spacer": "Spacer",
     "spacerMaxHeightRequirement": "Must be greater than 0 and less than or equal to 500",
     "statusBar": "Status bar",

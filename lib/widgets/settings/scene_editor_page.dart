@@ -7,6 +7,7 @@ import 'package:flauncher/widgets/scene_picker_panel.dart';
 import 'package:flauncher/widgets/settings/focusable_settings_tile.dart';
 import 'package:flauncher/widgets/settings/scene_accent_color_page.dart';
 import 'package:flauncher/widgets/settings/scene_gradient_page.dart';
+import 'package:flauncher/widgets/settings/scene_image_page.dart';
 import 'package:flauncher/widgets/settings/scene_override_page.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -14,11 +15,10 @@ import 'package:provider/provider.dart';
 /// One of the five boolean presentation overrides a [Scene] can carry.
 ///
 /// Deliberately excludes the wallpaper overrides ([Scene.wallpaperPath] and
-/// [Scene.gradientUuid]) and [Scene.accentColorHex]: the wallpaper file
-/// override is out of scope for this editor (see the scene image picker
-/// planned for later), while the gradient and accent overrides each get their
-/// own tile below instead of slotting into this enum, since both carry far
-/// more than three options.
+/// [Scene.gradientUuid]) and [Scene.accentColorHex]: the gradient, image and
+/// accent overrides each get their own tile below instead of slotting into
+/// this enum, since none of the three is a plain three-option choice the way
+/// this enum's fields are.
 enum SceneOverrideField { hideAppBar, showWatchNext, showAppNames, disableBackgroundBlur, showCategoryTitles }
 
 extension SceneOverrideFieldX on SceneOverrideField {
@@ -128,12 +128,14 @@ String sceneOverrideStateLabel(AppLocalizations localizations, bool? override, b
 /// shows an explanation instead of any override control, not even disabled
 /// ones.
 ///
-/// The override tiles are a plain [Column] inside a scrollable body, so a
-/// future scene image control can be added as a further item without
-/// restructuring this page. The gradient and accent colour override tiles are
-/// the first two of those: unlike the five boolean ones, they open
-/// [SceneGradientPage] and [SceneAccentColorPage] respectively rather than
-/// [SceneOverridePage], since each has far more than three options.
+/// The override tiles are a plain [Column] inside a scrollable body. The
+/// gradient, image and accent colour override tiles are the first three of
+/// those: unlike the five boolean ones, they open [SceneGradientPage],
+/// [SceneImagePage] and [SceneAccentColorPage] respectively rather than
+/// [SceneOverridePage], since none of the three is a plain three-option
+/// choice. The gradient and image tiles both control
+/// `Scene.overridesWallpaper` (the two are mutually exclusive — see
+/// [Scene.copyWith]), which is why they sit next to each other.
 class SceneEditorPage extends StatelessWidget {
   static const String routeName = "scene_editor_panel";
 
@@ -170,6 +172,7 @@ class SceneEditorPage extends StatelessWidget {
                       child: Column(
                         children: [
                           _GradientOverrideTile(sceneKey: sceneKey, autofocus: true),
+                          _ImageOverrideTile(sceneKey: sceneKey, autofocus: false),
                           _AccentColorOverrideTile(sceneKey: sceneKey, autofocus: false),
                           for (final field in _fields)
                             _SceneOverrideTile(
@@ -314,6 +317,53 @@ class _GradientOverrideTile extends StatelessWidget {
   String _gradientName(String? uuid) => FLauncherGradients.all
       .firstWhere((candidate) => candidate.uuid == uuid, orElse: () => FLauncherGradients.saintPetersburg)
       .name;
+}
+
+/// Compact tile for the scene's wallpaper *image* override, opening
+/// [SceneImagePage] on selection.
+///
+/// Unlike [_SceneOverrideTile]'s five boolean fields, there is no shared
+/// [SceneOverrideField] entry for the image override: choosing one goes
+/// through a file picker and a copy step, not a fixed set of options, so it
+/// gets its own tile and its own sub-page instead of slotting into that enum
+/// — the same reasoning as [_GradientOverrideTile] and
+/// [_AccentColorOverrideTile]. The trailing label shows only whether an image
+/// is currently set, never a preview: see [SceneImagePage]'s class comment
+/// for why a thumbnail isn't used here.
+class _ImageOverrideTile extends StatelessWidget {
+  final String sceneKey;
+  final bool autofocus;
+
+  const _ImageOverrideTile({required this.sceneKey, this.autofocus = false});
+
+  @override
+  Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
+
+    return Selector<ScenesService, String?>(
+      selector: (_, scenesService) => scenesService.sceneByKey(sceneKey)?.wallpaperPath,
+      builder: (context, wallpaperPath, _) {
+        final label =
+            wallpaperPath == null ? localizations.sceneOverrideImageNotSet : localizations.sceneOverrideImageSet;
+        return FocusableSettingsTile(
+          autofocus: autofocus,
+          leading: const Icon(Icons.image_outlined),
+          title: Text(localizations.sceneOverrideImage, style: Theme.of(context).textTheme.bodyMedium),
+          trailing: Text(
+            label,
+            style: Theme.of(context)
+                .textTheme
+                .bodyMedium
+                ?.copyWith(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.primary),
+          ),
+          onPressed: () => Navigator.of(context).pushNamed(
+            SceneImagePage.routeName,
+            arguments: sceneKey,
+          ),
+        );
+      },
+    );
+  }
 }
 
 /// Compact tile for the scene's accent colour override, opening

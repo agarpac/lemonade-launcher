@@ -548,6 +548,36 @@ abstract class AppLocalizations {
   /// **'Could not save this change.'**
   String get sceneOverrideUpdateFailed;
 
+  /// No description provided for @sceneOverrideImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Image'**
+  String get sceneOverrideImage;
+
+  /// No description provided for @sceneOverrideImageSet.
+  ///
+  /// In en, this message translates to:
+  /// **'Image set'**
+  String get sceneOverrideImageSet;
+
+  /// No description provided for @sceneOverrideImageNotSet.
+  ///
+  /// In en, this message translates to:
+  /// **'No image'**
+  String get sceneOverrideImageNotSet;
+
+  /// No description provided for @sceneOverrideChooseImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose image'**
+  String get sceneOverrideChooseImage;
+
+  /// No description provided for @sceneOverrideClearImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear image'**
+  String get sceneOverrideClearImage;
+
   /// No description provided for @spacer.
   ///
   /// In en, this message translates to:

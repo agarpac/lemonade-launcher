@@ -39,6 +39,7 @@ import 'package:flauncher/widgets/settings/scenes_panel_page.dart';
 import 'package:flauncher/widgets/settings/scene_accent_color_page.dart';
 import 'package:flauncher/widgets/settings/scene_editor_page.dart';
 import 'package:flauncher/widgets/settings/scene_gradient_page.dart';
+import 'package:flauncher/widgets/settings/scene_image_page.dart';
 import 'package:flauncher/widgets/settings/scene_override_page.dart';
 import 'package:flauncher/models/app.dart';
 import 'package:flutter/material.dart';
@@ -130,6 +131,9 @@ class _SettingsPanelState extends State<SettingsPanel> {
                     case SceneAccentColorPage.routeName:
                       return _FastPageRoute(
                           builder: (_) => SceneAccentColorPage(sceneKey: settings.arguments as String));
+                    case SceneImagePage.routeName:
+                      return _FastPageRoute(
+                          builder: (_) => SceneImagePage(sceneKey: settings.arguments as String));
                     default:
                       throw ArgumentError.value(settings.name, "settings.name", "Route not supported.");
                   }

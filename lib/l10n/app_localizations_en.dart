@@ -249,6 +249,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sceneOverrideUpdateFailed => 'Could not save this change.';
 
   @override
+  String get sceneOverrideImage => 'Image';
+
+  @override
+  String get sceneOverrideImageSet => 'Image set';
+
+  @override
+  String get sceneOverrideImageNotSet => 'No image';
+
+  @override
+  String get sceneOverrideChooseImage => 'Choose image';
+
+  @override
+  String get sceneOverrideClearImage => 'Clear image';
+
+  @override
   String get spacer => 'Spacer';
 
   @override

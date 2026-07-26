@@ -24,6 +24,7 @@ import 'package:flauncher/providers/settings_service.dart';
 import 'package:flauncher/widgets/settings/scene_accent_color_page.dart';
 import 'package:flauncher/widgets/settings/scene_editor_page.dart';
 import 'package:flauncher/widgets/settings/scene_gradient_page.dart';
+import 'package:flauncher/widgets/settings/scene_image_page.dart';
 import 'package:flauncher/widgets/settings/scene_override_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -66,6 +67,8 @@ void main() {
     expect(find.text("Show category titles"), findsNothing);
     // Nor is the gradient override tile: it follows the exact same rule.
     expect(find.text("Gradient"), findsNothing);
+    // Nor is the image override tile: it follows the exact same rule.
+    expect(find.text("Image"), findsNothing);
     // Nor is the accent colour override tile: it follows the exact same rule.
     expect(find.text("Accent color"), findsNothing);
   });
@@ -101,9 +104,61 @@ void main() {
     // naming the user's own current gradient.
     expect(find.text("Gradient"), findsOneWidget);
     expect(find.text("Inherit (Saint Petersburg)"), findsOneWidget);
+    // So does the image tile, showing "no image" since this fixture has no
+    // wallpaperPath override.
+    expect(find.text("Image"), findsOneWidget);
+    expect(find.text("No image"), findsOneWidget);
     // So does the accent colour tile, naming the user's own current accent.
     expect(find.text("Accent color"), findsOneWidget);
     expect(find.text("Inherit (White)"), findsOneWidget);
+  });
+
+  testWidgets("The image tile shows 'Image set' when the scene has a wallpaperPath override", (tester) async {
+    final scenesService = MockScenesService();
+    final settingsService = MockSettingsService();
+    when(scenesService.sceneByKey(any))
+        .thenReturn(fakeScene(key: SceneKeys.cinema, name: "Cinema", wallpaperPath: "scene_wallpaper_cinema"));
+    when(settingsService.userAutoHideAppBarEnabled).thenReturn(false);
+    when(settingsService.userShowWatchNextSection).thenReturn(false);
+    when(settingsService.userShowAppNamesBelowIcons).thenReturn(false);
+    when(settingsService.userBackgroundBlurDisabled).thenReturn(false);
+    when(settingsService.userShowCategoryTitles).thenReturn(false);
+    when(settingsService.gradientUuid).thenReturn(FLauncherGradients.saintPetersburg.uuid);
+    when(settingsService.userAccentColorHex).thenReturn(ACCENT_COLOR_WHITE);
+
+    await _pumpWidgetWithProviders(
+      tester,
+      scenesService,
+      settingsService,
+      SceneEditorPage(sceneKey: SceneKeys.cinema),
+    );
+
+    expect(find.text("Image set"), findsOneWidget);
+  });
+
+  testWidgets("Tapping the image tile opens SceneImagePage", (tester) async {
+    final scenesService = MockScenesService();
+    final settingsService = MockSettingsService();
+    when(scenesService.sceneByKey(any)).thenReturn(fakeScene(key: SceneKeys.cinema, name: "Cinema"));
+    when(settingsService.userAutoHideAppBarEnabled).thenReturn(false);
+    when(settingsService.userShowWatchNextSection).thenReturn(false);
+    when(settingsService.userShowAppNamesBelowIcons).thenReturn(false);
+    when(settingsService.userBackgroundBlurDisabled).thenReturn(false);
+    when(settingsService.userShowCategoryTitles).thenReturn(false);
+    when(settingsService.gradientUuid).thenReturn(FLauncherGradients.saintPetersburg.uuid);
+    when(settingsService.userAccentColorHex).thenReturn(ACCENT_COLOR_WHITE);
+
+    await _pumpWidgetWithProviders(
+      tester,
+      scenesService,
+      settingsService,
+      SceneEditorPage(sceneKey: SceneKeys.cinema),
+    );
+
+    await tester.tap(find.text("Image"));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(Key("SceneImagePage")), findsOneWidget);
   });
 
   testWidgets("Tapping an override tile opens SceneOverridePage", (tester) async {
@@ -201,6 +256,7 @@ Future<void> _pumpWidgetWithProviders(
           SceneOverridePage.routeName: (_) => Container(key: Key("SceneOverridePage")),
           SceneGradientPage.routeName: (_) => Container(key: Key("SceneGradientPage")),
           SceneAccentColorPage.routeName: (_) => Container(key: Key("SceneAccentColorPage")),
+          SceneImagePage.routeName: (_) => Container(key: Key("SceneImagePage")),
         },
         home: Scaffold(body: child),
       ),

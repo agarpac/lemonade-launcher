@@ -65,6 +65,7 @@ App fakeApp({
 Scene fakeScene({
   String key = SceneKeys.cinema,
   String name = "Cinema",
+  String? wallpaperPath,
   String? gradientUuid,
   bool? hideAppBar,
   bool? showWatchNext,
@@ -76,6 +77,7 @@ Scene fakeScene({
     Scene(
       key: key,
       name: name,
+      wallpaperPath: wallpaperPath,
       gradientUuid: gradientUuid,
       hideAppBar: hideAppBar,
       showWatchNext: showWatchNext,

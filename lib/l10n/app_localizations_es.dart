@@ -255,6 +255,21 @@ class AppLocalizationsEs extends AppLocalizations {
       'No se ha podido guardar este cambio.';
 
   @override
+  String get sceneOverrideImage => 'Imagen';
+
+  @override
+  String get sceneOverrideImageSet => 'Imagen establecida';
+
+  @override
+  String get sceneOverrideImageNotSet => 'Sin imagen';
+
+  @override
+  String get sceneOverrideChooseImage => 'Elegir imagen';
+
+  @override
+  String get sceneOverrideClearImage => 'Quitar imagen';
+
+  @override
   String get spacer => 'Espaciador';
 
   @override
