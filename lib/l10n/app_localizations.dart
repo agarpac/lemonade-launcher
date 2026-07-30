@@ -134,6 +134,12 @@ abstract class AppLocalizations {
   /// **'Show focus borders'**
   String get showFocusBorders;
 
+  /// No description provided for @showContentShortcutHandle.
+  ///
+  /// In en, this message translates to:
+  /// **'Show the channel handle instead of the shortcut name'**
+  String get showContentShortcutHandle;
+
   /// No description provided for @appInfo.
   ///
   /// In en, this message translates to:

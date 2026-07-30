@@ -548,6 +548,7 @@ SettingsService mkSettingsService() {
   when(settingsService.dockShadowEnabled).thenReturn(false);
   when(settingsService.accentColorHex).thenReturn("FFFFFF");
   when(settingsService.showFocusBorders).thenReturn(true);
+  when(settingsService.showContentShortcutHandle).thenReturn(true);
   when(settingsService.autoHideAppBarEnabled).thenReturn(false);
   when(settingsService.showNetworkIndicatorInStatusBar).thenReturn(false);
   when(settingsService.showWifiWidgetInStatusBar).thenReturn(false);

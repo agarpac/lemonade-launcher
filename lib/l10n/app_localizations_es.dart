@@ -27,6 +27,10 @@ class AppLocalizationsEs extends AppLocalizations {
   String get showFocusBorders => 'Mostrar bordes de enfoque';
 
   @override
+  String get showContentShortcutHandle =>
+      'Mostrar el identificador del canal en lugar del nombre del acceso directo';
+
+  @override
   String get appInfo => 'Datos de la aplicación';
 
   @override

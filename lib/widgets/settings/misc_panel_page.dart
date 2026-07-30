@@ -56,6 +56,12 @@ class MiscPanelPage extends StatelessWidget {
                 secondary: Icon(Icons.border_outer),
               ),
               RoundedSwitchListTile(
+                value: settingsService.showContentShortcutHandle,
+                onChanged: (value) => settingsService.setShowContentShortcutHandle(value),
+                title: Text(localizations.showContentShortcutHandle, style: Theme.of(context).textTheme.bodyMedium),
+                secondary: Icon(Icons.alternate_email),
+              ),
+              RoundedSwitchListTile(
                 value: settingsService.userShowWatchNextSection,
                 onChanged: (value) async {
                   await settingsService.setShowWatchNextSection(value);

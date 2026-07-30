@@ -177,9 +177,9 @@ class _ContentShortcutCardState extends State<ContentShortcutCard> {
 
   @override
   Widget build(BuildContext context) {
-    final (bool showNames, String accentColorHex, bool showFocusBorders) =
-        context.select<SettingsService, (bool, String, bool)>(
-      (s) => (s.showAppNamesBelowIcons, s.accentColorHex, s.showFocusBorders),
+    final (bool showNames, String accentColorHex, bool showFocusBorders, bool showContentShortcutHandle) =
+        context.select<SettingsService, (bool, String, bool, bool)>(
+      (s) => (s.showAppNamesBelowIcons, s.accentColorHex, s.showFocusBorders, s.showContentShortcutHandle),
     );
     if (accentColorHex != _accentColorHex) {
       _accentColorHex = accentColorHex;
@@ -233,7 +233,7 @@ class _ContentShortcutCardState extends State<ContentShortcutCard> {
                                   focusColor: Colors.transparent,
                                   onTap: () => _onPressed(LogicalKeyboardKey.enter),
                                   onFocusChange: _handleFocusChange,
-                                  child: _cardContent(context, artwork),
+                                  child: _cardContent(context, artwork, showContentShortcutHandle),
                                 ),
                                 IgnorePointer(
                                   child: AnimatedOpacity(
@@ -289,7 +289,14 @@ class _ContentShortcutCardState extends State<ContentShortcutCard> {
   ///
   /// Everything is inside a [FittedBox] so a long label scales down instead of
   /// overflowing a card whose height the row decides.
-  Widget _cardContent(BuildContext context, ImageProvider? artwork) {
+  ///
+  /// [showHandle] governs the icon-fallback branch's centre text only: when
+  /// true (the default) it is the destination's `@handle`, falling back to
+  /// the shortcut's own label exactly as before when the address names none;
+  /// when false it is always the label. The line under the card, drawn by
+  /// [build] when [SettingsService.showAppNamesBelowIcons] is on, is
+  /// untouched by this and always shows the label.
+  Widget _cardContent(BuildContext context, ImageProvider? artwork, bool showHandle) {
     final AppLocalizations localizations = AppLocalizations.of(context)!;
     final bool launchable = _launchable;
     final Color disabledColor = Theme.of(context).disabledColor;
@@ -351,12 +358,13 @@ class _ContentShortcutCardState extends State<ContentShortcutCard> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        // The handle when the destination has one, the user's
-                        // label otherwise: "@canal" says what this opens, while
-                        // a name like "test" says nothing once there are
-                        // several. The label still appears under the card when
-                        // app names are switched on.
-                        contentShortcutHandle(widget.shortcut.uri) ?? widget.shortcut.label,
+                        // The handle when [showHandle] asks for it and the
+                        // destination has one, the user's label otherwise:
+                        // "@canal" says what this opens, while a name like
+                        // "test" says nothing once there are several. The
+                        // label still appears under the card when app names
+                        // are switched on, regardless of this setting.
+                        (showHandle ? contentShortcutHandle(widget.shortcut.uri) : null) ?? widget.shortcut.label,
                         style: Theme.of(context).textTheme.bodySmall,
                         overflow: TextOverflow.ellipsis,
                         maxLines: 2,

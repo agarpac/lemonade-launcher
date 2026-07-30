@@ -50,6 +50,7 @@ const String _showWeather = "show_weather";
 const String _weatherLatitude = "weather_latitude";
 const String _weatherLongitude = "weather_longitude";
 const String _weatherLocationLabel = "weather_location_label";
+const String _showContentShortcutHandle = "show_content_shortcut_handle";
 
 // WiFi usage period options
 const String WIFI_USAGE_DAILY = "daily";
@@ -182,6 +183,17 @@ class SettingsService extends ChangeNotifier {
   bool get dockShadowEnabled => _sharedPreferences.getBool(_dockShadowEnabled) ?? false;
 
   bool get showFocusBorders => _sharedPreferences.getBool(_showFocusBorders) ?? true;
+
+  /// Whether a content shortcut card's centre text is the destination's
+  /// `@handle` (the default) rather than the shortcut's own label. Read
+  /// through [_readBool] because the backup feature imports a user-supplied
+  /// JSON straight into the preference store, so a value of the wrong type
+  /// under this key is reachable input, not just a theoretical one.
+  ///
+  /// This governs the centre of the card only: the label shown *under* the
+  /// card is controlled by [showAppNamesBelowIcons] and always stays the
+  /// label, whatever this setting says.
+  bool get showContentShortcutHandle => _readBool(_showContentShortcutHandle) ?? true;
 
   // ---------------------------------------------------------------------
   // Weather (PRD sections 3.A and 6).
@@ -377,6 +389,10 @@ class SettingsService extends ChangeNotifier {
     if (!value) {
       await setAppHighlightAnimationEnabled(false);
     }
+  }
+
+  Future<void> setShowContentShortcutHandle(bool value) async {
+    return set(_showContentShortcutHandle, value);
   }
 
   Future<void> setShowWeather(bool value) async {

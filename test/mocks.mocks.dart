@@ -1964,6 +1964,12 @@ class MockSettingsService extends _i1.Mock implements _i22.SettingsService {
       ) as bool);
 
   @override
+  bool get showContentShortcutHandle => (super.noSuchMethod(
+        Invocation.getter(#showContentShortcutHandle),
+        returnValue: false,
+      ) as bool);
+
+  @override
   bool get showWeather => (super.noSuchMethod(
         Invocation.getter(#showWeather),
         returnValue: false,
@@ -2235,6 +2241,17 @@ class MockSettingsService extends _i1.Mock implements _i22.SettingsService {
   _i12.Future<void> setShowFocusBorders(bool? value) => (super.noSuchMethod(
         Invocation.method(
           #setShowFocusBorders,
+          [value],
+        ),
+        returnValue: _i12.Future<void>.value(),
+        returnValueForMissingStub: _i12.Future<void>.value(),
+      ) as _i12.Future<void>);
+
+  @override
+  _i12.Future<void> setShowContentShortcutHandle(bool? value) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #setShowContentShortcutHandle,
           [value],
         ),
         returnValue: _i12.Future<void>.value(),

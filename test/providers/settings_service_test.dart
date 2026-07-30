@@ -95,4 +95,24 @@ void main() async {
       expect(settingsService.dateFormat, expected);
     });
   });
+
+  group("showContentShortcutHandle", () {
+    test("defaults to true, i.e. the handle, with nothing stored", () async {
+      expect(settingsService.showContentShortcutHandle, isTrue);
+    });
+
+    test("setShowContentShortcutHandle persists false and is read back", () async {
+      await settingsService.setShowContentShortcutHandle(false);
+
+      expect(settingsService.showContentShortcutHandle, isFalse);
+      expect(sharedPreferences.getBool("show_content_shortcut_handle"), isFalse);
+    });
+
+    test("setShowContentShortcutHandle can be flipped back to true", () async {
+      await settingsService.setShowContentShortcutHandle(false);
+      await settingsService.setShowContentShortcutHandle(true);
+
+      expect(settingsService.showContentShortcutHandle, isTrue);
+    });
+  });
 }

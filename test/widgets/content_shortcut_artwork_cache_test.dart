@@ -178,6 +178,7 @@ Future<void> _pumpRow(WidgetTester tester, ContentShortcutArtworkService artwork
   when(settingsService.showAppNamesBelowIcons).thenReturn(false);
   when(settingsService.accentColorHex).thenReturn("FFFFFF");
   when(settingsService.showFocusBorders).thenReturn(true);
+  when(settingsService.showContentShortcutHandle).thenReturn(true);
 
   await tester.pumpWidget(
     MultiProvider(

@@ -27,6 +27,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get showFocusBorders => 'Show focus borders';
 
   @override
+  String get showContentShortcutHandle =>
+      'Show the channel handle instead of the shortcut name';
+
+  @override
   String get appInfo => 'Application info';
 
   @override

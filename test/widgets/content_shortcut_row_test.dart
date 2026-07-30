@@ -87,6 +87,62 @@ void main() {
     expect(find.text("Subscriptions"), findsOneWidget);
   });
 
+  testWidgets(
+      "With the handle setting on, an address that names no handle still falls back to the label, "
+      "exactly as when the setting does not exist", (tester) async {
+    final appsService = _mkAppsService();
+    final section = _mkSection([
+      _mkShortcut(id: 1, label: "Subscriptions", uri: "https://www.youtube.com/feed/subscriptions"),
+    ]);
+
+    await _pumpRow(tester, appsService, section, showContentShortcutHandle: true);
+
+    expect(find.text("Subscriptions"), findsOneWidget);
+  });
+
+  testWidgets("With the setting switched off, the card shows the typed name instead of the handle", (tester) async {
+    final appsService = _mkAppsService();
+    final section = _mkSection([
+      _mkShortcut(id: 1, label: "test", uri: "https://www.youtube.com/@LinusTechTips"),
+    ]);
+
+    await _pumpRow(tester, appsService, section, showContentShortcutHandle: false);
+
+    expect(find.text("test"), findsOneWidget);
+    expect(find.text("@LinusTechTips"), findsNothing);
+  });
+
+  testWidgets(
+      "The label under the card is unaffected by the handle setting: it shows even when the centre shows the handle",
+      (tester) async {
+    final appsService = _mkAppsService();
+    final section = _mkSection([
+      _mkShortcut(id: 1, label: "Linus channel", uri: "https://www.youtube.com/@LinusTechTips"),
+    ]);
+
+    await _pumpRow(tester, appsService, section, showAppNames: true, showContentShortcutHandle: true);
+
+    // The centre shows the handle, the line below still shows the label.
+    expect(find.text("@LinusTechTips"), findsOneWidget);
+    expect(find.text("Linus channel"), findsOneWidget);
+  });
+
+  testWidgets(
+      "The label under the card is unaffected by the handle setting: it shows even when the centre also shows "
+      "the label", (tester) async {
+    final appsService = _mkAppsService();
+    final section = _mkSection([
+      _mkShortcut(id: 1, label: "Linus channel", uri: "https://www.youtube.com/@LinusTechTips"),
+    ]);
+
+    await _pumpRow(tester, appsService, section, showAppNames: true, showContentShortcutHandle: false);
+
+    // With the setting off, the label appears twice: once in the centre,
+    // once on the line below.
+    expect(find.text("Linus channel"), findsNWidgets(2));
+    expect(find.text("@LinusTechTips"), findsNothing);
+  });
+
   testWidgets("The first shortcut takes the focus, and pressing it launches it", (tester) async {
     final appsService = _mkAppsService();
     final shortcut = _mkShortcut(id: 1, label: "Subscriptions");
@@ -357,11 +413,12 @@ MockContentShortcutArtworkService _mkArtworkService([Map<int, ImageProvider> art
   return artworkService;
 }
 
-MockSettingsService _mkSettingsService({bool showAppNames = false}) {
+MockSettingsService _mkSettingsService({bool showAppNames = false, bool showContentShortcutHandle = true}) {
   final settingsService = MockSettingsService();
   when(settingsService.showAppNamesBelowIcons).thenReturn(showAppNames);
   when(settingsService.accentColorHex).thenReturn("FFFFFF");
   when(settingsService.showFocusBorders).thenReturn(true);
+  when(settingsService.showContentShortcutHandle).thenReturn(showContentShortcutHandle);
   return settingsService;
 }
 
@@ -371,6 +428,7 @@ Future<void> _pumpRow(
   ContentShortcutSection section, {
   bool isFirstSection = false,
   bool showAppNames = false,
+  bool showContentShortcutHandle = true,
   VoidCallback? onSettings,
   Map<int, ImageProvider> artworkByShortcutId = const {},
 }) async {
@@ -378,7 +436,9 @@ Future<void> _pumpRow(
     MultiProvider(
       providers: [
         ChangeNotifierProvider<AppsService>.value(value: appsService),
-        ChangeNotifierProvider<SettingsService>.value(value: _mkSettingsService(showAppNames: showAppNames)),
+        ChangeNotifierProvider<SettingsService>.value(
+          value: _mkSettingsService(showAppNames: showAppNames, showContentShortcutHandle: showContentShortcutHandle),
+        ),
         ChangeNotifierProvider<ContentShortcutArtworkService>.value(value: _mkArtworkService(artworkByShortcutId)),
       ],
       builder: (_, __) => MaterialApp(

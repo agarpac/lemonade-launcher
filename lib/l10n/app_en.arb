@@ -5,6 +5,7 @@
     "alphabetical": "Alphabetical",
     "appCardHighlightAnimation": "App card highlight animation",
     "showFocusBorders": "Show focus borders",
+    "showContentShortcutHandle": "Show the channel handle instead of the shortcut name",
     "appInfo": "Application info",
     "appKeyClick": "Click sound on key press",
     "appearanceSettings": "Appearance",
