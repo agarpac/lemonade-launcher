@@ -37,7 +37,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// would restore a configuration the user never had.
 ///
 /// * 1 — initial shape: `settings`, `wallpapers`, `database`.
-const int backupSchemaVersion = 1;
+/// * 2 — adds the `content_shortcuts` table to `database`. A version 1 file is
+///   still imported as-is: it simply describes a configuration with no content
+///   shortcuts, which is exactly what it was.
+const int backupSchemaVersion = 2;
 
 /// Prefix of the exported file name. The rest is a local timestamp, so two
 /// exports never overwrite each other and `adb pull` picks the newest by name.
@@ -150,6 +153,7 @@ class BackupExportResult {
   final int categoriesCount;
   final int appsCategoriesCount;
   final int spacersCount;
+  final int contentShortcutsCount;
 
   /// English, non-localized detail for logs and bug reports. The UI shows a
   /// localized message chosen from [status], never this string.
@@ -164,6 +168,7 @@ class BackupExportResult {
     this.categoriesCount = 0,
     this.appsCategoriesCount = 0,
     this.spacersCount = 0,
+    this.contentShortcutsCount = 0,
     this.message,
   });
 
@@ -184,11 +189,21 @@ class BackupImportResult {
   /// to pick them again. Their binaries were never in the file.
   final List<String> wallpapersToReselect;
 
+  /// Target packages of the content shortcuts the file carried that are **not**
+  /// installed here.
+  ///
+  /// Reported, never skipped: the rule for a shortcut is the opposite of the rule
+  /// for an app row (see the PRD, section 12.3, point 5). The shortcut is
+  /// restored and marked unavailable, so installing the target later brings it
+  /// back to life instead of leaving the user to type the URI again.
+  final List<String> unavailableShortcutTargetPackages;
+
   final int restoredSettings;
   final int restoredApps;
   final int restoredCategories;
   final int restoredAppsCategories;
   final int restoredSpacers;
+  final int restoredContentShortcuts;
 
   /// English, non-localized detail for logs and bug reports. The UI shows a
   /// localized message chosen from [status], never this string.
@@ -198,11 +213,13 @@ class BackupImportResult {
     required this.status,
     this.skippedPackageNames = const [],
     this.wallpapersToReselect = const [],
+    this.unavailableShortcutTargetPackages = const [],
     this.restoredSettings = 0,
     this.restoredApps = 0,
     this.restoredCategories = 0,
     this.restoredAppsCategories = 0,
     this.restoredSpacers = 0,
+    this.restoredContentShortcuts = 0,
     this.message,
   });
 
@@ -212,7 +229,7 @@ class BackupImportResult {
 
 /// Exports and restores the launcher configuration: the `shared_preferences`
 /// values (which include the scenes payload and the active scene key) and the
-/// four Drift tables.
+/// five Drift tables.
 ///
 /// Wallpaper binaries are never included; only the fact that a wallpaper
 /// existed is recorded, and a restore reports which ones have to be picked
@@ -289,6 +306,10 @@ class BackupService {
       final appsCategories =
           await _exportRows('SELECT * FROM apps_categories ORDER BY category_id, "order"', _appCategoryRowToJson);
       final spacers = await _exportRows('SELECT * FROM launcher_spacers ORDER BY "order"', _spacerRowToJson);
+      final contentShortcuts = await _exportRows(
+        'SELECT * FROM content_shortcuts ORDER BY section_order, section_id, "order"',
+        _contentShortcutRowToJson,
+      );
 
       final payload = <String, Object?>{
         "schemaVersion": backupSchemaVersion,
@@ -301,6 +322,7 @@ class BackupService {
           "categories": categories,
           "apps_categories": appsCategories,
           "launcher_spacers": spacers,
+          "content_shortcuts": contentShortcuts,
         },
       };
 
@@ -317,6 +339,7 @@ class BackupService {
         categoriesCount: categories.length,
         appsCategoriesCount: appsCategories.length,
         spacersCount: spacers.length,
+        contentShortcutsCount: contentShortcuts.length,
       );
     } catch (e) {
       return BackupExportResult(status: BackupExportStatus.failed, message: "Could not write the backup file: $e");
@@ -444,6 +467,16 @@ class BackupService {
         "order": row.read<int>("order"),
       };
 
+  static Map<String, Object?> _contentShortcutRowToJson(QueryRow row) => {
+        "id": row.read<int>("id"),
+        "section_id": row.read<int>("section_id"),
+        "section_order": row.read<int>("section_order"),
+        "order": row.read<int>("order"),
+        "label": row.read<String>("label"),
+        "uri": row.read<String>("uri"),
+        "target_package": row.read<String>("target_package"),
+      };
+
   static String _fileNameTimestamp(DateTime now) {
     String two(int value) => value.toString().padLeft(2, "0");
     return "${now.year}${two(now.month)}${two(now.day)}-${two(now.hour)}${two(now.minute)}${two(now.second)}";
@@ -518,11 +551,13 @@ class BackupService {
         status: status,
         skippedPackageNames: plan.skippedPackageNames,
         wallpapersToReselect: plan.wallpapersToReselect,
+        unavailableShortcutTargetPackages: plan.unavailableShortcutTargetPackages,
         restoredSettings: plan.settingsCount,
         restoredApps: plan.apps.length,
         restoredCategories: plan.categories.length,
         restoredAppsCategories: plan.appsCategories.length,
         restoredSpacers: plan.spacers.length,
+        restoredContentShortcuts: plan.contentShortcuts.length,
         message: message,
       );
 
@@ -591,6 +626,11 @@ class BackupService {
       categories: _parseTable(database, "categories", _categoryFromJson),
       appsCategories: _parseTable(database, "apps_categories", _appCategoryFromJson),
       spacers: _parseTable(database, "launcher_spacers", _spacerFromJson),
+      // Absent in every file written before backup format version 2, which
+      // simply had no content shortcuts. A missing table here therefore means
+      // "none", not "malformed" — that is the whole reason the version was
+      // bumped rather than the table made mandatory.
+      contentShortcuts: _parseTable(database, "content_shortcuts", _contentShortcutFromJson, required: false),
     );
   }
 
@@ -641,10 +681,14 @@ class BackupService {
   static List<T> _parseTable<T>(
     Map<String, dynamic> database,
     String table,
-    T Function(Map<String, dynamic> row, String table) fromJson,
-  ) {
+    T Function(Map<String, dynamic> row, String table) fromJson, {
+    bool required = true,
+  }) {
     final raw = database[table];
     if (raw == null) {
+      if (!required) {
+        return const [];
+      }
       throw _BackupRejected(BackupImportStatus.invalidFile, "The '$table' table is missing");
     }
     if (raw is! List) {
@@ -688,6 +732,17 @@ class BackupService {
         id: Value(_requiredInt(row, "id", table)),
         height: _requiredInt(row, "height", table),
         order: _requiredInt(row, "order", table),
+      );
+
+  static ContentShortcutsCompanion _contentShortcutFromJson(Map<String, dynamic> row, String table) =>
+      ContentShortcutsCompanion.insert(
+        id: Value(_requiredInt(row, "id", table)),
+        sectionId: _requiredInt(row, "section_id", table),
+        sectionOrder: _requiredInt(row, "section_order", table),
+        order: _requiredInt(row, "order", table),
+        label: _requiredString(row, "label", table),
+        uri: _requiredString(row, "uri", table),
+        targetPackage: _requiredString(row, "target_package", table),
       );
 
   /// Resolves a persisted enum index, degrading to [fallback] when it names no
@@ -818,28 +873,48 @@ class BackupService {
             keptPackageNames.contains(entry.appPackageName.value) && categoryIds.contains(entry.categoryId.value))
         .toList(growable: false);
 
+    // Content shortcuts follow the opposite rule to app rows: **every** one is
+    // restored, whether or not its target package is installed. An app row that
+    // points at nothing would put a dead entry in the dock, but a shortcut is
+    // only marked unavailable (see the PRD, section 12.3, point 5), and its
+    // label, URI and target are exactly the part the user typed by hand with a
+    // remote. Dropping them silently would be the one thing a restore must never
+    // do; the packages that are missing are reported instead.
+    final unavailableTargets = <String>[];
+    for (final shortcut in backup.contentShortcuts) {
+      final targetPackage = shortcut.targetPackage.value;
+      if (!installedPackageNames.contains(targetPackage) && !unavailableTargets.contains(targetPackage)) {
+        unavailableTargets.add(targetPackage);
+      }
+    }
+
     return _RestorePlan(
       apps: keptApps,
       categories: backup.categories,
       appsCategories: keptAppsCategories,
       spacers: backup.spacers,
+      contentShortcuts: backup.contentShortcuts,
       settingsCount: backup.settings.length,
       skippedPackageNames: skipped,
+      unavailableShortcutTargetPackages: unavailableTargets,
       wallpapersToReselect:
           backup.wallpapers.where((name) => !presentWallpaperNames.contains(name)).toList(growable: false),
     );
   }
 
-  /// Replaces the contents of the four tables in **one** transaction: either
+  /// Replaces the contents of the five tables in **one** transaction: either
   /// every row of the plan lands, or the database is left exactly as it was.
   /// Drift rolls the transaction back when the body throws, and rethrows.
   ///
   /// Order matters: the child rows go first on the way out and last on the way
   /// in, because `apps_categories` references both `apps` and `categories` and
   /// `PRAGMA foreign_keys` is ON (see `FLauncherDatabase.migration`).
+  /// `content_shortcuts` deliberately references nothing, so its position in
+  /// this order is free.
   Future<void> _restoreDatabase(_RestorePlan plan) => _database.transaction(() async {
         await _database.delete(_database.appsCategories).go();
         await _database.delete(_database.launcherSpacers).go();
+        await _database.delete(_database.contentShortcuts).go();
         await _database.delete(_database.categories).go();
         await _database.delete(_database.apps).go();
 
@@ -851,6 +926,9 @@ class BackupService {
         }
         for (final spacer in plan.spacers) {
           await _database.into(_database.launcherSpacers).insert(spacer);
+        }
+        for (final shortcut in plan.contentShortcuts) {
+          await _database.into(_database.contentShortcuts).insert(shortcut);
         }
         for (final entry in plan.appsCategories) {
           await _database.into(_database.appsCategories).insert(entry);
@@ -918,6 +996,7 @@ class _Backup {
   final List<CategoriesCompanion> categories;
   final List<AppsCategoriesCompanion> appsCategories;
   final List<LauncherSpacersCompanion> spacers;
+  final List<ContentShortcutsCompanion> contentShortcuts;
 
   const _Backup({
     required this.settings,
@@ -926,6 +1005,7 @@ class _Backup {
     required this.categories,
     required this.appsCategories,
     required this.spacers,
+    required this.contentShortcuts,
   });
 }
 
@@ -935,8 +1015,10 @@ class _RestorePlan {
   final List<CategoriesCompanion> categories;
   final List<AppsCategoriesCompanion> appsCategories;
   final List<LauncherSpacersCompanion> spacers;
+  final List<ContentShortcutsCompanion> contentShortcuts;
   final int settingsCount;
   final List<String> skippedPackageNames;
+  final List<String> unavailableShortcutTargetPackages;
   final List<String> wallpapersToReselect;
 
   const _RestorePlan({
@@ -944,8 +1026,10 @@ class _RestorePlan {
     required this.categories,
     required this.appsCategories,
     required this.spacers,
+    required this.contentShortcuts,
     required this.settingsCount,
     required this.skippedPackageNames,
+    required this.unavailableShortcutTargetPackages,
     required this.wallpapersToReselect,
   });
 }

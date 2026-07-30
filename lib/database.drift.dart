@@ -832,6 +832,394 @@ class LauncherSpacersCompanion extends UpdateCompanion<LauncherSpacer> {
   }
 }
 
+class $ContentShortcutsTable extends ContentShortcuts
+    with TableInfo<$ContentShortcutsTable, ContentShortcutRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ContentShortcutsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+      'id', aliasedName, false,
+      hasAutoIncrement: true,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('PRIMARY KEY AUTOINCREMENT'));
+  static const VerificationMeta _sectionIdMeta =
+      const VerificationMeta('sectionId');
+  @override
+  late final GeneratedColumn<int> sectionId = GeneratedColumn<int>(
+      'section_id', aliasedName, false,
+      type: DriftSqlType.int, requiredDuringInsert: true);
+  static const VerificationMeta _sectionOrderMeta =
+      const VerificationMeta('sectionOrder');
+  @override
+  late final GeneratedColumn<int> sectionOrder = GeneratedColumn<int>(
+      'section_order', aliasedName, false,
+      type: DriftSqlType.int, requiredDuringInsert: true);
+  static const VerificationMeta _orderMeta = const VerificationMeta('order');
+  @override
+  late final GeneratedColumn<int> order = GeneratedColumn<int>(
+      'order', aliasedName, false,
+      type: DriftSqlType.int, requiredDuringInsert: true);
+  static const VerificationMeta _labelMeta = const VerificationMeta('label');
+  @override
+  late final GeneratedColumn<String> label = GeneratedColumn<String>(
+      'label', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _uriMeta = const VerificationMeta('uri');
+  @override
+  late final GeneratedColumn<String> uri = GeneratedColumn<String>(
+      'uri', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _targetPackageMeta =
+      const VerificationMeta('targetPackage');
+  @override
+  late final GeneratedColumn<String> targetPackage = GeneratedColumn<String>(
+      'target_package', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  @override
+  List<GeneratedColumn> get $columns =>
+      [id, sectionId, sectionOrder, order, label, uri, targetPackage];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'content_shortcuts';
+  @override
+  VerificationContext validateIntegrity(Insertable<ContentShortcutRow> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('section_id')) {
+      context.handle(_sectionIdMeta,
+          sectionId.isAcceptableOrUnknown(data['section_id']!, _sectionIdMeta));
+    } else if (isInserting) {
+      context.missing(_sectionIdMeta);
+    }
+    if (data.containsKey('section_order')) {
+      context.handle(
+          _sectionOrderMeta,
+          sectionOrder.isAcceptableOrUnknown(
+              data['section_order']!, _sectionOrderMeta));
+    } else if (isInserting) {
+      context.missing(_sectionOrderMeta);
+    }
+    if (data.containsKey('order')) {
+      context.handle(
+          _orderMeta, order.isAcceptableOrUnknown(data['order']!, _orderMeta));
+    } else if (isInserting) {
+      context.missing(_orderMeta);
+    }
+    if (data.containsKey('label')) {
+      context.handle(
+          _labelMeta, label.isAcceptableOrUnknown(data['label']!, _labelMeta));
+    } else if (isInserting) {
+      context.missing(_labelMeta);
+    }
+    if (data.containsKey('uri')) {
+      context.handle(
+          _uriMeta, uri.isAcceptableOrUnknown(data['uri']!, _uriMeta));
+    } else if (isInserting) {
+      context.missing(_uriMeta);
+    }
+    if (data.containsKey('target_package')) {
+      context.handle(
+          _targetPackageMeta,
+          targetPackage.isAcceptableOrUnknown(
+              data['target_package']!, _targetPackageMeta));
+    } else if (isInserting) {
+      context.missing(_targetPackageMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ContentShortcutRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ContentShortcutRow(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}id'])!,
+      sectionId: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}section_id'])!,
+      sectionOrder: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}section_order'])!,
+      order: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}order'])!,
+      label: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}label'])!,
+      uri: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}uri'])!,
+      targetPackage: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}target_package'])!,
+    );
+  }
+
+  @override
+  $ContentShortcutsTable createAlias(String alias) {
+    return $ContentShortcutsTable(attachedDatabase, alias);
+  }
+}
+
+class ContentShortcutRow extends DataClass
+    implements Insertable<ContentShortcutRow> {
+  final int id;
+
+  /// Groups shortcuts into one launcher section.
+  final int sectionId;
+
+  /// The order that places the whole section among the launcher's sections.
+  /// Held by every row of the section and always written for the whole group at
+  /// once, by `FLauncherDatabase.updateContentShortcutSectionOrder`.
+  final int sectionOrder;
+
+  /// Position of this shortcut inside its section.
+  final int order;
+  final String label;
+  final String uri;
+  final String targetPackage;
+  const ContentShortcutRow(
+      {required this.id,
+      required this.sectionId,
+      required this.sectionOrder,
+      required this.order,
+      required this.label,
+      required this.uri,
+      required this.targetPackage});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['section_id'] = Variable<int>(sectionId);
+    map['section_order'] = Variable<int>(sectionOrder);
+    map['order'] = Variable<int>(order);
+    map['label'] = Variable<String>(label);
+    map['uri'] = Variable<String>(uri);
+    map['target_package'] = Variable<String>(targetPackage);
+    return map;
+  }
+
+  ContentShortcutsCompanion toCompanion(bool nullToAbsent) {
+    return ContentShortcutsCompanion(
+      id: Value(id),
+      sectionId: Value(sectionId),
+      sectionOrder: Value(sectionOrder),
+      order: Value(order),
+      label: Value(label),
+      uri: Value(uri),
+      targetPackage: Value(targetPackage),
+    );
+  }
+
+  factory ContentShortcutRow.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ContentShortcutRow(
+      id: serializer.fromJson<int>(json['id']),
+      sectionId: serializer.fromJson<int>(json['sectionId']),
+      sectionOrder: serializer.fromJson<int>(json['sectionOrder']),
+      order: serializer.fromJson<int>(json['order']),
+      label: serializer.fromJson<String>(json['label']),
+      uri: serializer.fromJson<String>(json['uri']),
+      targetPackage: serializer.fromJson<String>(json['targetPackage']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'sectionId': serializer.toJson<int>(sectionId),
+      'sectionOrder': serializer.toJson<int>(sectionOrder),
+      'order': serializer.toJson<int>(order),
+      'label': serializer.toJson<String>(label),
+      'uri': serializer.toJson<String>(uri),
+      'targetPackage': serializer.toJson<String>(targetPackage),
+    };
+  }
+
+  ContentShortcutRow copyWith(
+          {int? id,
+          int? sectionId,
+          int? sectionOrder,
+          int? order,
+          String? label,
+          String? uri,
+          String? targetPackage}) =>
+      ContentShortcutRow(
+        id: id ?? this.id,
+        sectionId: sectionId ?? this.sectionId,
+        sectionOrder: sectionOrder ?? this.sectionOrder,
+        order: order ?? this.order,
+        label: label ?? this.label,
+        uri: uri ?? this.uri,
+        targetPackage: targetPackage ?? this.targetPackage,
+      );
+  ContentShortcutRow copyWithCompanion(ContentShortcutsCompanion data) {
+    return ContentShortcutRow(
+      id: data.id.present ? data.id.value : this.id,
+      sectionId: data.sectionId.present ? data.sectionId.value : this.sectionId,
+      sectionOrder: data.sectionOrder.present
+          ? data.sectionOrder.value
+          : this.sectionOrder,
+      order: data.order.present ? data.order.value : this.order,
+      label: data.label.present ? data.label.value : this.label,
+      uri: data.uri.present ? data.uri.value : this.uri,
+      targetPackage: data.targetPackage.present
+          ? data.targetPackage.value
+          : this.targetPackage,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ContentShortcutRow(')
+          ..write('id: $id, ')
+          ..write('sectionId: $sectionId, ')
+          ..write('sectionOrder: $sectionOrder, ')
+          ..write('order: $order, ')
+          ..write('label: $label, ')
+          ..write('uri: $uri, ')
+          ..write('targetPackage: $targetPackage')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+      id, sectionId, sectionOrder, order, label, uri, targetPackage);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ContentShortcutRow &&
+          other.id == this.id &&
+          other.sectionId == this.sectionId &&
+          other.sectionOrder == this.sectionOrder &&
+          other.order == this.order &&
+          other.label == this.label &&
+          other.uri == this.uri &&
+          other.targetPackage == this.targetPackage);
+}
+
+class ContentShortcutsCompanion extends UpdateCompanion<ContentShortcutRow> {
+  final Value<int> id;
+  final Value<int> sectionId;
+  final Value<int> sectionOrder;
+  final Value<int> order;
+  final Value<String> label;
+  final Value<String> uri;
+  final Value<String> targetPackage;
+  const ContentShortcutsCompanion({
+    this.id = const Value.absent(),
+    this.sectionId = const Value.absent(),
+    this.sectionOrder = const Value.absent(),
+    this.order = const Value.absent(),
+    this.label = const Value.absent(),
+    this.uri = const Value.absent(),
+    this.targetPackage = const Value.absent(),
+  });
+  ContentShortcutsCompanion.insert({
+    this.id = const Value.absent(),
+    required int sectionId,
+    required int sectionOrder,
+    required int order,
+    required String label,
+    required String uri,
+    required String targetPackage,
+  })  : sectionId = Value(sectionId),
+        sectionOrder = Value(sectionOrder),
+        order = Value(order),
+        label = Value(label),
+        uri = Value(uri),
+        targetPackage = Value(targetPackage);
+  static Insertable<ContentShortcutRow> custom({
+    Expression<int>? id,
+    Expression<int>? sectionId,
+    Expression<int>? sectionOrder,
+    Expression<int>? order,
+    Expression<String>? label,
+    Expression<String>? uri,
+    Expression<String>? targetPackage,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (sectionId != null) 'section_id': sectionId,
+      if (sectionOrder != null) 'section_order': sectionOrder,
+      if (order != null) 'order': order,
+      if (label != null) 'label': label,
+      if (uri != null) 'uri': uri,
+      if (targetPackage != null) 'target_package': targetPackage,
+    });
+  }
+
+  ContentShortcutsCompanion copyWith(
+      {Value<int>? id,
+      Value<int>? sectionId,
+      Value<int>? sectionOrder,
+      Value<int>? order,
+      Value<String>? label,
+      Value<String>? uri,
+      Value<String>? targetPackage}) {
+    return ContentShortcutsCompanion(
+      id: id ?? this.id,
+      sectionId: sectionId ?? this.sectionId,
+      sectionOrder: sectionOrder ?? this.sectionOrder,
+      order: order ?? this.order,
+      label: label ?? this.label,
+      uri: uri ?? this.uri,
+      targetPackage: targetPackage ?? this.targetPackage,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (sectionId.present) {
+      map['section_id'] = Variable<int>(sectionId.value);
+    }
+    if (sectionOrder.present) {
+      map['section_order'] = Variable<int>(sectionOrder.value);
+    }
+    if (order.present) {
+      map['order'] = Variable<int>(order.value);
+    }
+    if (label.present) {
+      map['label'] = Variable<String>(label.value);
+    }
+    if (uri.present) {
+      map['uri'] = Variable<String>(uri.value);
+    }
+    if (targetPackage.present) {
+      map['target_package'] = Variable<String>(targetPackage.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ContentShortcutsCompanion(')
+          ..write('id: $id, ')
+          ..write('sectionId: $sectionId, ')
+          ..write('sectionOrder: $sectionOrder, ')
+          ..write('order: $order, ')
+          ..write('label: $label, ')
+          ..write('uri: $uri, ')
+          ..write('targetPackage: $targetPackage')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$FLauncherDatabase extends GeneratedDatabase {
   _$FLauncherDatabase(QueryExecutor e) : super(e);
   $FLauncherDatabaseManager get managers => $FLauncherDatabaseManager(this);
@@ -840,12 +1228,14 @@ abstract class _$FLauncherDatabase extends GeneratedDatabase {
   late final $AppsCategoriesTable appsCategories = $AppsCategoriesTable(this);
   late final $LauncherSpacersTable launcherSpacers =
       $LauncherSpacersTable(this);
+  late final $ContentShortcutsTable contentShortcuts =
+      $ContentShortcutsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
   List<DatabaseSchemaEntity> get allSchemaEntities =>
-      [apps, categories, appsCategories, launcherSpacers];
+      [apps, categories, appsCategories, launcherSpacers, contentShortcuts];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules(
         [
@@ -1391,6 +1781,161 @@ class $$LauncherSpacersTableOrderingComposer
           ColumnOrderings(column, joinBuilders: joinBuilders));
 }
 
+typedef $$ContentShortcutsTableCreateCompanionBuilder
+    = ContentShortcutsCompanion Function({
+  Value<int> id,
+  required int sectionId,
+  required int sectionOrder,
+  required int order,
+  required String label,
+  required String uri,
+  required String targetPackage,
+});
+typedef $$ContentShortcutsTableUpdateCompanionBuilder
+    = ContentShortcutsCompanion Function({
+  Value<int> id,
+  Value<int> sectionId,
+  Value<int> sectionOrder,
+  Value<int> order,
+  Value<String> label,
+  Value<String> uri,
+  Value<String> targetPackage,
+});
+
+class $$ContentShortcutsTableTableManager extends RootTableManager<
+    _$FLauncherDatabase,
+    $ContentShortcutsTable,
+    ContentShortcutRow,
+    $$ContentShortcutsTableFilterComposer,
+    $$ContentShortcutsTableOrderingComposer,
+    $$ContentShortcutsTableCreateCompanionBuilder,
+    $$ContentShortcutsTableUpdateCompanionBuilder> {
+  $$ContentShortcutsTableTableManager(
+      _$FLauncherDatabase db, $ContentShortcutsTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          filteringComposer:
+              $$ContentShortcutsTableFilterComposer(ComposerState(db, table)),
+          orderingComposer:
+              $$ContentShortcutsTableOrderingComposer(ComposerState(db, table)),
+          updateCompanionCallback: ({
+            Value<int> id = const Value.absent(),
+            Value<int> sectionId = const Value.absent(),
+            Value<int> sectionOrder = const Value.absent(),
+            Value<int> order = const Value.absent(),
+            Value<String> label = const Value.absent(),
+            Value<String> uri = const Value.absent(),
+            Value<String> targetPackage = const Value.absent(),
+          }) =>
+              ContentShortcutsCompanion(
+            id: id,
+            sectionId: sectionId,
+            sectionOrder: sectionOrder,
+            order: order,
+            label: label,
+            uri: uri,
+            targetPackage: targetPackage,
+          ),
+          createCompanionCallback: ({
+            Value<int> id = const Value.absent(),
+            required int sectionId,
+            required int sectionOrder,
+            required int order,
+            required String label,
+            required String uri,
+            required String targetPackage,
+          }) =>
+              ContentShortcutsCompanion.insert(
+            id: id,
+            sectionId: sectionId,
+            sectionOrder: sectionOrder,
+            order: order,
+            label: label,
+            uri: uri,
+            targetPackage: targetPackage,
+          ),
+        ));
+}
+
+class $$ContentShortcutsTableFilterComposer
+    extends FilterComposer<_$FLauncherDatabase, $ContentShortcutsTable> {
+  $$ContentShortcutsTableFilterComposer(super.$state);
+  ColumnFilters<int> get id => $state.composableBuilder(
+      column: $state.table.id,
+      builder: (column, joinBuilders) =>
+          ColumnFilters(column, joinBuilders: joinBuilders));
+
+  ColumnFilters<int> get sectionId => $state.composableBuilder(
+      column: $state.table.sectionId,
+      builder: (column, joinBuilders) =>
+          ColumnFilters(column, joinBuilders: joinBuilders));
+
+  ColumnFilters<int> get sectionOrder => $state.composableBuilder(
+      column: $state.table.sectionOrder,
+      builder: (column, joinBuilders) =>
+          ColumnFilters(column, joinBuilders: joinBuilders));
+
+  ColumnFilters<int> get order => $state.composableBuilder(
+      column: $state.table.order,
+      builder: (column, joinBuilders) =>
+          ColumnFilters(column, joinBuilders: joinBuilders));
+
+  ColumnFilters<String> get label => $state.composableBuilder(
+      column: $state.table.label,
+      builder: (column, joinBuilders) =>
+          ColumnFilters(column, joinBuilders: joinBuilders));
+
+  ColumnFilters<String> get uri => $state.composableBuilder(
+      column: $state.table.uri,
+      builder: (column, joinBuilders) =>
+          ColumnFilters(column, joinBuilders: joinBuilders));
+
+  ColumnFilters<String> get targetPackage => $state.composableBuilder(
+      column: $state.table.targetPackage,
+      builder: (column, joinBuilders) =>
+          ColumnFilters(column, joinBuilders: joinBuilders));
+}
+
+class $$ContentShortcutsTableOrderingComposer
+    extends OrderingComposer<_$FLauncherDatabase, $ContentShortcutsTable> {
+  $$ContentShortcutsTableOrderingComposer(super.$state);
+  ColumnOrderings<int> get id => $state.composableBuilder(
+      column: $state.table.id,
+      builder: (column, joinBuilders) =>
+          ColumnOrderings(column, joinBuilders: joinBuilders));
+
+  ColumnOrderings<int> get sectionId => $state.composableBuilder(
+      column: $state.table.sectionId,
+      builder: (column, joinBuilders) =>
+          ColumnOrderings(column, joinBuilders: joinBuilders));
+
+  ColumnOrderings<int> get sectionOrder => $state.composableBuilder(
+      column: $state.table.sectionOrder,
+      builder: (column, joinBuilders) =>
+          ColumnOrderings(column, joinBuilders: joinBuilders));
+
+  ColumnOrderings<int> get order => $state.composableBuilder(
+      column: $state.table.order,
+      builder: (column, joinBuilders) =>
+          ColumnOrderings(column, joinBuilders: joinBuilders));
+
+  ColumnOrderings<String> get label => $state.composableBuilder(
+      column: $state.table.label,
+      builder: (column, joinBuilders) =>
+          ColumnOrderings(column, joinBuilders: joinBuilders));
+
+  ColumnOrderings<String> get uri => $state.composableBuilder(
+      column: $state.table.uri,
+      builder: (column, joinBuilders) =>
+          ColumnOrderings(column, joinBuilders: joinBuilders));
+
+  ColumnOrderings<String> get targetPackage => $state.composableBuilder(
+      column: $state.table.targetPackage,
+      builder: (column, joinBuilders) =>
+          ColumnOrderings(column, joinBuilders: joinBuilders));
+}
+
 class $FLauncherDatabaseManager {
   final _$FLauncherDatabase _db;
   $FLauncherDatabaseManager(this._db);
@@ -1401,4 +1946,6 @@ class $FLauncherDatabaseManager {
       $$AppsCategoriesTableTableManager(_db, _db.appsCategories);
   $$LauncherSpacersTableTableManager get launcherSpacers =>
       $$LauncherSpacersTableTableManager(_db, _db.launcherSpacers);
+  $$ContentShortcutsTableTableManager get contentShortcuts =>
+      $$ContentShortcutsTableTableManager(_db, _db.contentShortcuts);
 }

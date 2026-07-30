@@ -249,6 +249,131 @@ void main() {
     expect(categories[1].name, "Second");
   });
 
+  group("content shortcuts", () {
+    Future<int> insertShortcut({
+      required int sectionId,
+      required int sectionOrder,
+      required int order,
+      String label = "Subscriptions",
+      String uri = "https://www.youtube.com/feed/subscriptions",
+      String targetPackage = "com.teamsmart.videomanager.tv",
+    }) =>
+        database.insertContentShortcut(ContentShortcutsCompanion.insert(
+          sectionId: sectionId,
+          sectionOrder: sectionOrder,
+          order: order,
+          label: label,
+          uri: uri,
+          targetPackage: targetPackage,
+        ));
+
+    test("insertContentShortcut stores every column", () async {
+      final id = await insertShortcut(sectionId: 3, sectionOrder: 2, order: 1, label: "Channel");
+
+      final row = await database.customSelect("SELECT * FROM content_shortcuts;").getSingle();
+      expect(row.read<int>("id"), id);
+      expect(row.read<int>("section_id"), 3);
+      expect(row.read<int>("section_order"), 2);
+      expect(row.read<int>("order"), 1);
+      expect(row.read<String>("label"), "Channel");
+      expect(row.read<String>("uri"), "https://www.youtube.com/feed/subscriptions");
+      expect(row.read<String>("target_package"), "com.teamsmart.videomanager.tv");
+    });
+
+    test("getContentShortcuts orders by section order, then section, then position", () async {
+      await insertShortcut(sectionId: 1, sectionOrder: 5, order: 1, label: "Second of late section");
+      await insertShortcut(sectionId: 1, sectionOrder: 5, order: 0, label: "First of late section");
+      await insertShortcut(sectionId: 2, sectionOrder: 0, order: 0, label: "Only of early section");
+
+      final shortcuts = await database.getContentShortcuts();
+
+      expect(shortcuts.map((shortcut) => shortcut.label),
+          ["Only of early section", "First of late section", "Second of late section"]);
+    });
+
+    test("updateContentShortcut rewrites one row only", () async {
+      final id = await insertShortcut(sectionId: 1, sectionOrder: 0, order: 0);
+      await insertShortcut(sectionId: 1, sectionOrder: 0, order: 1, label: "Untouched");
+
+      await database.updateContentShortcut(
+          id, ContentShortcutsCompanion(label: const Value("Renamed"), uri: const Value("youtube://play")));
+
+      final shortcuts = await database.getContentShortcuts();
+      expect(shortcuts.firstWhere((shortcut) => shortcut.id == id).label, "Renamed");
+      expect(shortcuts.firstWhere((shortcut) => shortcut.id == id).uri, "youtube://play");
+      expect(shortcuts.where((shortcut) => shortcut.label == "Untouched").length, 1);
+    });
+
+    test("deleteContentShortcut removes one row, deleteContentShortcutSection removes the group", () async {
+      final firstOfSectionOne = await insertShortcut(sectionId: 1, sectionOrder: 0, order: 0);
+      await insertShortcut(sectionId: 1, sectionOrder: 0, order: 1);
+      await insertShortcut(sectionId: 2, sectionOrder: 1, order: 0, label: "Other section");
+
+      await database.deleteContentShortcut(firstOfSectionOne);
+      expect((await database.getContentShortcuts()).length, 2);
+
+      await database.deleteContentShortcutSection(1);
+      final remaining = await database.getContentShortcuts();
+      expect(remaining.map((shortcut) => shortcut.label), ["Other section"]);
+    });
+
+    test("updateContentShortcutSectionOrder moves every row of the section at once", () async {
+      await insertShortcut(sectionId: 1, sectionOrder: 0, order: 0);
+      await insertShortcut(sectionId: 1, sectionOrder: 0, order: 1);
+      await insertShortcut(sectionId: 2, sectionOrder: 1, order: 0);
+
+      await database.updateContentShortcutSectionOrder(1, 7);
+
+      final shortcuts = await database.getContentShortcuts();
+      expect(shortcuts.where((shortcut) => shortcut.sectionId == 1).map((shortcut) => shortcut.sectionOrder), [7, 7]);
+      expect(shortcuts.where((shortcut) => shortcut.sectionId == 2).single.sectionOrder, 1);
+    });
+
+    test("updateContentShortcuts writes a batch of positions", () async {
+      final first = await insertShortcut(sectionId: 1, sectionOrder: 0, order: 0);
+      final second = await insertShortcut(sectionId: 1, sectionOrder: 0, order: 1);
+
+      await database.updateContentShortcuts([
+        ContentShortcutsCompanion(id: Value(first), order: const Value(1)),
+        ContentShortcutsCompanion(id: Value(second), order: const Value(0)),
+      ]);
+
+      final shortcuts = await database.getContentShortcuts();
+      expect(shortcuts.map((shortcut) => shortcut.id), [second, first]);
+    });
+
+    test("nextContentShortcutSectionId starts at 1 and then follows the highest section", () async {
+      expect(await database.nextContentShortcutSectionId(), 1);
+
+      await insertShortcut(sectionId: 4, sectionOrder: 0, order: 0);
+
+      expect(await database.nextContentShortcutSectionId(), 5);
+    });
+
+    test("nextContentShortcutOrder counts only the given section", () async {
+      await insertShortcut(sectionId: 1, sectionOrder: 0, order: 0);
+      await insertShortcut(sectionId: 1, sectionOrder: 0, order: 1);
+      await insertShortcut(sectionId: 2, sectionOrder: 1, order: 5);
+
+      expect(await database.nextContentShortcutOrder(1), 2);
+      expect(await database.nextContentShortcutOrder(2), 6);
+      expect(await database.nextContentShortcutOrder(3), 0);
+    });
+
+    test("deleting an app never touches a shortcut pinned to that same package", () async {
+      // The whole reason shortcuts have a table of their own: no foreign key
+      // ties them to `apps`, so the app reconciliation cannot reach them.
+      await database.customInsert("INSERT INTO apps(package_name, name, version)"
+          " VALUES('com.teamsmart.videomanager.tv', 'SmartTube', '1.0.0');");
+      await insertShortcut(sectionId: 1, sectionOrder: 0, order: 0);
+
+      await database.deleteApps(["com.teamsmart.videomanager.tv"]);
+
+      final shortcuts = await database.getContentShortcuts();
+      expect(shortcuts.single.targetPackage, "com.teamsmart.videomanager.tv");
+    });
+  });
+
   test("nextAppCategoryOrder", () async {
     await database.customInsert("INSERT INTO apps(package_name, name, version)"
         " VALUES('me.efesser.flauncher', 'FLauncher', '1.0.0');");

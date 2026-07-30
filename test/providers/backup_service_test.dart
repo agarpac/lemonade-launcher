@@ -68,7 +68,7 @@ void main() {
     await temporaryRoot.delete(recursive: true);
   });
 
-  /// Seeds the four tables with a configuration that exercises every column
+  /// Seeds the five tables with a configuration that exercises every column
   /// the backup carries, including `last_launched_at` (which the `App` row
   /// class silently drops, see BackupService._exportRows).
   Future<void> seedDatabase() async {
@@ -110,6 +110,15 @@ void main() {
     await database.into(database.appsCategories).insert(
           AppsCategoriesCompanion.insert(categoryId: 2, appPackageName: "com.example.two", order: 0),
         );
+    await database.into(database.contentShortcuts).insert(ContentShortcutsCompanion.insert(
+          id: const Value(1),
+          sectionId: 1,
+          sectionOrder: 3,
+          order: 0,
+          label: "Subscriptions",
+          uri: "https://www.youtube.com/feed/subscriptions",
+          targetPackage: "com.example.one",
+        ));
   }
 
   /// Seeds preferences covering every supported value type, plus the two keys
@@ -124,7 +133,7 @@ void main() {
     await sharedPreferences.setString("active_scene_key", "normal");
   }
 
-  /// The raw contents of the four tables, in a form two snapshots can be
+  /// The raw contents of the five tables, in a form two snapshots can be
   /// compared with: used to prove a refused or rolled back import changed
   /// nothing at all.
   Future<Map<String, List<Map<String, Object?>>>> databaseSnapshot() async {
@@ -135,6 +144,7 @@ void main() {
       "categories": await dump('SELECT * FROM categories ORDER BY id'),
       "apps_categories": await dump('SELECT * FROM apps_categories ORDER BY category_id, app_package_name'),
       "launcher_spacers": await dump('SELECT * FROM launcher_spacers ORDER BY id'),
+      "content_shortcuts": await dump('SELECT * FROM content_shortcuts ORDER BY id'),
     };
   }
 
@@ -156,6 +166,8 @@ void main() {
     List<Object?>? categories,
     List<Object?>? appsCategories,
     List<Object?>? spacers,
+    List<Object?>? contentShortcuts,
+    bool includeContentShortcuts = true,
     List<Object?>? wallpapers,
     int? databaseSchemaVersion,
   }) =>
@@ -187,6 +199,9 @@ void main() {
                 {"category_id": 1, "app_package_name": "com.example.one", "order": 0}
               ],
           "launcher_spacers": spacers ?? const <Object?>[],
+          // Omitted entirely to reproduce a backup format version 1 file, which
+          // had no such table at all.
+          if (includeContentShortcuts) "content_shortcuts": contentShortcuts ?? const <Object?>[],
         },
       };
 
@@ -226,10 +241,32 @@ void main() {
       expect((tables["categories"] as List).length, 2);
       expect((tables["apps_categories"] as List).length, 2);
       expect((tables["launcher_spacers"] as List).length, 1);
+      expect((tables["content_shortcuts"] as List).length, 1);
       expect((tables["apps"] as List).first["last_launched_at"], isNotNull);
       expect(result.appsCount, 2);
       expect(result.categoriesCount, 2);
       expect(result.settingsCount, settings.length);
+    });
+
+    test("carries every column of the content shortcuts table", () async {
+      // A fifth table absent from BackupService's explicit list is lost in
+      // silence, and the user only finds out after restoring.
+      await seedDatabase();
+
+      final result = await backupService.exportBackup();
+      final payload = jsonDecode(await File(result.filePath!).readAsString()) as Map<String, dynamic>;
+
+      final shortcuts = (payload["database"] as Map<String, dynamic>)["content_shortcuts"] as List;
+      expect(shortcuts.single, {
+        "id": 1,
+        "section_id": 1,
+        "section_order": 3,
+        "order": 0,
+        "label": "Subscriptions",
+        "uri": "https://www.youtube.com/feed/subscriptions",
+        "target_package": "com.example.one",
+      });
+      expect(result.contentShortcutsCount, 1);
     });
 
     test("leaves per-app custom banner paths out: they point at files the backup does not carry", () async {
@@ -270,6 +307,7 @@ void main() {
       // Wipe everything the backup owns, the way a reinstall would.
       await database.customStatement("DELETE FROM apps_categories");
       await database.customStatement("DELETE FROM launcher_spacers");
+      await database.customStatement("DELETE FROM content_shortcuts");
       await database.customStatement("DELETE FROM categories");
       await database.customStatement("DELETE FROM apps");
       await sharedPreferences.clear();
@@ -452,6 +490,118 @@ void main() {
       expect(category["type"], Category.Type.index);
     });
 
+    test("restores a version 1 file, which simply had no content shortcuts", () async {
+      // The contract stated on `backupSchemaVersion`: bumping the version must
+      // keep every older shape importable.
+      await seedDatabase();
+      final file = writeBackupFile(validPayload(schemaVersion: 1, includeContentShortcuts: false));
+
+      final result = await backupService.importBackup(file);
+
+      expect(result.status, BackupImportStatus.succeeded);
+      expect(result.restoredContentShortcuts, 0);
+      expect((await databaseSnapshot())["content_shortcuts"], isEmpty);
+      expect((await databaseSnapshot())["categories"]!.map((row) => row["name"]), ["Favorites"]);
+    });
+
+    test("restores the content shortcuts of a version 2 file", () async {
+      final file = writeBackupFile(validPayload(contentShortcuts: [
+        {
+          "id": 4,
+          "section_id": 2,
+          "section_order": 1,
+          "order": 0,
+          "label": "Subscriptions",
+          "uri": "https://www.youtube.com/feed/subscriptions",
+          "target_package": "com.example.one",
+        }
+      ]));
+
+      final result = await backupService.importBackup(file);
+
+      expect(result.status, BackupImportStatus.succeeded);
+      expect(result.restoredContentShortcuts, 1);
+      final shortcut = (await databaseSnapshot())["content_shortcuts"]!.single;
+      expect(shortcut["id"], 4);
+      expect(shortcut["section_id"], 2);
+      expect(shortcut["section_order"], 1);
+      expect(shortcut["label"], "Subscriptions");
+      expect(shortcut["target_package"], "com.example.one");
+    });
+
+    test("keeps a content shortcut whose target is not installed, and reports it", () async {
+      // The opposite of the rule for an app row: PRD 12.3, point 5 marks the
+      // shortcut unavailable instead of dropping it, because its label, URI and
+      // target are the part the user typed by hand with a remote.
+      final file = writeBackupFile(validPayload(contentShortcuts: [
+        {
+          "id": 1,
+          "section_id": 1,
+          "section_order": 1,
+          "order": 0,
+          "label": "Channel",
+          "uri": "https://www.youtube.com/@handle",
+          "target_package": "com.example.gone",
+        }
+      ]));
+
+      final result = await backupService.importBackup(file);
+
+      expect(result.status, BackupImportStatus.succeeded);
+      expect(result.restoredContentShortcuts, 1);
+      expect(result.unavailableShortcutTargetPackages, ["com.example.gone"]);
+      // Not reported as a skipped package: nothing was skipped.
+      expect(result.skippedPackageNames, isEmpty);
+      final shortcut = (await databaseSnapshot())["content_shortcuts"]!.single;
+      expect(shortcut["uri"], "https://www.youtube.com/@handle");
+      expect(shortcut["target_package"], "com.example.gone");
+    });
+
+    test("refuses a wrongly typed content shortcut row and changes nothing", () async {
+      await seedDatabase();
+      final expectedDatabase = await databaseSnapshot();
+      final file = writeBackupFile(validPayload(contentShortcuts: [
+        {
+          "id": 1,
+          "section_id": 1,
+          "section_order": 1,
+          "order": 0,
+          "label": "Channel",
+          "uri": 42,
+          "target_package": "com.example.one",
+        }
+      ]));
+
+      final result = await backupService.importBackup(file);
+
+      expect(result.status, BackupImportStatus.invalidFile);
+      expect(result.message, contains("content_shortcuts.uri"));
+      expect(await databaseSnapshot(), expectedDatabase);
+    });
+
+    test("refuses a content shortcuts table that is not a list", () async {
+      await seedDatabase();
+      final expectedDatabase = await databaseSnapshot();
+      // Round-tripped through JSON so that the map is not typed by inference,
+      // exactly like a file that was hand-edited on a desktop.
+      final payload = jsonDecode(jsonEncode(validPayload())) as Map<String, dynamic>;
+      (payload["database"] as Map<String, dynamic>)["content_shortcuts"] = "nope";
+
+      final result = await backupService.importBackup(writeBackupFile(payload));
+
+      expect(result.status, BackupImportStatus.invalidFile);
+      expect(await databaseSnapshot(), expectedDatabase);
+    });
+
+    test("wipes the existing content shortcuts it is not asked to restore", () async {
+      await seedDatabase();
+
+      final result = await backupService.importBackup(writeBackupFile(validPayload()));
+
+      expect(result.status, BackupImportStatus.succeeded);
+      expect((await databaseSnapshot())["content_shortcuts"], isEmpty);
+    });
+
     test("reports the wallpapers the file recorded that this device no longer has", () async {
       await File("${documentsDirectory.path}/wallpaper").writeAsBytes([0x01]);
       final file = writeBackupFile(validPayload(wallpapers: ["wallpaper", "wallpaper_night_video"]));
@@ -488,6 +638,29 @@ void main() {
       expect(result.restoredApps, 1);
       expect(await databaseSnapshot(), expectedDatabase);
       expect(preferencesSnapshot(), expectedPreferences);
+    });
+
+    test("reports the content shortcut targets that are missing, without writing anything", () async {
+      await seedDatabase();
+      final expectedDatabase = await databaseSnapshot();
+      final file = writeBackupFile(validPayload(contentShortcuts: [
+        {
+          "id": 1,
+          "section_id": 1,
+          "section_order": 1,
+          "order": 0,
+          "label": "Channel",
+          "uri": "https://www.youtube.com/@handle",
+          "target_package": "com.example.gone",
+        }
+      ]));
+
+      final result = await backupService.previewImport(file);
+
+      expect(result.status, BackupImportStatus.succeeded);
+      expect(result.unavailableShortcutTargetPackages, ["com.example.gone"]);
+      expect(result.restoredContentShortcuts, 1);
+      expect(await databaseSnapshot(), expectedDatabase);
     });
 
     test("reports the same refusal an import would, without writing anything", () async {

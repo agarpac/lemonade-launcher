@@ -91,6 +91,50 @@ void main() {
     expect(findAppCardByPackageName(tester, "me.efesser.flauncher.2"), isNotNull);
   });
 
+  // This launcher is the device's only home screen, so an unhandled section type
+  // must never reach the `as Category` cast in _buildSectionSlivers: that would
+  // throw on the one screen the user cannot navigate away from. Until the
+  // content-shortcut UI lands, a shortcut section deliberately renders nothing —
+  // but it must render nothing *deliberately*, and every other section around it
+  // must still be built.
+  testWidgets("Home page renders nothing for a content shortcut section, and does not throw", (tester) async {
+    final appsService = mkAppService();
+    final favoritesCategory = fakeCategory(name: "Favorites", order: 0, type: CategoryType.row);
+    favoritesCategory.applications.add(fakeApp(packageName: "me.efesser.flauncher.1", name: "FLauncher 1"));
+    final shortcutSection = ContentShortcutSection(id: 1, order: 1, shortcuts: [
+      ContentShortcut(
+        id: 1,
+        sectionId: 1,
+        label: "Subscriptions",
+        uri: "https://www.youtube.com/feed/subscriptions",
+        targetPackage: "com.teamsmart.videomanager.tv",
+      )
+    ]);
+    final applicationsCategory = fakeCategory(name: "Applications", order: 2);
+    applicationsCategory.applications.add(fakeApp(packageName: "me.efesser.flauncher.2", name: "FLauncher 2"));
+    mockSections(appsService, [favoritesCategory, shortcutSection, applicationsCategory]);
+
+    await _pumpWidgetWith(tester, appsService);
+
+    expect(tester.takeException(), isNull);
+    expect(find.text("Subscriptions"), findsNothing);
+    // The section after it is still built, so "renders nothing" did not become
+    // "stops rendering".
+    await tester.scrollUntilVisible(find.text("Applications"), 300, scrollable: find.byType(Scrollable).first);
+    expect(find.text("Applications"), findsOneWidget);
+    expect(findAppCardByPackageName(tester, "me.efesser.flauncher.2"), isNotNull);
+  });
+
+  testWidgets("Home page renders a launcher made only of content shortcut sections without throwing",
+      (tester) async {
+    final appsService = mkAppService();
+    mockSections(appsService, [ContentShortcutSection(id: 1, order: 0)]);
+
+    await _pumpWidgetWith(tester, appsService);
+
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets("Home page hides categories with no applications", (tester) async {
     final appsService = mkAppService();
     final applicationsCategory = fakeCategory(name: "Applications", order: 0, type: CategoryType.grid);
@@ -565,12 +609,12 @@ bool isFocused(Element element) {
   return focusRect != null && rect.overlaps(focusRect);
 }
 
-/// Stubs both AppsService.categories and AppsService.launcherSections with the same list of
-/// categories (no spacers are used by these tests), matching how the real AppsService exposes
-/// the same underlying sections through both getters.
-void mockSections(AppsService appsService, List<Category> categories) {
-  when(appsService.categories).thenReturn(categories);
-  when(appsService.launcherSections).thenReturn(categories);
+/// Stubs both AppsService.categories and AppsService.launcherSections from the same list of
+/// sections, matching how the real AppsService exposes the same underlying sections through both
+/// getters — `categories` only ever holds the categories, never a spacer or a shortcut section.
+void mockSections(AppsService appsService, List<LauncherSection> sections) {
+  when(appsService.categories).thenReturn(sections.whereType<Category>().toList());
+  when(appsService.launcherSections).thenReturn(sections);
 }
 
 /// Package names of the [AppCard]s currently rendered in the dock, in tree

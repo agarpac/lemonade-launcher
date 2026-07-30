@@ -104,6 +104,12 @@ class _SettingsState extends ChangeNotifier
     else if (section is LauncherSpacer) {
       _sectionType = LauncherSectionType.Spacer;
     }
+    else if (section is ContentShortcutSection) {
+      // Without this branch the type would stay `Category` and the build method
+      // below would cast a shortcut section to `Category`, crashing the settings
+      // panel the moment the user opened one.
+      _sectionType = LauncherSectionType.Shortcut;
+    }
 
     _valid = false;
     _changed = creating;
@@ -167,10 +173,17 @@ class LauncherSectionPanelPage extends StatelessWidget
               category: launcherSection as Category?,
             );
           }
-          else {
+          else if (sectionType == LauncherSectionType.Spacer) {
             sectionSpecificSettings = _LauncherSpacerSettings(
                 spacer: launcherSection as LauncherSpacer?
             );
+          }
+          else {
+            // A shortcut section has no form yet; it deliberately shows nothing
+            // rather than being cast to a type it is not. The delete button below
+            // still works, so the user is never trapped with a section they
+            // cannot get rid of.
+            sectionSpecificSettings = const SizedBox.shrink();
           }
 
           String title = localizations.newSection;

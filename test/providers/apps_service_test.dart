@@ -88,6 +88,7 @@ void main() {
       when(database.getCategories()).thenAnswer((_) => Future.value(<Category>[]));
       when(database.getAppsCategories()).thenAnswer((_) => Future.value(<AppCategory>[]));
       when(database.getLauncherSpacers()).thenAnswer((_) => Future.value(<LauncherSpacer>[]));
+      when(database.getContentShortcuts()).thenAnswer((_) => Future.value(<ContentShortcutRow>[]));
       when(database.transaction(any)).thenAnswer((realInvocation) => realInvocation.positionalArguments[0]());
       when(database.wasCreated).thenReturn(true);
       int nextCategoryId = 100;
@@ -146,6 +147,7 @@ void main() {
       when(database.getCategories()).thenAnswer((_) => Future.value(<Category>[]));
       when(database.getAppsCategories()).thenAnswer((_) => Future.value(<AppCategory>[]));
       when(database.getLauncherSpacers()).thenAnswer((_) => Future.value(<LauncherSpacer>[]));
+      when(database.getContentShortcuts()).thenAnswer((_) => Future.value(<ContentShortcutRow>[]));
       when(database.transaction(any)).thenAnswer((realInvocation) => realInvocation.positionalArguments[0]());
       when(database.wasCreated).thenReturn(false);
       AppsService(channel, database);
@@ -203,6 +205,7 @@ void main() {
       when(database.getCategories()).thenAnswer((_) => Future.value(<Category>[]));
       when(database.getAppsCategories()).thenAnswer((_) => Future.value(<AppCategory>[]));
       when(database.getLauncherSpacers()).thenAnswer((_) => Future.value(<LauncherSpacer>[]));
+      when(database.getContentShortcuts()).thenAnswer((_) => Future.value(<ContentShortcutRow>[]));
       when(database.transaction(any)).thenAnswer((realInvocation) => realInvocation.positionalArguments[0]());
       when(database.wasCreated).thenReturn(false);
       when(database.persistApps(any)).thenAnswer((_) => Future.value());
@@ -265,6 +268,7 @@ void main() {
       when(database.getCategories()).thenAnswer((_) => Future.value(<Category>[]));
       when(database.getAppsCategories()).thenAnswer((_) => Future.value(<AppCategory>[]));
       when(database.getLauncherSpacers()).thenAnswer((_) => Future.value(<LauncherSpacer>[]));
+      when(database.getContentShortcuts()).thenAnswer((_) => Future.value(<ContentShortcutRow>[]));
       when(database.transaction(any)).thenAnswer((realInvocation) => realInvocation.positionalArguments[0]());
       when(database.wasCreated).thenReturn(false);
       when(database.persistApps(any)).thenAnswer((_) => Future.value());
@@ -581,6 +585,7 @@ Future<AppsService> _buildInitialisedAppsService(
   when(database.getCategories()).thenAnswer((_) => Future.value(categories));
   when(database.getAppsCategories()).thenAnswer((_) => Future.value(<AppCategory>[]));
   when(database.getLauncherSpacers()).thenAnswer((_) => Future.value(<LauncherSpacer>[]));
+  when(database.getContentShortcuts()).thenAnswer((_) => Future.value(<ContentShortcutRow>[]));
   when(database.transaction(any)).thenAnswer((realInvocation) => realInvocation.positionalArguments[0]());
   when(database.wasCreated).thenReturn(false);
   // initialApplications are absent from channel.getApplications() (stubbed to []) above, so

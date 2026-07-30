@@ -183,6 +183,50 @@ void main() {
 
     verify(appsService.deleteSection(1));
   });
+
+  // A section type with no branch in this page used to leave the staged type at
+  // `Category`, and the build method then cast the section to `Category` — so
+  // opening a content shortcut section from Settings threw. Until the shortcut
+  // form lands, the page must show nothing rather than crash, and must still let
+  // the user delete the section.
+  group("a content shortcut section", () {
+    testWidgets("opens without throwing and shows no category form", (tester) async {
+      final appsService = MockAppsService();
+      when(appsService.launcherSections).thenReturn([
+        fakeCategory(name: "Applications"),
+        ContentShortcutSection(id: 1, order: 1, shortcuts: [
+          ContentShortcut(
+            id: 1,
+            sectionId: 1,
+            label: "Subscriptions",
+            uri: "https://www.youtube.com/feed/subscriptions",
+            targetPackage: "com.teamsmart.videomanager.tv",
+          )
+        ]),
+      ]);
+
+      await _pumpWidgetWithProviders(tester, appsService, 1);
+
+      expect(tester.takeException(), isNull);
+      expect(find.byType(DropdownButtonFormField<CategorySort>), findsNothing);
+      expect(find.byType(DropdownButtonFormField<CategoryType>), findsNothing);
+    });
+
+    testWidgets("can still be deleted, so the user is never trapped with it", (tester) async {
+      final appsService = MockAppsService();
+      when(appsService.launcherSections).thenReturn([
+        fakeCategory(name: "Applications"),
+        ContentShortcutSection(id: 1, order: 1),
+      ]);
+      when(appsService.deleteSection(any)).thenAnswer((_) => Future.value());
+
+      await _pumpWidgetWithProviders(tester, appsService, 1);
+      await tester.tap(find.text("Delete"));
+      await tester.pumpAndSettle();
+
+      verify(appsService.deleteSection(1));
+    });
+  });
 }
 
 Future<void> _selectDropdownOption(WidgetTester tester, Finder dropdownFinder, String optionText) async {

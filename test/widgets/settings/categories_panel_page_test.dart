@@ -121,6 +121,45 @@ void main() {
 
     expect(find.byKey(Key("LauncherSectionPanelPage")), findsOneWidget);
   });
+
+  testWidgets("A content shortcut section is listed and reorderable without throwing", (tester) async {
+    final appsService = MockAppsService();
+    final sections = <LauncherSection>[
+      fakeCategory(name: "Favorites"),
+      ContentShortcutSection(id: 1, order: 1, shortcuts: [
+        ContentShortcut(
+          id: 1,
+          sectionId: 1,
+          label: "Subscriptions",
+          uri: "https://www.youtube.com/feed/subscriptions",
+          targetPackage: "com.teamsmart.videomanager.tv",
+        )
+      ]),
+    ];
+    when(appsService.launcherSections).thenAnswer((_) => List<LauncherSection>.from(sections));
+    when(appsService.moveSectionInMemory(any, any)).thenAnswer((invocation) {
+      final section = sections.removeAt(invocation.positionalArguments[0] as int);
+      sections.insert(invocation.positionalArguments[1] as int, section);
+    });
+
+    await _pumpWidgetWithProviders(tester, appsService);
+
+    expect(tester.takeException(), isNull);
+    expect(find.text("Favorites"), findsOneWidget);
+
+    await tester.longPress(find.text("Favorites"));
+    await tester.pumpAndSettle();
+    Focus.of(tester.element(find.text("Favorites"))).requestFocus();
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pumpAndSettle();
+
+    verify(appsService.moveSectionInMemory(0, 1));
+    verify(appsService.persistSectionsOrder());
+    expect(tester.takeException(), isNull);
+  });
 }
 
 Future<void> _pumpWidgetWithProviders(WidgetTester tester, AppsService appsService) async {

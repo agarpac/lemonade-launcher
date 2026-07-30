@@ -74,6 +74,44 @@ class LauncherSpacers extends Table
   IntColumn get order => integer()();
 }
 
+/// One deep link. A *shortcut section* is the group of rows sharing
+/// [sectionId]; it owns no row of its own.
+///
+/// Deliberately **not** `@UseRowClass(ContentShortcut)`, unlike its three
+/// neighbours: [sectionOrder] is a property of the section, not of the
+/// shortcut, and `ContentShortcut.available` is a runtime flag with no column
+/// at all. A row class would have to be a bad fit in both directions, which is
+/// exactly the mismatch that made drift's generated mapper silently drop
+/// `Apps.lastLaunchedAt` (see the comment above `BackupService._exportRows`).
+/// The mapping to the model happens once, in `AppsService`.
+///
+/// No foreign key to `apps`: that is the whole point of the table. The app
+/// reconciliation in `AppsService._refreshState` deletes every `Apps` row whose
+/// package the system no longer reports, and a shortcut whose target is gone
+/// must survive as unavailable instead (see the PRD, section 12.3, point 5).
+@DataClassName("ContentShortcutRow")
+class ContentShortcuts extends Table
+{
+  IntColumn get id => integer().autoIncrement()();
+
+  /// Groups shortcuts into one launcher section.
+  IntColumn get sectionId => integer()();
+
+  /// The order that places the whole section among the launcher's sections.
+  /// Held by every row of the section and always written for the whole group at
+  /// once, by `FLauncherDatabase.updateContentShortcutSectionOrder`.
+  IntColumn get sectionOrder => integer()();
+
+  /// Position of this shortcut inside its section.
+  IntColumn get order => integer()();
+
+  TextColumn get label => text()();
+
+  TextColumn get uri => text()();
+
+  TextColumn get targetPackage => text()();
+}
+
 @DataClassName("AppCategory")
 class AppsCategories extends Table
 {
@@ -87,7 +125,7 @@ class AppsCategories extends Table
   Set<Column> get primaryKey => {categoryId, appPackageName};
 }
 
-@DriftDatabase(tables: [Apps, Categories, AppsCategories, LauncherSpacers])
+@DriftDatabase(tables: [Apps, Categories, AppsCategories, LauncherSpacers, ContentShortcuts])
 class FLauncherDatabase extends _$FLauncherDatabase
 {
   late final bool wasCreated;
@@ -97,7 +135,7 @@ class FLauncherDatabase extends _$FLauncherDatabase
   FLauncherDatabase.inMemory() : super(LazyDatabase(() => NativeDatabase.memory()));
 
   @override
-  int get schemaVersion => 10;
+  int get schemaVersion => 11;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -170,6 +208,26 @@ class FLauncherDatabase extends _$FLauncherDatabase
           }
           if (from < 10 && to >= 10) {
             await _stripFavoritesFromAllApps();
+          }
+          if (from < 11 && to >= 11) {
+            // v11 introduced content shortcuts (deep links) in a table of their
+            // own. Purely additive: not a single existing row is read or
+            // written by this step.
+            //
+            // Literal SQL, matching what `migrator.createTable(contentShortcuts)`
+            // emits today, per rule 1 above: the v7 `createTable` call is the
+            // only exception in this chain and it is not one worth extending.
+            // Written character for character as drift's own `createAll` writes
+            // it, so that a migrated database and a freshly created one hold
+            // exactly the same DDL — `database_migration_test.dart` asserts that.
+            await customStatement('CREATE TABLE "content_shortcuts" ('
+                '"id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, '
+                '"section_id" INTEGER NOT NULL, '
+                '"section_order" INTEGER NOT NULL, '
+                '"order" INTEGER NOT NULL, '
+                '"label" TEXT NOT NULL, '
+                '"uri" TEXT NOT NULL, '
+                '"target_package" TEXT NOT NULL)');
           }
         },
         beforeOpen: (openingDetails) async {
@@ -319,6 +377,72 @@ class FLauncherDatabase extends _$FLauncherDatabase
     query.orderBy([ (s) => OrderingTerm.asc(s.order) ]);
 
     return query.get();
+  }
+
+  /// Every shortcut row, ordered so that grouping them by `section_id` yields
+  /// the sections in the order they must appear, each with its shortcuts in
+  /// their own order.
+  Future<List<ContentShortcutRow>> getContentShortcuts()
+  {
+    final query = select(contentShortcuts);
+    query.orderBy([
+      (s) => OrderingTerm.asc(s.sectionOrder),
+      (s) => OrderingTerm.asc(s.sectionId),
+      (s) => OrderingTerm.asc(s.order),
+      (s) => OrderingTerm.asc(s.id),
+    ]);
+
+    return query.get();
+  }
+
+  Future<int> insertContentShortcut(Insertable<ContentShortcutRow> shortcut) =>
+      into(contentShortcuts).insert(shortcut);
+
+  Future<int> updateContentShortcut(int shortcutId, Insertable<ContentShortcutRow> insertable) =>
+      (update(contentShortcuts)..where((shortcut) => shortcut.id.equals(shortcutId))).write(insertable);
+
+  Future<int> deleteContentShortcut(int shortcutId) =>
+      (delete(contentShortcuts)..where((shortcut) => shortcut.id.equals(shortcutId))).go();
+
+  /// Deletes a whole shortcut section: every row sharing [sectionId].
+  Future<int> deleteContentShortcutSection(int sectionId) =>
+      (delete(contentShortcuts)..where((shortcut) => shortcut.sectionId.equals(sectionId))).go();
+
+  /// Moves a whole section at once, so that its rows can never disagree about
+  /// where the section sits.
+  Future<int> updateContentShortcutSectionOrder(int sectionId, int order) =>
+      (update(contentShortcuts)..where((shortcut) => shortcut.sectionId.equals(sectionId)))
+          .write(ContentShortcutsCompanion(sectionOrder: Value(order)));
+
+  Future<void> updateContentShortcuts(Iterable<ContentShortcutsCompanion> values) => batch(
+        (batch) {
+          for (final value in values) {
+            batch.update<$ContentShortcutsTable, ContentShortcutRow>(
+              contentShortcuts,
+              value,
+              where: (table) => (table.id.equals(value.id.value)),
+            );
+          }
+        }
+      );
+
+  /// The next free `section_id`. Shortcut sections have no table of their own,
+  /// so nothing allocates this for us.
+  Future<int> nextContentShortcutSectionId() async {
+    final query = selectOnly(contentShortcuts);
+    final maxExpression = coalesce([contentShortcuts.sectionId.max(), const Constant(0)]) + const Constant(1);
+    query.addColumns([maxExpression]);
+    final result = await query.getSingle();
+    return result.read(maxExpression) ?? 1;
+  }
+
+  Future<int> nextContentShortcutOrder(int sectionId) async {
+    final query = selectOnly(contentShortcuts);
+    final maxExpression = coalesce([contentShortcuts.order.max(), const Constant(-1)]) + const Constant(1);
+    query.addColumns([maxExpression]);
+    query.where(contentShortcuts.sectionId.equals(sectionId));
+    final result = await query.getSingle();
+    return result.read(maxExpression) ?? 0;
   }
 
   Future<List<AppCategory>> getAppsCategories() {

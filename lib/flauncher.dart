@@ -246,7 +246,19 @@ class _FLauncherState extends State<FLauncher> with WidgetsBindingObserver {
         continue;
       }
 
-      final category = section as Category;
+      if (section is ContentShortcutSection) {
+        // Deliberately renders nothing until the content-shortcut UI lands: this
+        // is the device's only home screen, so an unhandled section type must
+        // never be allowed to reach the `as Category` cast below.
+        continue;
+      }
+
+      if (section is! Category) {
+        // Same reasoning, for any section type added after this line was written.
+        continue;
+      }
+
+      final category = section;
       final filteredApps = category.applications;
       if (filteredApps.isEmpty) continue;
 

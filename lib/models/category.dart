@@ -23,7 +23,8 @@ import 'app.dart';
 enum LauncherSectionType
 {
   Category,
-  Spacer
+  Spacer,
+  Shortcut
 }
 
 enum CategorySort
@@ -114,4 +115,73 @@ class LauncherSpacer extends LauncherSection
     int order = 0,
     this.height = 0
   }): super(id: id, order: order);
+}
+
+/// One deep link: a label, the URI to open and the package the intent pins.
+///
+/// [available] is **never persisted**. It is recomputed on every state refresh
+/// from what the system reports as installed, because the rule for a shortcut is
+/// the opposite of the rule for an app row: an app whose package is gone is
+/// deleted, a shortcut whose target is gone is only marked unavailable (see the
+/// PRD, section 12.3, point 5). Persisting it would let a single refresh with a
+/// silent platform channel bake "unavailable" into the database.
+class ContentShortcut
+{
+  final int id;
+
+  /// Id of the [ContentShortcutSection] this shortcut belongs to. Not a foreign
+  /// key: a shortcut section has no row of its own, it *is* the group of
+  /// shortcuts sharing this value.
+  int sectionId;
+
+  /// Position of this shortcut inside its section.
+  int order;
+
+  String label;
+
+  String uri;
+
+  /// The package the intent pins, so Android never shows an app chooser.
+  String targetPackage;
+
+  bool available;
+
+  ContentShortcut({
+    required this.label,
+    required this.uri,
+    required this.targetPackage,
+    this.id = 0,
+    this.sectionId = 0,
+    this.order = 0,
+    this.available = true
+  });
+
+  /// A shortcut with no target package can never be launched with the package
+  /// pinned, and one with no URI has nothing to open. Both shapes are reachable
+  /// from a hand-edited backup file, so they are treated as unavailable rather
+  /// than handed to the platform channel.
+  bool get launchable => uri.isNotEmpty && targetPackage.isNotEmpty;
+}
+
+/// A section made of deep links, ordered among the launcher's other sections
+/// exactly like a [Category] or a [LauncherSpacer].
+///
+/// Its [id] is the `section_id` its shortcuts share; it owns no row of its own,
+/// so a section with no shortcuts left does not exist any more (see
+/// `AppsService.deleteContentShortcut`).
+class ContentShortcutSection extends LauncherSection
+{
+  final List<ContentShortcut> shortcuts;
+
+  ContentShortcutSection({
+    int id = 0,
+    int order = 0,
+    List<ContentShortcut>? shortcuts
+  }):   shortcuts = shortcuts ?? [],
+        super(id: id, order: order);
+
+  ContentShortcutSection unmodifiable() => ContentShortcutSection(
+    id: id,
+    order: order,
+    shortcuts: UnmodifiableListView(shortcuts));
 }
