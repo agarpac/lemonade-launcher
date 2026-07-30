@@ -16,6 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import 'package:flauncher/providers/apps_service.dart';
 import 'package:flauncher/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -80,7 +81,7 @@ class BrightnessSettingsPage extends StatelessWidget {
                                   borderRadius: BorderRadius.circular(4),
                                 ),
                                 child: SelectableText(
-                                  'adb shell appops set com.omeda.arc WRITE_SETTINGS allow', // Command for Manual Grant
+                                  'adb shell appops set $launcherPackageName WRITE_SETTINGS allow', // Command for Manual Grant
                                   style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
                                 ),
                               ),

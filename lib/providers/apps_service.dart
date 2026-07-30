@@ -32,6 +32,19 @@ import 'package:flutter/widgets.dart' hide Category;
 import '../models/app.dart';
 import '../models/category.dart';
 
+/// This launcher's own package name.
+///
+/// Seeded into the dock on a fresh install (see [AppsService._initDefaultCategories])
+/// so the user can reach Settings before adding anything, and shown in the ADB
+/// hint on the brightness page. **Must match `applicationId` in
+/// `android/app/build.gradle`**; the debug build appends the `.debug` suffix
+/// declared there.
+///
+/// Written once on purpose: it used to be two literals in a list, and getting
+/// them wrong leaves a fresh install with an empty dock and no way into
+/// Settings without a remote-mapping app.
+const String launcherPackageName = "io.github.agarpac.lemonade";
+
 class AppsService extends ChangeNotifier
 {
   final FLauncherChannel _fLauncherChannel;
@@ -255,8 +268,8 @@ class AppsService extends ChangeNotifier
   Future<void> _initDefaultCategories() {
     final allApps = _applications.values.where((application) => !application.hidden);
     final defaultFavoriteLauncherPackageNames = [
-      'com.omeda.arc',
-      'com.omeda.arc.debug',
+      launcherPackageName,
+      "$launcherPackageName.debug",
     ];
 
     return _database.transaction(() async {

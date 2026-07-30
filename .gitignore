@@ -73,7 +73,8 @@ QWEN.md
 
 # Claude
 .claude
-CLAUDE.md
+# CLAUDE.md is deliberately NOT ignored: it is a symlink to AGENTS.md and has to
+# be in the repository for it to be of any use to anyone cloning it.
 
 # Waydroid
 waydroid-*

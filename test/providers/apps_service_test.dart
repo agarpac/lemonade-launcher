@@ -69,7 +69,7 @@ void main() {
               'sideloaded': false,
             },
             {
-              'packageName': 'com.omeda.arc',
+              'packageName': 'io.github.agarpac.lemonade',
               'name': 'Lemonade Launcher',
               'version': '2.0.0',
               'sideloaded': false,
@@ -78,7 +78,7 @@ void main() {
 
       final persistedApps = [
         fakeApp(packageName: "me.efesser.flauncher", name: "FLauncher", version: ""),
-        fakeApp(packageName: "com.omeda.arc", name: "Lemonade Launcher", version: "2.0.0"),
+        fakeApp(packageName: "io.github.agarpac.lemonade", name: "Lemonade Launcher", version: "2.0.0"),
       ];
       int getApplicationsCallCount = 0;
       when(database.getApplications()).thenAnswer((_) {
@@ -102,7 +102,7 @@ void main() {
         database.getApplications(),
         database.persistApps([
           AppsCompanion.insert(packageName: "me.efesser.flauncher", name: "FLauncher", version: ""),
-          AppsCompanion.insert(packageName: "com.omeda.arc", name: "Lemonade Launcher", version: "2.0.0"),
+          AppsCompanion.insert(packageName: "io.github.agarpac.lemonade", name: "Lemonade Launcher", version: "2.0.0"),
         ]),
         database.deleteApps([]),
         database.insertCategory(CategoriesCompanion.insert(
@@ -128,7 +128,7 @@ void main() {
       final categories = List.of(appsService.categories)..sort((a, b) => a.order.compareTo(b.order));
       expect(categories.length, 2);
       expect(categories[0].name, "Favorites");
-      expect(categories[0].applications.map((a) => a.packageName), ["com.omeda.arc"]);
+      expect(categories[0].applications.map((a) => a.packageName), ["io.github.agarpac.lemonade"]);
       expect(categories[1].name, "All Apps");
       expect(categories[1].applications.map((a) => a.packageName), ["me.efesser.flauncher"]);
     });
