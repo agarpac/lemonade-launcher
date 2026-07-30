@@ -289,12 +289,15 @@ El precio es que `wallpaperPath` es de facto un booleano con aspecto de ruta, lo
 
 ⚠️ **Pendiente de verificar en el dispositivo.** `flutter test` no alcanza el código Java, y el punto de mayor riesgo —que la declaración `<queries>` haga visibles los destinos en Android 11+— **falla como lista vacía, no como error**, que es indistinguible de «no hay aplicación instalada». Hay que comprobar en la caja que `@nombre` de un canal ofrezca SmartTube, que se abra el canal y no la pantalla de inicio de la aplicación, y que no aparezca ningún selector.
 
+✅ **Completado — tarjetas de cristal en la barra superior.** Una única definición de la tarjeta (`lib/widgets/status_bar_glass_card.dart`) que usan el clima, los botones, la red, el consumo de Wi-Fi y la fecha/hora. Al aplicarla apareció una regresión de memoria real y se arregló antes de commitear: cada instancia de `CachedBlurBackdrop` guardaba un `ui.Image` **del tamaño de la pantalla completa**, así que pasar de 2 a 6 tarjetas eran unos 50 MB de píxeles idénticos en una caja de 2 GB. Ahora el snapshot se comparte con conteo de referencias, uno por cada sigma en uso.
+
+✅ **Completado — squircle para los iconos.** Este requisito decía que hacía falta un `CustomClipper` propio, y **ya no es cierto**: el Flutter 3.41.9 que fija el proyecto trae `RoundedSuperellipseBorder` sobre la primitiva nativa `RSuperellipse`. Se usa esa en lugar de muestrear segmentos en Dart por cada tarjeta de una rejilla de docenas.
+
+✅ **Completado — cadenas de Arc Launcher.** No quedaba nada que limpiar: todas las apariciones restantes son **atribución GPL obligatoria** (el diálogo «Acerca de», `aboutLegalese`, los créditos del README) o historia correcta en este documento. Quitarlas rompería la cadena de atribución de la licencia, así que se conservan a propósito.
+
 Pendiente:
 
-1. Encapsular el resto de los elementos de la barra superior en tarjetas de cristal.
-2. Squircle para los iconos de aplicación.
-3. Limpiar las cadenas y referencias restantes a Arc Launcher.
-4. Decidir si se renombra el `applicationId` `com.omeda.arc` — **antes** de la primera publicación, nunca después.
+1. Decidir si se renombra el `applicationId` `com.omeda.arc` — **antes** de la primera publicación, nunca después.
 
 ## 11. Copia de seguridad y restauración
 

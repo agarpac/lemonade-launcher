@@ -70,7 +70,7 @@ void main() {
             },
             {
               'packageName': 'com.omeda.arc',
-              'name': 'Arc Launcher',
+              'name': 'Lemonade Launcher',
               'version': '2.0.0',
               'sideloaded': false,
             },
@@ -78,7 +78,7 @@ void main() {
 
       final persistedApps = [
         fakeApp(packageName: "me.efesser.flauncher", name: "FLauncher", version: ""),
-        fakeApp(packageName: "com.omeda.arc", name: "Arc Launcher", version: "2.0.0"),
+        fakeApp(packageName: "com.omeda.arc", name: "Lemonade Launcher", version: "2.0.0"),
       ];
       int getApplicationsCallCount = 0;
       when(database.getApplications()).thenAnswer((_) {
@@ -102,7 +102,7 @@ void main() {
         database.getApplications(),
         database.persistApps([
           AppsCompanion.insert(packageName: "me.efesser.flauncher", name: "FLauncher", version: ""),
-          AppsCompanion.insert(packageName: "com.omeda.arc", name: "Arc Launcher", version: "2.0.0"),
+          AppsCompanion.insert(packageName: "com.omeda.arc", name: "Lemonade Launcher", version: "2.0.0"),
         ]),
         database.deleteApps([]),
         database.insertCategory(CategoriesCompanion.insert(name: "All Apps", order: 0)),
