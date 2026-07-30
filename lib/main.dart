@@ -23,6 +23,7 @@ import 'package:flauncher/flauncher_channel.dart';
 import 'package:flauncher/providers/apps_service.dart';
 import 'package:flauncher/providers/backup_service.dart';
 import 'package:flauncher/providers/configuration_reloader.dart';
+import 'package:flauncher/providers/content_shortcut_artwork_service.dart';
 import 'package:flauncher/providers/launcher_state.dart';
 import 'package:flauncher/providers/network_service.dart';
 import 'package:flauncher/providers/scenes_service.dart';
@@ -116,7 +117,17 @@ class _LauncherRootState extends State<LauncherRoot> {
                   return SettingsService(widget.sharedPreferences, scenesService);
                 },
                 lazy: false),
-            ChangeNotifierProvider(create: (_) => AppsService(widget.fLauncherChannel, widget.fLauncherDatabase)),
+            // Before AppsService, which hands it every shortcut that is created,
+            // edited or deleted. Not lazy: it reads the artwork already on disk
+            // as soon as it exists, so the cards come up with their pictures
+            // instead of waiting for the first shortcut to be saved.
+            ChangeNotifierProvider(create: (_) => ContentShortcutArtworkService(), lazy: false),
+            ChangeNotifierProvider(
+                create: (context) => AppsService(
+                      widget.fLauncherChannel,
+                      widget.fLauncherDatabase,
+                      contentShortcutArtworkService: Provider.of(context, listen: false),
+                    )),
             ChangeNotifierProvider(create: (_) => LauncherState()),
             ChangeNotifierProvider(create: (_) => NetworkService(widget.fLauncherChannel)),
             ChangeNotifierProvider(

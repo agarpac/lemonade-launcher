@@ -19,6 +19,7 @@
 import 'package:flauncher/actions.dart';
 import 'package:flauncher/l10n/app_localizations.dart';
 import 'package:flauncher/providers/apps_service.dart';
+import 'package:flauncher/providers/content_shortcut_artwork_service.dart';
 import 'package:flauncher/providers/settings_service.dart';
 import 'package:flauncher/widgets/app_card.dart';
 import 'package:flauncher/widgets/focus_keyboard_listener.dart';
@@ -99,9 +100,12 @@ ValueKey<String> contentShortcutCardKey(ContentShortcut shortcut) => ValueKey("c
 
 /// One deep link, as a card the size and shape of an [AppCard].
 ///
-/// There is no keyless API that would hand out a channel's artwork, so the card
-/// is a Material icon plus the label — on purpose, rather than as a placeholder
-/// for an image picker that was never asked for.
+/// Shows the destination's own picture when there is one —
+/// [ContentShortcutArtworkService] fetches it from the page's `og:image` when
+/// the shortcut is saved — and falls back to a Material icon plus the label
+/// when there is not. That fallback is not a placeholder: reading somebody
+/// else's markup is fragile by nature, so the icon is the card's normal,
+/// permanent state whenever the fetch found nothing.
 class ContentShortcutCard extends StatefulWidget {
   final ContentShortcut shortcut;
   final bool autofocus;
@@ -180,6 +184,14 @@ class _ContentShortcutCardState extends State<ContentShortcutCard> {
       _accentColorHex = accentColorHex;
       _accentColor = Color(int.parse('FF$accentColorHex', radix: 16));
     }
+    // Selected rather than watched, so a fetch that finished for *another*
+    // shortcut does not rebuild this card. Provider compares with `==`, and the
+    // artwork's identity is its bytes (see
+    // `ContentShortcutArtworkService.artworkFor`), so this changes exactly when
+    // the picture does.
+    final ImageProvider? artwork = context.select<ContentShortcutArtworkService, ImageProvider?>(
+      (service) => service.artworkFor(widget.shortcut.id),
+    );
     final bool shouldHighlight = _shouldHighlight();
 
     return FocusKeyboardListener(
@@ -220,7 +232,7 @@ class _ContentShortcutCardState extends State<ContentShortcutCard> {
                                   focusColor: Colors.transparent,
                                   onTap: () => _onPressed(LogicalKeyboardKey.enter),
                                   onFocusChange: _handleFocusChange,
-                                  child: _cardContent(context),
+                                  child: _cardContent(context, artwork),
                                 ),
                                 IgnorePointer(
                                   child: AnimatedOpacity(
@@ -270,15 +282,50 @@ class _ContentShortcutCardState extends State<ContentShortcutCard> {
     );
   }
 
-  /// The icon and the label, greyed out and captioned when the shortcut cannot
-  /// be opened.
+  /// The destination's picture when [artwork] is not null, and the icon plus the
+  /// label when it is. Both are greyed out and captioned when the shortcut
+  /// cannot be opened, so the unavailable state reads the same either way.
   ///
   /// Everything is inside a [FittedBox] so a long label scales down instead of
   /// overflowing a card whose height the row decides.
-  Widget _cardContent(BuildContext context) {
+  Widget _cardContent(BuildContext context, ImageProvider? artwork) {
     final AppLocalizations localizations = AppLocalizations.of(context)!;
     final bool launchable = _launchable;
     final Color disabledColor = Theme.of(context).disabledColor;
+
+    if (artwork != null) {
+      // Filled edge to edge like an application's banner in [AppCard], inside
+      // the same [Material] as the icon variant, so the card keeps its size and
+      // its squircle clip whichever branch runs.
+      return Opacity(
+        opacity: launchable ? 1.0 : 0.5,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Ink.image(image: artwork, fit: BoxFit.cover),
+            if (!launchable)
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: ColoredBox(
+                  color: const Color(0x99000000),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                    child: Text(
+                      localizations.contentShortcutUnavailable,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 10, color: disabledColor),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      );
+    }
 
     return Opacity(
       opacity: launchable ? 1.0 : 0.5,

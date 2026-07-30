@@ -602,6 +602,24 @@ void main() {
       expect((await databaseSnapshot())["content_shortcuts"], isEmpty);
     });
 
+    test("drops the content shortcut artwork, whose ids now belong to the file's shortcuts", () async {
+      // The artwork files are named after shortcut ids and are not in the
+      // backup, so a `shortcut_banner_1` left over from the local shortcut 1
+      // would end up on the restored shortcut 1 — another channel entirely.
+      // Better no picture than the wrong channel's face.
+      await File("${documentsDirectory.path}/shortcut_banner_1").writeAsBytes([0x01]);
+      await File("${documentsDirectory.path}/shortcut_banner_42").writeAsBytes([0x02]);
+      await File("${documentsDirectory.path}/wallpaper").writeAsBytes([0x03]);
+
+      final result = await backupService.importBackup(writeBackupFile(validPayload()));
+
+      expect(result.status, BackupImportStatus.succeeded);
+      expect(await File("${documentsDirectory.path}/shortcut_banner_1").exists(), isFalse);
+      expect(await File("${documentsDirectory.path}/shortcut_banner_42").exists(), isFalse);
+      expect(await File("${documentsDirectory.path}/wallpaper").exists(), isTrue,
+          reason: "the user's own wallpaper is none of this feature's business");
+    });
+
     test("reports the wallpapers the file recorded that this device no longer has", () async {
       await File("${documentsDirectory.path}/wallpaper").writeAsBytes([0x01]);
       final file = writeBackupFile(validPayload(wallpapers: ["wallpaper", "wallpaper_night_video"]));

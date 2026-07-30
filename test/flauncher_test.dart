@@ -23,6 +23,7 @@ import 'package:flauncher/l10n/app_localizations.dart';
 import 'package:flauncher/models/category.dart';
 import 'package:flauncher/models/scene.dart';
 import 'package:flauncher/providers/apps_service.dart';
+import 'package:flauncher/providers/content_shortcut_artwork_service.dart';
 import 'package:flauncher/providers/launcher_state.dart';
 import 'package:flauncher/providers/network_service.dart';
 import 'package:flauncher/providers/scenes_service.dart';
@@ -581,6 +582,12 @@ ScenesService mkScenesService({Scene? activeScene}) {
   return scenesService;
 }
 
+MockContentShortcutArtworkService mkArtworkService() {
+  final artworkService = MockContentShortcutArtworkService();
+  when(artworkService.artworkFor(any)).thenReturn(null);
+  return artworkService;
+}
+
 AppsService mkAppService() {
   final appsService = MockAppsService();
   when(appsService.initialized).thenReturn(true);
@@ -655,6 +662,10 @@ Future<void> _pumpWidgetWithProviders(
         ChangeNotifierProvider(create: (_) => LauncherState()),
         ChangeNotifierProvider(create: (_) => NetworkService(FLauncherChannel())),
         ChangeNotifierProvider(create: (_) => WatchNextService(FLauncherChannel())),
+        // Read by every content shortcut card. Mocked to "no artwork anywhere",
+        // which is the state of a launcher whose shortcuts were never saved with
+        // a reachable network: the cards fall back to their icon.
+        ChangeNotifierProvider<ContentShortcutArtworkService>.value(value: mkArtworkService()),
       ],
       builder: (_, __) => MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,

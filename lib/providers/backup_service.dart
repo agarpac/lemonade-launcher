@@ -23,6 +23,7 @@ import 'package:drift/drift.dart';
 import 'package:flauncher/database.dart';
 import 'package:flauncher/flauncher_channel.dart';
 import 'package:flauncher/models/category.dart';
+import 'package:flauncher/providers/content_shortcut_artwork_service.dart';
 import 'package:flutter/foundation.dart' hide Category;
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -539,6 +540,16 @@ class BackupService {
       );
     }
 
+    // The shortcut rows are now the file's, ids included, and those ids were
+    // minted by whichever device wrote it. A `shortcut_banner_<id>` left over
+    // from the local shortcut that happened to hold the same id would put one
+    // channel's face on another channel's card — the one thing the artwork
+    // feature must never do (see `ContentShortcutArtworkService`). The files are
+    // not in the backup, so they are dropped: the cards fall back to their
+    // generic icon, and the artwork comes back the next time each shortcut is
+    // saved. Never fails the import: this is decoration.
+    await _deleteContentShortcutArtwork();
+
     final settingsRestored = await _restoreSettings(backup.settings);
     return _resultFor(
       settingsRestored ? BackupImportStatus.succeeded : BackupImportStatus.settingsRestoreIncomplete,
@@ -934,6 +945,32 @@ class BackupService {
           await _database.into(_database.appsCategories).insert(entry);
         }
       });
+
+  /// Removes every content shortcut artwork file from the documents directory.
+  ///
+  /// Silent about everything: a documents directory that cannot be listed, or a
+  /// file that cannot be deleted, is at worst a stale picture on a card, and is
+  /// no reason to report a restore that otherwise succeeded as anything else.
+  Future<void> _deleteContentShortcutArtwork() async {
+    try {
+      final documents = await getApplicationDocumentsDirectory();
+      await for (final entity in documents.list(followLinks: false)) {
+        if (entity is! File) {
+          continue;
+        }
+        if (!entity.uri.pathSegments.last.startsWith(contentShortcutArtworkFileNamePrefix)) {
+          continue;
+        }
+        try {
+          await entity.delete();
+        } catch (e) {
+          debugPrint("BackupService: could not delete the shortcut artwork ${entity.path} ($e)");
+        }
+      }
+    } catch (e) {
+      debugPrint("BackupService: could not list the shortcut artwork files ($e)");
+    }
+  }
 
   /// Replaces every exportable preference with the file's values.
   ///

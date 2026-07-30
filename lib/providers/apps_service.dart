@@ -25,6 +25,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:drift/drift.dart';
 import 'package:flauncher/database.dart';
 import 'package:flauncher/flauncher_channel.dart';
+import 'package:flauncher/providers/content_shortcut_artwork_service.dart';
 import 'package:flutter/foundation.dart' hide Category;
 import 'package:flutter/widgets.dart' hide Category;
 
@@ -35,6 +36,12 @@ class AppsService extends ChangeNotifier
 {
   final FLauncherChannel _fLauncherChannel;
   final FLauncherDatabase _database;
+
+  /// Owns the artwork of the content shortcuts: fetching it, storing it and
+  /// deleting it. Optional so that every test that only cares about
+  /// applications, categories or ordering can leave it out; when it is null the
+  /// shortcuts simply keep their generic icon.
+  final ContentShortcutArtworkService? _contentShortcutArtworkService;
 
   bool _initialized = false;
   int _layoutVersion = 0;
@@ -90,7 +97,11 @@ class AppsService extends ChangeNotifier
       .map((section) => section.unmodifiable())
       .toList(growable: false);
 
-  AppsService(this._fLauncherChannel, this._database) {
+  AppsService(
+    this._fLauncherChannel,
+    this._database, {
+    ContentShortcutArtworkService? contentShortcutArtworkService,
+  }) : _contentShortcutArtworkService = contentShortcutArtworkService {
     _init();
   }
 
@@ -518,11 +529,29 @@ class AppsService extends ChangeNotifier
     }
     section.shortcuts.add(shortcut);
 
+    // Deliberately after the insert and deliberately not awaited: the id the
+    // artwork file is named after does not exist until the row is written, and
+    // the save must not wait on somebody else's web server. The card shows its
+    // icon and the artwork replaces it whenever — and if — it arrives.
+    _fetchContentShortcutArtwork(shortcutId, uri);
+
     if (shouldNotifyListeners) {
       notifyListeners();
     }
 
     return shortcutId;
+  }
+
+  /// Starts the artwork fetch for [shortcutId] without waiting for it. Silent
+  /// and total on failure, like everything else in
+  /// [ContentShortcutArtworkService], so there is nothing here to await or
+  /// report.
+  void _fetchContentShortcutArtwork(int shortcutId, String uri) {
+    final ContentShortcutArtworkService? artworkService = _contentShortcutArtworkService;
+    if (artworkService == null) {
+      return;
+    }
+    unawaited(artworkService.refreshArtwork(shortcutId, uri));
   }
 
   /// Edits a shortcut. Every argument left null keeps its current value.
@@ -536,6 +565,9 @@ class AppsService extends ChangeNotifier
     final String newLabel = label ?? shortcut.label;
     final String newUri = uri ?? shortcut.uri;
     final String newTargetPackage = targetPackage ?? shortcut.targetPackage;
+    // Read before anything is mutated: this is what decides whether the artwork
+    // on disk still belongs to this shortcut.
+    final String previousUri = live?.uri ?? shortcut.uri;
 
     await _database.updateContentShortcut(
       shortcut.id,
@@ -553,6 +585,14 @@ class AppsService extends ChangeNotifier
       live.available = live.launchable && await _isTargetInstalled(newTargetPackage);
     }
 
+    if (newUri != previousUri) {
+      // The shortcut now points somewhere else, so the stored artwork is
+      // another destination's picture. The refetch replaces it, and clears it
+      // when it comes back with nothing: better no image than the wrong
+      // channel's face.
+      _fetchContentShortcutArtwork(shortcut.id, newUri);
+    }
+
     notifyListeners();
   }
 
@@ -560,6 +600,10 @@ class AppsService extends ChangeNotifier
   /// a shortcut section owns no row of its own, it *is* its shortcuts.
   Future<void> deleteContentShortcut(ContentShortcut shortcut) async {
     await _database.deleteContentShortcut(shortcut.id);
+    // Awaited, unlike the fetch: this only touches the local file, and a
+    // shortcut that is gone must leave no artwork behind — including when it
+    // was the last one of its section and the section goes with it.
+    await _contentShortcutArtworkService?.deleteArtwork(shortcut.id);
 
     final ContentShortcutSection? section = _contentShortcutSection(shortcut.sectionId);
     if (section != null) {
@@ -1154,6 +1198,14 @@ class AppsService extends ChangeNotifier
     }
     else if (section is ContentShortcutSection) {
       await _database.deleteContentShortcutSection(section.id);
+      // Every shortcut of the section stops existing at once, so every one of
+      // their artwork files has to go with them.
+      final ContentShortcutArtworkService? artworkService = _contentShortcutArtworkService;
+      if (artworkService != null) {
+        for (final ContentShortcut shortcut in section.shortcuts) {
+          await artworkService.deleteArtwork(shortcut.id);
+        }
+      }
     }
 
     _launcherSections.removeAt(index);

@@ -21,6 +21,7 @@ import 'package:flauncher/custom_traversal_policy.dart';
 import 'package:flauncher/l10n/app_localizations.dart';
 import 'package:flauncher/models/category.dart';
 import 'package:flauncher/providers/apps_service.dart';
+import 'package:flauncher/providers/content_shortcut_artwork_service.dart';
 import 'package:flauncher/providers/settings_service.dart';
 import 'package:flauncher/widgets/app_card.dart';
 import 'package:flauncher/widgets/content_shortcut_row.dart';
@@ -29,6 +30,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:provider/provider.dart';
+import 'package:transparent_image/transparent_image.dart';
 
 import '../mocks.mocks.dart';
 
@@ -200,6 +202,85 @@ void main() {
     expect(material.borderRadius, isNull);
   });
 
+  testWidgets("A shortcut with artwork shows it edge to edge instead of the generic icon", (tester) async {
+    final appsService = _mkAppsService();
+    final section = _mkSection([_mkShortcut(id: 1, label: "Subscriptions")]);
+    final artwork = _fakeArtwork();
+
+    await _pumpRow(tester, appsService, section, artworkByShortcutId: {1: artwork});
+
+    final Ink ink = tester.widget<Ink>(find.descendant(of: find.byType(ContentShortcutCard), matching: find.byType(Ink)));
+    final DecorationImage? image = (ink.decoration as BoxDecoration).image;
+    expect(image?.image, same(artwork), reason: "the card paints the provider the artwork service handed it");
+    // Filled the way an application's banner is, so a channel avatar is not
+    // letterboxed inside a 16/9 card.
+    expect(image?.fit, BoxFit.cover);
+    expect(find.byIcon(Icons.play_circle_outline), findsNothing);
+  });
+
+  testWidgets("A shortcut with no artwork keeps its generic icon, next to one that has artwork", (tester) async {
+    // The fallback is the normal state of any shortcut whose page carried no
+    // og:image, so both must be able to sit in the same row.
+    final appsService = _mkAppsService();
+    final section = _mkSection([
+      _mkShortcut(id: 1, label: "Subscriptions"),
+      _mkShortcut(id: 2, label: "Lo-fi radio"),
+    ]);
+
+    await _pumpRow(tester, appsService, section, artworkByShortcutId: {1: _fakeArtwork()});
+
+    expect(find.byType(Ink), findsOneWidget);
+    expect(find.byIcon(Icons.play_circle_outline), findsOneWidget);
+    expect(find.text("Lo-fi radio"), findsOneWidget);
+  });
+
+  testWidgets("Artwork does not change the card's size, shape or focus animation", (tester) async {
+    // The row is built to read as one more row of the launcher; a card that grew
+    // or lost its squircle the moment a picture arrived would break that.
+    final appsService = _mkAppsService();
+    final artwork = _fakeArtwork();
+
+    await _pumpRow(tester, appsService, _mkSection([_mkShortcut(id: 1, label: "Subscriptions")]));
+    final Size withoutArtwork = tester.getSize(find.byType(ContentShortcutCard));
+
+    await _pumpRow(
+      tester,
+      _mkAppsService(),
+      _mkSection([_mkShortcut(id: 1, label: "Subscriptions")]),
+      artworkByShortcutId: {1: artwork},
+    );
+
+    expect(tester.getSize(find.byType(ContentShortcutCard)), withoutArtwork);
+    final Material material = tester.widget<Material>(
+      find.descendant(of: find.byType(ContentShortcutCard), matching: find.byType(Material)).first,
+    );
+    expect(
+      (material.shape! as RoundedSuperellipseBorder).borderRadius,
+      BorderRadius.circular(kAppCardCornerRadius),
+    );
+    final AnimatedScale scale = tester.widgetList<AnimatedScale>(find.byType(AnimatedScale)).last;
+    expect(scale.curve, Curves.easeOutCubic);
+    expect(scale.duration, const Duration(milliseconds: 180));
+  });
+
+  testWidgets("An unavailable shortcut with artwork is still dimmed and still says so", (tester) async {
+    final appsService = _mkAppsService();
+    final section = _mkSection([_mkShortcut(id: 1, label: "Subscriptions", available: false)]);
+
+    await _pumpRow(tester, appsService, section, artworkByShortcutId: {1: _fakeArtwork()});
+
+    expect(find.text("Unavailable"), findsOneWidget);
+    final Opacity opacity = tester.widget<Opacity>(
+      find.descendant(of: find.byType(ContentShortcutCard), matching: find.byType(Opacity)).last,
+    );
+    expect(opacity.opacity, 0.5);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.select);
+    await tester.pump(const Duration(milliseconds: 200));
+
+    verifyNever(appsService.launchContentShortcut(any));
+  });
+
   testWidgets("A section left with no shortcuts renders nothing at all", (tester) async {
     // A section *is* the shortcuts that share its id, so an empty one is a
     // section that stopped existing; it must not leave an empty band behind.
@@ -211,6 +292,11 @@ void main() {
     expect(tester.getSize(find.byType(ContentShortcutRow)), Size.zero);
   });
 }
+
+/// A real, decodable image provider: a 1×1 transparent GIF. Real bytes rather
+/// than a mock provider, because the card hands whatever it gets straight to the
+/// painting pipeline.
+ImageProvider _fakeArtwork() => MemoryImage(Uint8List.fromList(kTransparentImage));
 
 ContentShortcut _mkShortcut({
   required int id,
@@ -238,6 +324,15 @@ MockAppsService _mkAppsService() {
   return appsService;
 }
 
+/// An artwork service that knows about the artwork of [artworkByShortcutId] and
+/// about no other shortcut. Nothing here touches the network or the file system:
+/// the real service is the only thing that does, and it is not in this file.
+MockContentShortcutArtworkService _mkArtworkService([Map<int, ImageProvider> artworkByShortcutId = const {}]) {
+  final artworkService = MockContentShortcutArtworkService();
+  when(artworkService.artworkFor(any)).thenAnswer((invocation) => artworkByShortcutId[invocation.positionalArguments[0]]);
+  return artworkService;
+}
+
 MockSettingsService _mkSettingsService({bool showAppNames = false}) {
   final settingsService = MockSettingsService();
   when(settingsService.showAppNamesBelowIcons).thenReturn(showAppNames);
@@ -253,12 +348,14 @@ Future<void> _pumpRow(
   bool isFirstSection = false,
   bool showAppNames = false,
   VoidCallback? onSettings,
+  Map<int, ImageProvider> artworkByShortcutId = const {},
 }) async {
   await tester.pumpWidget(
     MultiProvider(
       providers: [
         ChangeNotifierProvider<AppsService>.value(value: appsService),
         ChangeNotifierProvider<SettingsService>.value(value: _mkSettingsService(showAppNames: showAppNames)),
+        ChangeNotifierProvider<ContentShortcutArtworkService>.value(value: _mkArtworkService(artworkByShortcutId)),
       ],
       builder: (_, __) => MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,

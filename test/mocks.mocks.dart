@@ -18,6 +18,8 @@ import 'package:flauncher/models/category.dart' as _i3;
 import 'package:flauncher/models/scene.dart' as _i5;
 import 'package:flauncher/providers/apps_service.dart' as _i20;
 import 'package:flauncher/providers/backup_service.dart' as _i8;
+import 'package:flauncher/providers/content_shortcut_artwork_service.dart'
+    as _i25;
 import 'package:flauncher/providers/network_service.dart' as _i24;
 import 'package:flauncher/providers/scenes_service.dart' as _i23;
 import 'package:flauncher/providers/settings_service.dart' as _i22;
@@ -25,7 +27,7 @@ import 'package:flauncher/providers/wallpaper_service.dart' as _i17;
 import 'package:flauncher/providers/weather_service.dart' as _i6;
 import 'package:flutter/cupertino.dart' as _i13;
 import 'package:flutter/services.dart' as _i14;
-import 'package:image_picker/image_picker.dart' as _i25;
+import 'package:image_picker/image_picker.dart' as _i26;
 import 'package:image_picker_platform_interface/image_picker_platform_interface.dart'
     as _i7;
 import 'package:mockito/mockito.dart' as _i1;
@@ -2874,10 +2876,102 @@ class MockNetworkService extends _i1.Mock implements _i24.NetworkService {
       );
 }
 
+/// A class which mocks [ContentShortcutArtworkService].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockContentShortcutArtworkService extends _i1.Mock
+    implements _i25.ContentShortcutArtworkService {
+  MockContentShortcutArtworkService() {
+    _i1.throwOnMissingStub(this);
+  }
+
+  @override
+  _i12.Future<void> get debugReady => (super.noSuchMethod(
+        Invocation.getter(#debugReady),
+        returnValue: _i12.Future<void>.value(),
+      ) as _i12.Future<void>);
+
+  @override
+  bool get hasListeners => (super.noSuchMethod(
+        Invocation.getter(#hasListeners),
+        returnValue: false,
+      ) as bool);
+
+  @override
+  _i13.ImageProvider<Object>? artworkFor(int? shortcutId) =>
+      (super.noSuchMethod(Invocation.method(
+        #artworkFor,
+        [shortcutId],
+      )) as _i13.ImageProvider<Object>?);
+
+  @override
+  _i12.Future<void> refreshArtwork(
+    int? shortcutId,
+    String? uri,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #refreshArtwork,
+          [
+            shortcutId,
+            uri,
+          ],
+        ),
+        returnValue: _i12.Future<void>.value(),
+        returnValueForMissingStub: _i12.Future<void>.value(),
+      ) as _i12.Future<void>);
+
+  @override
+  _i12.Future<void> deleteArtwork(int? shortcutId) => (super.noSuchMethod(
+        Invocation.method(
+          #deleteArtwork,
+          [shortcutId],
+        ),
+        returnValue: _i12.Future<void>.value(),
+        returnValueForMissingStub: _i12.Future<void>.value(),
+      ) as _i12.Future<void>);
+
+  @override
+  void dispose() => super.noSuchMethod(
+        Invocation.method(
+          #dispose,
+          [],
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  void addListener(_i4.VoidCallback? listener) => super.noSuchMethod(
+        Invocation.method(
+          #addListener,
+          [listener],
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  void removeListener(_i4.VoidCallback? listener) => super.noSuchMethod(
+        Invocation.method(
+          #removeListener,
+          [listener],
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  void notifyListeners() => super.noSuchMethod(
+        Invocation.method(
+          #notifyListeners,
+          [],
+        ),
+        returnValueForMissingStub: null,
+      );
+}
+
 /// A class which mocks [ImagePicker].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockImagePicker extends _i1.Mock implements _i25.ImagePicker {
+class MockImagePicker extends _i1.Mock implements _i26.ImagePicker {
   MockImagePicker() {
     _i1.throwOnMissingStub(this);
   }
