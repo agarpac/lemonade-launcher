@@ -98,11 +98,11 @@ class WallpaperService extends ChangeNotifier {
   FLauncherGradient get gradient => _sceneGradientOverride() ?? _resolveUserGradient();
 
   /// The user's own gradient, ignoring any scene override: `SettingsService`'s
-  /// `gradientUuid`, or [FLauncherGradients.saintPetersburg] when it is unset
+  /// `gradientUuid`, or [FLauncherGradients.defaultGradient] when it is unset
   /// or unknown.
   FLauncherGradient _resolveUserGradient() => FLauncherGradients.all.firstWhere(
         (candidate) => candidate.uuid == _settingsService.gradientUuid,
-        orElse: () => FLauncherGradients.saintPetersburg,
+        orElse: () => FLauncherGradients.defaultGradient,
       );
 
   /// The active scene's gradient override, or `null` when the scene has none

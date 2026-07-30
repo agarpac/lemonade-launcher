@@ -311,11 +311,11 @@ class _GradientOverrideTile extends StatelessWidget {
   }
 
   /// The display name of the gradient identified by [uuid], falling back to
-  /// [FLauncherGradients.saintPetersburg] exactly like
+  /// [FLauncherGradients.defaultGradient] exactly like
   /// `WallpaperService._resolveUserGradient` does for an absent or unknown
   /// uuid.
   String _gradientName(String? uuid) => FLauncherGradients.all
-      .firstWhere((candidate) => candidate.uuid == uuid, orElse: () => FLauncherGradients.saintPetersburg)
+      .firstWhere((candidate) => candidate.uuid == uuid, orElse: () => FLauncherGradients.defaultGradient)
       .name;
 }
 

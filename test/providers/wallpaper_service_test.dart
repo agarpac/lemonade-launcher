@@ -91,7 +91,7 @@ void main() {
       await untilCalled(pathProviderPlatform.getApplicationDocumentsPath());
       final gradient = wallpaperService.gradient;
 
-      expect(gradient, FLauncherGradients.saintPetersburg);
+      expect(gradient, FLauncherGradients.defaultGradient);
     });
 
     test("with uuid from settings", () async {
