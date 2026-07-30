@@ -285,13 +285,16 @@ El precio es que `wallpaperPath` es de facto un booleano con aspecto de ruta, lo
 
 ✅ **Completado — clima con Open-Meteo**: servicio, tarjeta en la barra superior y página con buscador de ciudad.
 
+✅ **Implementado — accesos directos a contenido** (sección 12): sección propia como tercer tipo de `LauncherSection`, resolución del paquete de destino por el `PackageManager`, entrada por `@nombre` / id de canal / dirección completa, y edición completa en Ajustes.
+
+⚠️ **Pendiente de verificar en el dispositivo.** `flutter test` no alcanza el código Java, y el punto de mayor riesgo —que la declaración `<queries>` haga visibles los destinos en Android 11+— **falla como lista vacía, no como error**, que es indistinguible de «no hay aplicación instalada». Hay que comprobar en la caja que `@nombre` de un canal ofrezca SmartTube, que se abra el canal y no la pantalla de inicio de la aplicación, y que no aparezca ningún selector.
+
 Pendiente:
 
-1. Accesos directos a contenido (sección 12).
-2. Encapsular el resto de los elementos de la barra superior en tarjetas de cristal.
-3. Squircle para los iconos de aplicación.
-4. Limpiar las cadenas y referencias restantes a Arc Launcher.
-5. Decidir si se renombra el `applicationId` `com.omeda.arc` — **antes** de la primera publicación, nunca después.
+1. Encapsular el resto de los elementos de la barra superior en tarjetas de cristal.
+2. Squircle para los iconos de aplicación.
+3. Limpiar las cadenas y referencias restantes a Arc Launcher.
+4. Decidir si se renombra el `applicationId` `com.omeda.arc` — **antes** de la primera publicación, nunca después.
 
 ## 11. Copia de seguridad y restauración
 
