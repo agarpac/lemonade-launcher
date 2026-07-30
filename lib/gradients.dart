@@ -92,17 +92,17 @@ mixin FLauncherGradients {
 
   /// The gradient a fresh install starts on.
   ///
-  /// Dark on purpose. The historical fallback was [saintPetersburg], which is
-  /// nearly white (#F5F7FA to #C3CFE2): on a television it washes out the app
-  /// cards, which are light themselves, and a first boot reads as an
-  /// unfinished screen rather than a deliberate one. This slate is the same
-  /// family as the launcher's own icon and banner, so the identity holds
-  /// together before the user has chosen anything.
+  /// The historical fallback was [saintPetersburg], which is nearly white
+  /// (#F5F7FA to #C3CFE2): on a television it washes out the app cards, which
+  /// are light themselves, and a first boot reads as an unfinished screen
+  /// rather than a deliberate one. [farawayRiver] was picked to replace it:
+  /// brighter than the dark slate this default pointed to for a while, but
+  /// verified legible on the actual television it now ships to.
   ///
   /// Not [pitchBlack]: the PRD records that this launcher's television is LED
   /// full-array rather than OLED, so the burn-in argument for flat black does
   /// not apply, and a gradient carries the premium look the PRD asks for.
-  static FLauncherGradient get defaultGradient => viciousStance;
+  static FLauncherGradient get defaultGradient => farawayRiver;
 
   static List<FLauncherGradient> get all => [
         pitchBlack,

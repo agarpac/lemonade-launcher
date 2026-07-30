@@ -61,6 +61,10 @@ void main() {
     final settingsService = SettingsService(sharedPreferences, scenesService);
     // Avoid needing a NetworkService provider just to render the app bar.
     await settingsService.setShowNetworkIndicatorInStatusBar(false);
+    // showWeather now defaults to true; avoid needing a WeatherService
+    // provider just to render the app bar, same reasoning as the indicator
+    // above.
+    await settingsService.setShowWeather(false);
     // This test is about focus wiring, not the frosted-glass rendering: skip
     // the live blur so the bar's glass cards don't need a WallpaperService
     // provider that has nothing to do with what this test is checking.

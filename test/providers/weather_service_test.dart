@@ -138,9 +138,10 @@ void main() async {
     });
 
     test("the reading is stamped with the device clock, not the provider's local time", () async {
-      // Built with the weather still off so the clock seam is in place before
-      // the first request goes out.
+      // Built with the weather explicitly off so the clock seam is in place
+      // before the first request goes out (showWeather now defaults to true).
       final settings = newSettings();
+      await settings.setShowWeather(false);
       await settings.setWeatherLocation(latitude: _madrid.latitude, longitude: _madrid.longitude, label: "Madrid");
       final service = WeatherService(settings, sharedPreferences, httpClient: okServer().client);
       addTearDown(service.dispose);
@@ -169,6 +170,7 @@ void main() async {
 
     test("refresh does nothing while the weather is switched off", () async {
       final settings = newSettings();
+      await settings.setShowWeather(false);
       await settings.setWeatherLocation(latitude: _madrid.latitude, longitude: _madrid.longitude, label: "Madrid");
       final server = okServer();
       final service = WeatherService(settings, sharedPreferences, httpClient: server.client);
@@ -198,6 +200,9 @@ void main() async {
 
     test("switching the weather on starts a fetch", () async {
       final settings = newSettings();
+      // showWeather defaults to true now, so switch it off explicitly first:
+      // the point of this test is the transition, not the resting state.
+      await settings.setShowWeather(false);
       await settings.setWeatherLocation(latitude: _madrid.latitude, longitude: _madrid.longitude, label: "Madrid");
       final server = okServer();
       final service = WeatherService(settings, sharedPreferences, httpClient: server.client);
@@ -363,7 +368,9 @@ void main() async {
       await sharedPreferences.setBool("weather_location_label", true);
       final settings = newSettings();
 
-      expect(settings.showWeather, isFalse);
+      // show_weather defaults to true, but the stored value here is a string,
+      // which the guarded read treats as absent, falling back to the default.
+      expect(settings.showWeather, isTrue);
       expect(settings.weatherLatitude, isNull);
       expect(settings.weatherLongitude, isNull);
       expect(settings.weatherLocationLabel, isNull);
@@ -386,6 +393,7 @@ void main() async {
 
     test("does not run while the weather is switched off", () async {
       final settings = newSettings();
+      await settings.setShowWeather(false);
       await settings.setWeatherLocation(latitude: _madrid.latitude, longitude: _madrid.longitude, label: "Madrid");
       final service = WeatherService(settings, sharedPreferences, httpClient: okServer().client);
       addTearDown(service.dispose);

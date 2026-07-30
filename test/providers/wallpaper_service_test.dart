@@ -92,6 +92,10 @@ void main() {
       final gradient = wallpaperService.gradient;
 
       expect(gradient, FLauncherGradients.defaultGradient);
+      // The owner's own chosen gradient, adopted as the fresh-install default:
+      // pinned by uuid so a future rebinding of defaultGradient is caught here.
+      expect(gradient, FLauncherGradients.farawayRiver);
+      expect(gradient.uuid, "7d34faa2-104a-49b7-bea5-ad48f4ccbd9c");
     });
 
     test("with uuid from settings", () async {

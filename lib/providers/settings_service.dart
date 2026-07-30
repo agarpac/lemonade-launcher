@@ -101,7 +101,7 @@ class SettingsService extends ChangeNotifier {
 
   /// The user's own "show category titles" preference. See
   /// [userAutoHideAppBarEnabled] for why the settings UI must use this getter.
-  bool get userShowCategoryTitles => _sharedPreferences.getBool(_showCategoryTitles) ?? false;
+  bool get userShowCategoryTitles => _sharedPreferences.getBool(_showCategoryTitles) ?? true;
 
   /// The effective "show category titles" setting. See
   /// [autoHideAppBarEnabled] for why every other consumer must use this getter.
@@ -115,7 +115,7 @@ class SettingsService extends ChangeNotifier {
   /// [autoHideAppBarEnabled] for why every other consumer must use this getter.
   bool get showAppNamesBelowIcons => _scenesService.activeScene.showAppNames ?? userShowAppNamesBelowIcons;
 
-  bool get showDateInStatusBar => _sharedPreferences.getBool(_showDateInStatusBar) ?? false;
+  bool get showDateInStatusBar => _sharedPreferences.getBool(_showDateInStatusBar) ?? true;
 
   bool get showTimeInStatusBar => _sharedPreferences.getBool(_showTimeInStatusBar) ?? true;
 
@@ -210,9 +210,12 @@ class SettingsService extends ChangeNotifier {
   // out of a getter the status bar reads on every build.
   // ---------------------------------------------------------------------
 
-  /// Whether the weather block is shown in the status bar. Off by default:
-  /// the launcher must not reach the network until the user asks it to.
-  bool get showWeather => _readBool(_showWeather) ?? false;
+  /// Whether the weather block is shown in the status bar. On by default:
+  /// [WeatherService.isEnabled] also requires a configured city, so turning
+  /// this on by itself does not reach the network — with no city set the
+  /// block simply renders nothing, which is harmless for someone who never
+  /// picks one.
+  bool get showWeather => _readBool(_showWeather) ?? true;
 
   /// Latitude of the city the user picked, or `null` when none is set.
   double? get weatherLatitude => _readDouble(_weatherLatitude);

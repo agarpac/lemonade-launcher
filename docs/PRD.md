@@ -54,7 +54,7 @@ Todos los elementos van ya encapsulados en tarjetas de cristal, con una única d
 
 Requisitos del bloque de clima:
 1. Proveedor: **Open-Meteo** (ver sección 6).
-2. Interruptor en Ajustes para mostrar u ocultar el clima. Por defecto **desactivado**.
+2. Interruptor en Ajustes para mostrar u ocultar el clima. **Activado por defecto** desde el 30/07/2026, por decisión del propietario al fijar su propia configuración como la de fábrica. Es inocuo porque la tarjeta no dibuja nada mientras no haya ciudad elegida, y la ubicación sí sigue vacía por defecto: es un dato personal y nadie debe encontrarse la ciudad de otro.
 3. Selección de ubicación por búsqueda de ciudad; sin geolocalización por GPS ni por IP.
 4. Fallo silencioso: si no hay red o la petición falla, el widget desaparece sin mostrar error ni bloquear la barra.
 5. Estética: tarjeta con cristal esmerilado, coherente con el dock.

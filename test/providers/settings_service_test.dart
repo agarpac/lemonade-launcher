@@ -96,6 +96,25 @@ void main() async {
     });
   });
 
+  group("showCategoryTitles default", () {
+    test("defaults to true, i.e. shown, with nothing stored", () async {
+      expect(settingsService.userShowCategoryTitles, isTrue);
+      expect(settingsService.showCategoryTitles, isTrue);
+    });
+  });
+
+  group("showDateInStatusBar default", () {
+    test("defaults to true, i.e. shown, with nothing stored", () async {
+      expect(settingsService.showDateInStatusBar, isTrue);
+    });
+  });
+
+  group("showWeather default", () {
+    test("defaults to true, with nothing stored", () async {
+      expect(settingsService.showWeather, isTrue);
+    });
+  });
+
   group("showContentShortcutHandle", () {
     test("defaults to true, i.e. the handle, with nothing stored", () async {
       expect(settingsService.showContentShortcutHandle, isTrue);
