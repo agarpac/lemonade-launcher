@@ -403,13 +403,18 @@ Por qué no se arregla ahora: la funcionalidad está marcada como experimental, 
 
 Si algún día se retoma, el orden correcto es: primero arreglar el `catch` que miente, después la comprobación de permiso obsoleta, y solo entonces plantearse la restauración.
 
-### 13.2 Las instantáneas de esquema de la base de datos son incompletas y contradictorias
+### 13.2 Las instantáneas de esquema de la base de datos — ✅ ARREGLADO, y destapó dos fallos más
 
-`test/generated_migrations/schema_v1..v5.dart` no contienen las columnas `banner` ni `icon`, mientras que los JSON de `drift_schemas/` sí las incluyen. El test de migración valida por tanto contra esquemas que ningún dispositivo real tuvo. Fue precisamente el motivo de que no detectara los dos fallos corregidos en la cadena de migraciones.
+Las instantáneas `test/generated_migrations/schema_v1..v5.dart` no contenían las columnas `banner` ni `icon`, mientras que los JSON de `drift_schemas/` sí las incluyen. El test de migración validaba por tanto contra esquemas que ningún dispositivo real tuvo, y encima se paraba en la v5 mientras el esquema vivo iba por la v11: seis pasos sin ninguna verificación.
 
-Además solo existen instantáneas de la v1 a la v5, mientras el esquema vivo va por la **v10**: los pasos de la v6 en adelante no tienen ninguna verificación automática. Las instantáneas de v6 a v9 ya no se pueden generar honestamente, porque de esas versiones solo queda el esquema actual.
+Arreglado el 30/07/2026 regenerando la v1–v5 desde los JSON con la propia herramienta de drift, volcando una instantánea de la versión actual —eso sí es honesto, es el presente— y apuntando los cuatro tests a migrar hasta la versión viva en lugar de hasta la v5. **No se han inventado instantáneas de la v6 a la v9**: de esas versiones no queda nada en ninguna parte, y una instantánea adivinada es peor que ninguna. Siguen sin cobertura como puntos de **partida**, aunque los pasos intermedios sí se ejercitan al migrar desde la v1.
 
-Arreglo posible: regenerar las instantáneas v1-v5 desde los JSON, que sí son correctos.
+Al apuntar a la versión viva, el test falló de inmediato, que era exactamente para lo que servía. Destapó dos fallos reales:
+
+1. **`AppsService.addCategory` no guardaba lo que se le pedía.** Recibía `sort`, `type`, `columnsCount` y `rowHeight`, construía el objeto en memoria con ellos e insertaba un companion que omitía las cuatro columnas, así que se guardaban los defaults SQL. En una instalación nueva coincidían y no se notaba; en una base migrada, crear una categoría la mostraba como rejilla y al reiniciar volvía convertida en lista.
+2. **El paso v4 escribía `type ... DEFAULT 0`** mientras la tabla viva declara `withDefault(Constant(Category.Type.index))`, que es 1. Corregir el paso arregla las migraciones futuras pero no alcanza a una base que ya pasó por la v4, y SQLite no puede cambiar el default de una columna en su sitio, así que hizo falta un paso **v12 que reconstruye la tabla `categories`**.
+
+Sobre esa reconstrucción, por si algún día hay que tocarla: va con SQL literal en vez de las tablas Dart vivas, para que una versión posterior no reescriba lo que produjo la v12; copia las filas **por nombre de columna**, porque el `ALTER TABLE` de la v4 dejó el orden físico distinto al de una instalación nueva; crea la tabla nueva con un nombre temporal y la renombra **al final**, para que `apps_categories` conserve su cláusula `REFERENCES` apuntando a la tabla correcta; y va entera en una transacción, así que una reconstrucción a medias revierte a una v11 intacta en lugar de dejar la televisión sin pantalla de inicio. Las claves ajenas se desactivan alrededor y se restauran después, y eso **no es defensivo sino imprescindible**: con ellas activas, borrar la tabla padre propaga el borrado y se lleva todas las pertenencias de aplicaciones a categorías, es decir el dock entero. Hay un test que vuelve a leer esas filas después de la reconstrucción.
 
 ### 13.3 Un fondo de vídeo recrea su widget cada 60 segundos — ✅ ARREGLADO
 
