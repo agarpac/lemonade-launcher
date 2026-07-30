@@ -22,6 +22,7 @@ import 'package:flauncher/l10n/app_localizations.dart';
 import 'package:flauncher/models/category.dart';
 import 'package:flauncher/providers/apps_service.dart';
 import 'package:flauncher/providers/settings_service.dart';
+import 'package:flauncher/widgets/app_card.dart';
 import 'package:flauncher/widgets/content_shortcut_row.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -176,6 +177,27 @@ void main() {
     // Once inside the card and once under it, exactly like an application whose
     // name is shown below its banner.
     expect(find.text("Subscriptions"), findsNWidgets(2));
+  });
+
+  testWidgets("A content shortcut card is clipped with the same squircle shape as an AppCard", (tester) async {
+    // Built to look like an app card on purpose (see the class doc comment in
+    // content_shortcut_row.dart): the squircle shape has to follow, at the same
+    // radius, or the row would visibly stand out from the rest of the launcher.
+    final appsService = _mkAppsService();
+    final section = _mkSection([_mkShortcut(id: 1, label: "Subscriptions")]);
+
+    await _pumpRow(tester, appsService, section);
+
+    final Material material = tester.widget<Material>(
+      find.descendant(of: find.byType(ContentShortcutCard), matching: find.byType(Material)).first,
+    );
+
+    expect(material.shape, isA<RoundedSuperellipseBorder>());
+    expect(
+      (material.shape! as RoundedSuperellipseBorder).borderRadius,
+      BorderRadius.circular(kAppCardCornerRadius),
+    );
+    expect(material.borderRadius, isNull);
   });
 
   testWidgets("A section left with no shortcuts renders nothing at all", (tester) async {

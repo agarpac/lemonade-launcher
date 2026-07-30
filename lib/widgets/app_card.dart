@@ -41,6 +41,14 @@ const kAppCardVerticalPadding = 9.0;
 const kLauncherSectionHorizontalPadding = 24.0;
 const kAppNameLabelHeight = 24.0;
 
+/// Corner radius of an app tile, shared with every widget drawn to look like
+/// one so they stay visually consistent. Used with [RoundedSuperellipseBorder]
+/// (Flutter's engine-native "continuous corner" superellipse shape — an iOS
+/// squircle) rather than [RoundedRectangleBorder]: a plain circular arc meets
+/// the straight edge with a curvature discontinuity, which a superellipse
+/// corner does not have.
+const double kAppCardCornerRadius = 12.0;
+
 /// Row extent for a grid/dock line given the content width between section paddings.
 double appCardRowExtentFromContentWidth(double contentWidth, {int columnCount = Category.ColumnsCount}) {
   final slotWidth = contentWidth / columnCount;
@@ -218,7 +226,7 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
                         fit: StackFit.expand,
                         children: [
                           Material(
-                            borderRadius: BorderRadius.circular(12),
+                            shape: RoundedSuperellipseBorder(borderRadius: BorderRadius.circular(kAppCardCornerRadius)),
                             clipBehavior: Clip.antiAlias,
                             elevation: shouldHighlight ? 7 : 4,
                             shadowColor: Colors.black,
@@ -630,9 +638,11 @@ class _HighlightOutline extends StatelessWidget {
       fit: StackFit.expand,
       children: [
         DecoratedBox(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: color, width: 1),
+          decoration: ShapeDecoration(
+            shape: RoundedSuperellipseBorder(
+              borderRadius: BorderRadius.circular(kAppCardCornerRadius),
+              side: BorderSide(color: color, width: 1),
+            ),
           ),
         ),
       ],

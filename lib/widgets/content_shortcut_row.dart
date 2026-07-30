@@ -207,7 +207,7 @@ class _ContentShortcutCardState extends State<ContentShortcutCard> {
                         fit: StackFit.expand,
                         children: [
                           Material(
-                            borderRadius: BorderRadius.circular(12),
+                            shape: RoundedSuperellipseBorder(borderRadius: BorderRadius.circular(kAppCardCornerRadius)),
                             clipBehavior: Clip.antiAlias,
                             elevation: shouldHighlight ? 7 : 4,
                             shadowColor: Colors.black,
@@ -237,9 +237,11 @@ class _ContentShortcutCardState extends State<ContentShortcutCard> {
                             IgnorePointer(
                               child: RepaintBoundary(
                                 child: DecoratedBox(
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(color: _accentColor, width: 1),
+                                  decoration: ShapeDecoration(
+                                    shape: RoundedSuperellipseBorder(
+                                      borderRadius: BorderRadius.circular(kAppCardCornerRadius),
+                                      side: BorderSide(color: _accentColor, width: 1),
+                                    ),
                                   ),
                                 ),
                               ),
