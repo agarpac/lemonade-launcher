@@ -83,13 +83,23 @@ class _LauncherSectionsPanelPageState extends State<LauncherSectionsPanelPage> {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
-    String title = localizations.spacer;
+    // One explicit branch per section type, and no catch-all: every non-category
+    // section used to be labelled "Spacer", so a shortcut section showed up in
+    // this list under another type's name. A type with no branch here is left
+    // visibly nameless instead, which is wrong in a way somebody will report.
+    String title = "";
     if (section is Category) {
       title = section.name;
 
-      if (title == localizations.spacer) {
+      if (title == localizations.spacer || title == localizations.contentShortcuts) {
         title = localizations.disambiguateCategoryTitle(title);
       }
+    }
+    else if (section is ContentShortcutSection) {
+      title = localizations.contentShortcuts;
+    }
+    else if (section is LauncherSpacer) {
+      title = localizations.spacer;
     }
 
     final bool isMoving = _movingIndex == index;

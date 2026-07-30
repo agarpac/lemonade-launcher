@@ -186,38 +186,41 @@ void main() {
 
   // A section type with no branch in this page used to leave the staged type at
   // `Category`, and the build method then cast the section to `Category` — so
-  // opening a content shortcut section from Settings threw. Until the shortcut
-  // form lands, the page must show nothing rather than crash, and must still let
-  // the user delete the section.
+  // opening a content shortcut section from Settings threw. It now shows the way
+  // into its shortcuts instead of a category form, and must still let the user
+  // delete the section.
   group("a content shortcut section", () {
-    testWidgets("opens without throwing and shows no category form", (tester) async {
+    testWidgets("opens on the way into its shortcuts, not on a category form", (tester) async {
       final appsService = MockAppsService();
-      when(appsService.launcherSections).thenReturn([
-        fakeCategory(name: "Applications"),
-        ContentShortcutSection(id: 1, order: 1, shortcuts: [
-          ContentShortcut(
-            id: 1,
-            sectionId: 1,
-            label: "Subscriptions",
-            uri: "https://www.youtube.com/feed/subscriptions",
-            targetPackage: "com.teamsmart.videomanager.tv",
-          )
-        ]),
+      final section = ContentShortcutSection(id: 1, order: 1, shortcuts: [
+        ContentShortcut(
+          id: 1,
+          sectionId: 1,
+          label: "Subscriptions",
+          uri: "https://www.youtube.com/feed/subscriptions",
+          targetPackage: "com.teamsmart.videomanager.tv",
+        )
       ]);
+      when(appsService.launcherSections).thenReturn([fakeCategory(name: "Applications"), section]);
+      when(appsService.contentShortcutSections).thenReturn([section]);
 
       await _pumpWidgetWithProviders(tester, appsService, 1);
 
       expect(tester.takeException(), isNull);
       expect(find.byType(DropdownButtonFormField<CategorySort>), findsNothing);
       expect(find.byType(DropdownButtonFormField<CategoryType>), findsNothing);
+      // A shortcut section has no settings of its own; it *is* its shortcuts, so
+      // the only thing to offer is the list of them.
+      expect(find.text("1 shortcut"), findsOneWidget);
     });
 
     testWidgets("can still be deleted, so the user is never trapped with it", (tester) async {
       final appsService = MockAppsService();
-      when(appsService.launcherSections).thenReturn([
-        fakeCategory(name: "Applications"),
-        ContentShortcutSection(id: 1, order: 1),
+      final section = ContentShortcutSection(id: 1, order: 1, shortcuts: [
+        ContentShortcut(id: 1, sectionId: 1, label: "Music", uri: "https://youtu.be/a", targetPackage: "tv.smart"),
       ]);
+      when(appsService.launcherSections).thenReturn([fakeCategory(name: "Applications"), section]);
+      when(appsService.contentShortcutSections).thenReturn([section]);
       when(appsService.deleteSection(any)).thenAnswer((_) => Future.value());
 
       await _pumpWidgetWithProviders(tester, appsService, 1);

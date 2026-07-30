@@ -305,5 +305,34 @@
         "placeholders": {
             "degrees": { "type": "String" }
         }
-    }
+    },
+    "contentShortcuts": "Accesos directos",
+    "contentShortcutAdd": "Añadir acceso directo",
+    "contentShortcutNew": "Nuevo acceso directo",
+    "contentShortcutModify": "Modificar acceso directo",
+    "contentShortcutCount": "{count, plural, =0{Sin accesos directos} =1{1 acceso directo} other{{count} accesos directos}}",
+    "@contentShortcutCount": {
+        "placeholders": {
+            "count": {
+                "type": "int"
+            }
+        }
+    },
+    "contentShortcutSectionEmpty": "Esta sección no tiene accesos directos.",
+    "contentShortcutAddress": "Canal o dirección",
+    "contentShortcutAddressPrompt": "Escribe @nombre, un id de canal o una dirección completa y confirma para buscar las aplicaciones que pueden abrirlo.",
+    "contentShortcutAddressInvalid": "Esto no es un canal ni una dirección que se pueda abrir. Prueba con @nombre, un id de canal o una dirección completa.",
+    "contentShortcutResolving": "Buscando las aplicaciones que pueden abrirlo…",
+    "contentShortcutTargetsEmpty": "Ninguna aplicación instalada ha indicado que pueda abrir esta dirección. La dirección puede estar bien: esto también ocurre cuando la aplicación está instalada pero esta versión de Android no deja que el lanzador la vea.",
+    "contentShortcutChooseTarget": "Elige la aplicación que lo abrirá:",
+    "contentShortcutTarget": "Se abre en {appName}",
+    "@contentShortcutTarget": {
+        "placeholders": {
+            "appName": {
+                "type": "String"
+            }
+        }
+    },
+    "contentShortcutNoTarget": "Todavía no hay ninguna aplicación elegida",
+    "contentShortcutUnavailable": "No disponible"
 }

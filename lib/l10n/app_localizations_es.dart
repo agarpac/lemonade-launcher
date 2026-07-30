@@ -744,4 +744,67 @@ class AppLocalizationsEs extends AppLocalizations {
   String weatherTemperature(String degrees) {
     return '$degrees°';
   }
+
+  @override
+  String get contentShortcuts => 'Accesos directos';
+
+  @override
+  String get contentShortcutAdd => 'Añadir acceso directo';
+
+  @override
+  String get contentShortcutNew => 'Nuevo acceso directo';
+
+  @override
+  String get contentShortcutModify => 'Modificar acceso directo';
+
+  @override
+  String contentShortcutCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count accesos directos',
+      one: '1 acceso directo',
+      zero: 'Sin accesos directos',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get contentShortcutSectionEmpty =>
+      'Esta sección no tiene accesos directos.';
+
+  @override
+  String get contentShortcutAddress => 'Canal o dirección';
+
+  @override
+  String get contentShortcutAddressPrompt =>
+      'Escribe @nombre, un id de canal o una dirección completa y confirma para buscar las aplicaciones que pueden abrirlo.';
+
+  @override
+  String get contentShortcutAddressInvalid =>
+      'Esto no es un canal ni una dirección que se pueda abrir. Prueba con @nombre, un id de canal o una dirección completa.';
+
+  @override
+  String get contentShortcutResolving =>
+      'Buscando las aplicaciones que pueden abrirlo…';
+
+  @override
+  String get contentShortcutTargetsEmpty =>
+      'Ninguna aplicación instalada ha indicado que pueda abrir esta dirección. La dirección puede estar bien: esto también ocurre cuando la aplicación está instalada pero esta versión de Android no deja que el lanzador la vea.';
+
+  @override
+  String get contentShortcutChooseTarget =>
+      'Elige la aplicación que lo abrirá:';
+
+  @override
+  String contentShortcutTarget(String appName) {
+    return 'Se abre en $appName';
+  }
+
+  @override
+  String get contentShortcutNoTarget =>
+      'Todavía no hay ninguna aplicación elegida';
+
+  @override
+  String get contentShortcutUnavailable => 'No disponible';
 }

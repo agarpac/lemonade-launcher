@@ -315,5 +315,34 @@
         "placeholders": {
             "degrees": { "type": "String" }
         }
-    }
+    },
+    "contentShortcuts": "Shortcuts",
+    "contentShortcutAdd": "Add shortcut",
+    "contentShortcutNew": "New shortcut",
+    "contentShortcutModify": "Modify shortcut",
+    "contentShortcutCount": "{count, plural, =0{No shortcuts} =1{1 shortcut} other{{count} shortcuts}}",
+    "@contentShortcutCount": {
+        "placeholders": {
+            "count": {
+                "type": "int"
+            }
+        }
+    },
+    "contentShortcutSectionEmpty": "This section has no shortcuts.",
+    "contentShortcutAddress": "Channel or address",
+    "contentShortcutAddressPrompt": "Type @handle, a channel id or a full address, then confirm to look for the apps that can open it.",
+    "contentShortcutAddressInvalid": "This is not a channel or an address that can be opened. Try @handle, a channel id, or a full address.",
+    "contentShortcutResolving": "Looking for the apps that can open it…",
+    "contentShortcutTargetsEmpty": "No installed app reported that it can open this address. The address may well be right: this also happens when the app is installed but this version of Android does not let the launcher see it.",
+    "contentShortcutChooseTarget": "Choose the app that will open it:",
+    "contentShortcutTarget": "Opens in {appName}",
+    "@contentShortcutTarget": {
+        "placeholders": {
+            "appName": {
+                "type": "String"
+            }
+        }
+    },
+    "contentShortcutNoTarget": "No app chosen yet",
+    "contentShortcutUnavailable": "Unavailable"
 }

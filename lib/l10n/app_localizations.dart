@@ -1417,6 +1417,96 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{degrees}°'**
   String weatherTemperature(String degrees);
+
+  /// No description provided for @contentShortcuts.
+  ///
+  /// In en, this message translates to:
+  /// **'Shortcuts'**
+  String get contentShortcuts;
+
+  /// No description provided for @contentShortcutAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add shortcut'**
+  String get contentShortcutAdd;
+
+  /// No description provided for @contentShortcutNew.
+  ///
+  /// In en, this message translates to:
+  /// **'New shortcut'**
+  String get contentShortcutNew;
+
+  /// No description provided for @contentShortcutModify.
+  ///
+  /// In en, this message translates to:
+  /// **'Modify shortcut'**
+  String get contentShortcutModify;
+
+  /// No description provided for @contentShortcutCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No shortcuts} =1{1 shortcut} other{{count} shortcuts}}'**
+  String contentShortcutCount(int count);
+
+  /// No description provided for @contentShortcutSectionEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'This section has no shortcuts.'**
+  String get contentShortcutSectionEmpty;
+
+  /// No description provided for @contentShortcutAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Channel or address'**
+  String get contentShortcutAddress;
+
+  /// No description provided for @contentShortcutAddressPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Type @handle, a channel id or a full address, then confirm to look for the apps that can open it.'**
+  String get contentShortcutAddressPrompt;
+
+  /// No description provided for @contentShortcutAddressInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'This is not a channel or an address that can be opened. Try @handle, a channel id, or a full address.'**
+  String get contentShortcutAddressInvalid;
+
+  /// No description provided for @contentShortcutResolving.
+  ///
+  /// In en, this message translates to:
+  /// **'Looking for the apps that can open it…'**
+  String get contentShortcutResolving;
+
+  /// No description provided for @contentShortcutTargetsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No installed app reported that it can open this address. The address may well be right: this also happens when the app is installed but this version of Android does not let the launcher see it.'**
+  String get contentShortcutTargetsEmpty;
+
+  /// No description provided for @contentShortcutChooseTarget.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose the app that will open it:'**
+  String get contentShortcutChooseTarget;
+
+  /// No description provided for @contentShortcutTarget.
+  ///
+  /// In en, this message translates to:
+  /// **'Opens in {appName}'**
+  String contentShortcutTarget(String appName);
+
+  /// No description provided for @contentShortcutNoTarget.
+  ///
+  /// In en, this message translates to:
+  /// **'No app chosen yet'**
+  String get contentShortcutNoTarget;
+
+  /// No description provided for @contentShortcutUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Unavailable'**
+  String get contentShortcutUnavailable;
 }
 
 class _AppLocalizationsDelegate

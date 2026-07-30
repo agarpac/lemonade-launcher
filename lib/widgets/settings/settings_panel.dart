@@ -20,6 +20,8 @@ import 'package:flauncher/widgets/side_panel_dialog.dart';
 import 'package:flauncher/widgets/settings/applications_panel_page.dart';
 import 'package:flauncher/widgets/settings/backup_panel_page.dart';
 import 'package:flauncher/widgets/settings/backup_restore_page.dart';
+import 'package:flauncher/widgets/settings/content_shortcut_panel_page.dart';
+import 'package:flauncher/widgets/settings/content_shortcuts_panel_page.dart';
 import 'package:flauncher/widgets/settings/launcher_sections_panel_page.dart';
 import 'package:flauncher/widgets/settings/gradient_panel_page.dart';
 import 'package:flauncher/widgets/settings/launcher_section_panel_page.dart';
@@ -102,6 +104,13 @@ class _SettingsPanelState extends State<SettingsPanel> {
                     case LauncherSectionPanelPage.routeName:
                       return _FastPageRoute(
                           builder: (_) => LauncherSectionPanelPage(sectionIndex: settings.arguments as int?));
+                    case ContentShortcutsPanelPage.routeName:
+                      return _FastPageRoute(
+                          builder: (_) => ContentShortcutsPanelPage(sectionId: settings.arguments as int));
+                    case ContentShortcutPanelPage.routeName:
+                      return _FastPageRoute(
+                          builder: (_) => ContentShortcutPanelPage(
+                              arguments: settings.arguments as ContentShortcutPanelPageArguments));
                     case WifiUsagePeriodPage.routeName:
                       return _FastPageRoute(builder: (_) => WifiUsagePeriodPage());
                     case BackButtonActionPage.routeName:

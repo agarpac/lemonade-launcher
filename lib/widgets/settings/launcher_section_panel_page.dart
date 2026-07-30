@@ -18,7 +18,11 @@
 
 import 'dart:async';
 
+import 'package:collection/collection.dart';
 import 'package:flauncher/providers/apps_service.dart';
+import 'package:flauncher/widgets/settings/content_shortcut_panel_page.dart';
+import 'package:flauncher/widgets/settings/content_shortcuts_panel_page.dart';
+import 'package:flauncher/widgets/settings/focusable_settings_tile.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -179,11 +183,9 @@ class LauncherSectionPanelPage extends StatelessWidget
             );
           }
           else {
-            // A shortcut section has no form yet; it deliberately shows nothing
-            // rather than being cast to a type it is not. The delete button below
-            // still works, so the user is never trapped with a section they
-            // cannot get rid of.
-            sectionSpecificSettings = const SizedBox.shrink();
+            sectionSpecificSettings = _ContentShortcutSectionSettings(
+              section: launcherSection as ContentShortcutSection?,
+            );
           }
 
           String title = localizations.newSection;
@@ -198,6 +200,9 @@ class LauncherSectionPanelPage extends StatelessWidget
               children: [
                 Text(title, style: Theme.of(context).textTheme.titleLarge, textAlign: TextAlign.center),
                 Divider(),
+                // Only while creating: an existing section's type is what its
+                // rows *are*, and there is no migration from one to another.
+                if (creating) _sectionTypePicker(context, state, sectionType),
                 sectionSpecificSettings,
                 Divider(),
               Selector<_SettingsState, bool>(
@@ -701,6 +706,10 @@ class _LauncherSpacerSettingsState extends State<_LauncherSpacerSettings>
             focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.white, width: 2)),
             contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           ),
+          // The type picker above had the focus and is replaced by this form the
+          // moment "Spacer" is chosen, so without this the page would be left
+          // with nothing focused — a dead end for a remote.
+          autofocus: _creating,
           isDense: true,
           isExpanded: true,
           initialValue: _numberValue,
@@ -742,6 +751,184 @@ class _LauncherSpacerSettingsState extends State<_LauncherSpacerSettings>
 
       _notifyChange();
     }
+  }
+}
+
+/// The choice between the three kinds of section, offered only while creating
+/// one. This is what makes a shortcut section creatable at all: nothing else
+/// calls [_SettingsState.setSectionType].
+Widget _sectionTypePicker(BuildContext context, _SettingsState state, LauncherSectionType sectionType) {
+  AppLocalizations localizations = AppLocalizations.of(context)!;
+
+  return _listTile(
+    context,
+    Text(localizations.type),
+    Padding(
+      padding: EdgeInsets.only(top: 4),
+      child: DropdownButtonFormField<LauncherSectionType>(
+        decoration: InputDecoration(
+          border: OutlineInputBorder(),
+          focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.white, width: 2)),
+          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        ),
+        isDense: true,
+        isExpanded: true,
+        initialValue: sectionType,
+        onChanged: (value) {
+          if (value != null) {
+            state.setSectionType(value);
+          }
+        },
+        items: [
+          DropdownMenuItem(
+            value: LauncherSectionType.Category,
+            child: Text(localizations.category, style: Theme.of(context).textTheme.bodySmall),
+          ),
+          DropdownMenuItem(
+            value: LauncherSectionType.Shortcut,
+            child: Text(localizations.contentShortcuts, style: Theme.of(context).textTheme.bodySmall),
+          ),
+          DropdownMenuItem(
+            value: LauncherSectionType.Spacer,
+            child: Text(localizations.spacer, style: Theme.of(context).textTheme.bodySmall),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+/// The section-level form of a shortcut section, which is deliberately almost
+/// empty: a shortcut section has no settings of its own, it *is* its shortcuts,
+/// so everything happens one level down.
+class _ContentShortcutSectionSettings extends StatefulWidget
+{
+  final ContentShortcutSection? section;
+
+  const _ContentShortcutSectionSettings({this.section});
+
+  @override
+  State<StatefulWidget> createState() => _ContentShortcutSectionSettingsState();
+}
+
+class _ContentShortcutSectionSettingsState extends State<_ContentShortcutSectionSettings>
+{
+  /// Focus target for this form's only action.
+  ///
+  /// The type picker above had the focus and is being replaced by this form the
+  /// moment the user chose "Shortcuts", so `autofocus` cannot be relied on: it
+  /// only fires while nothing in the scope holds focus. A settings page with
+  /// nothing focused is a dead end for a remote.
+  final FocusNode _actionFocusNode = FocusNode();
+
+  late final bool _creating;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _creating = widget.section == null;
+
+    // Nothing here is staged and saved at once: adding, editing, deleting and
+    // reordering a shortcut each write on their own page, so the section-level
+    // Save button stays disabled — and must not be left pointing at the save of
+    // a form the user just switched away from.
+    context.read<_SettingsState>().onSave = null;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _actionFocusNode.requestFocus();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _actionFocusNode.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    AppLocalizations localizations = AppLocalizations.of(context)!;
+
+    if (_creating) {
+      return Column(
+        children: [
+          _listTile(
+            context,
+            Text(localizations.contentShortcuts),
+            Text(localizations.contentShortcutSectionEmpty, style: Theme.of(context).textTheme.bodySmall),
+          ),
+          FocusableSettingsTile(
+            focusNode: _actionFocusNode,
+            leading: Icon(Icons.add),
+            title: Text(localizations.contentShortcutAdd, style: Theme.of(context).textTheme.bodyMedium),
+            onPressed: _addFirstShortcut,
+          ),
+        ],
+      );
+    }
+
+    return Consumer<AppsService>(
+      builder: (context, service, _) {
+        ContentShortcutSection? section =
+            service.contentShortcutSections.firstWhereOrNull((s) => s.id == widget.section!.id);
+
+        if (section == null) {
+          // The last shortcut was deleted while this page was open, so the
+          // section stopped existing. Staying would leave the "Delete" button
+          // below holding a section index that now points at somebody else's
+          // section.
+          _leaveDeletedSection();
+          return SizedBox.shrink();
+        }
+
+        return FocusableSettingsTile(
+          focusNode: _actionFocusNode,
+          leading: Icon(Icons.link),
+          title: Text(
+            localizations.contentShortcutCount(section.shortcuts.length),
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+          trailing: Icon(Icons.chevron_right, color: Colors.white24),
+          onPressed: () => Navigator.pushNamed(
+            context,
+            ContentShortcutsPanelPage.routeName,
+            arguments: section.id,
+          ),
+        );
+      },
+    );
+  }
+
+  /// Creates the section by creating its first shortcut, then goes back to the
+  /// list of sections, where it has just appeared.
+  ///
+  /// It deliberately does not turn this page into the new section's edit page the
+  /// way the category and spacer forms do: those reach that state with no section
+  /// index, which is exactly what the "Delete" button needs.
+  Future<void> _addFirstShortcut() async {
+    NavigatorState navigator = Navigator.of(context);
+
+    Object? result = await navigator.pushNamed(
+      ContentShortcutPanelPage.routeName,
+      arguments: const ContentShortcutPanelPageArguments(),
+    );
+
+    if (!mounted || result is! int) {
+      return;
+    }
+    navigator.maybePop();
+  }
+
+  void _leaveDeletedSection() {
+    NavigatorState navigator = Navigator.of(context);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        navigator.maybePop();
+      }
+    });
   }
 }
 

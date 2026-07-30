@@ -31,6 +31,7 @@ import 'package:flauncher/widgets/app_card.dart';
 import 'package:flauncher/widgets/cached_blur_backdrop.dart';
 import 'package:flauncher/widgets/category_clean_row.dart';
 import 'package:flauncher/widgets/category_row.dart';
+import 'package:flauncher/widgets/content_shortcut_row.dart';
 import 'package:flauncher/widgets/launcher_alternative_view.dart';
 import 'package:flauncher/widgets/focus_aware_app_bar.dart';
 import 'package:flauncher/widgets/wallpaper_video_background.dart';
@@ -247,9 +248,42 @@ class _FLauncherState extends State<FLauncher> with WidgetsBindingObserver {
       }
 
       if (section is ContentShortcutSection) {
-        // Deliberately renders nothing until the content-shortcut UI lands: this
-        // is the device's only home screen, so an unhandled section type must
-        // never be allowed to reach the `as Category` cast below.
+        // A section *is* the shortcuts that share its id, so an empty one is a
+        // section that no longer exists: skipped exactly like a category with no
+        // applications, and without claiming the "first section" role that makes
+        // arrow-up reach the top bar.
+        if (section.shortcuts.isEmpty) continue;
+
+        final bool isFirstSection = !firstCategoryFound;
+        firstCategoryFound = true;
+        final onShortcutFocused = !firstBuiltSectionFound
+            ? () => _onAppGridFocused(onFirstSectionFocused: onFirstSectionFocused)
+            : () => _onAppGridFocused();
+        firstBuiltSectionFound = true;
+
+        slivers.add(
+          SliverToBoxAdapter(child: _sectionTitle(context, AppLocalizations.of(context)!.contentShortcuts)),
+        );
+        slivers.add(
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.only(
+                left: kLauncherSectionHorizontalPadding,
+                right: kLauncherSectionHorizontalPadding,
+                bottom: 8,
+              ),
+              child: ContentShortcutRow(
+                // Prefixed, because a shortcut section's id and a category's id
+                // are drawn from different tables and collide happily; two
+                // slivers with the same key in one CustomScrollView throw.
+                key: Key("content_shortcut_section_${section.id}"),
+                section: section,
+                isFirstSection: isFirstSection,
+                onShortcutFocused: onShortcutFocused,
+              ),
+            ),
+          ),
+        );
         continue;
       }
 
@@ -269,27 +303,7 @@ class _FLauncherState extends State<FLauncher> with WidgetsBindingObserver {
           : () => _onAppGridFocused();
       firstBuiltSectionFound = true;
 
-      slivers.add(
-        SliverToBoxAdapter(
-          child: Selector<SettingsService, bool>(
-            selector: (context, service) => service.showCategoryTitles,
-            builder: (context, showTitle, _) {
-              if (showTitle) {
-                return Padding(
-                  padding: const EdgeInsets.only(left: 40, bottom: 8, top: 8),
-                  child: Text(
-                    category.name,
-                    style: Theme.of(context).textTheme.titleLarge!.copyWith(
-                      shadows: const [Shadow(color: Colors.black54, offset: Offset(1, 1), blurRadius: 8)],
-                    ),
-                  ),
-                );
-              }
-              return const SizedBox.shrink();
-            },
-          ),
-        ),
-      );
+      slivers.add(SliverToBoxAdapter(child: _sectionTitle(context, category.name)));
 
       switch (category.type) {
         case CategoryType.row:
@@ -369,6 +383,27 @@ class _FLauncherState extends State<FLauncher> with WidgetsBindingObserver {
 
     return slivers;
   }
+
+  /// The title above a section, shown only while "show category titles" is on.
+  ///
+  /// One helper for every section type: a shortcut section is titled by the same
+  /// setting, in the same place, in the same style as a category, because that
+  /// setting is about section titles and a shortcut section has one too.
+  Widget _sectionTitle(BuildContext context, String title) => Selector<SettingsService, bool>(
+    selector: (context, service) => service.showCategoryTitles,
+    builder: (context, showTitle, _) {
+      if (!showTitle) return const SizedBox.shrink();
+      return Padding(
+        padding: const EdgeInsets.only(left: 40, bottom: 8, top: 8),
+        child: Text(
+          title,
+          style: Theme.of(context).textTheme.titleLarge!.copyWith(
+            shadows: const [Shadow(color: Colors.black54, offset: Offset(1, 1), blurRadius: 8)],
+          ),
+        ),
+      );
+    },
+  );
 
   Future<void> _scrollDockToTop() async {
     final targetOffset = _dockTopScrollOffset();

@@ -729,4 +729,64 @@ class AppLocalizationsEn extends AppLocalizations {
   String weatherTemperature(String degrees) {
     return '$degrees°';
   }
+
+  @override
+  String get contentShortcuts => 'Shortcuts';
+
+  @override
+  String get contentShortcutAdd => 'Add shortcut';
+
+  @override
+  String get contentShortcutNew => 'New shortcut';
+
+  @override
+  String get contentShortcutModify => 'Modify shortcut';
+
+  @override
+  String contentShortcutCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count shortcuts',
+      one: '1 shortcut',
+      zero: 'No shortcuts',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get contentShortcutSectionEmpty => 'This section has no shortcuts.';
+
+  @override
+  String get contentShortcutAddress => 'Channel or address';
+
+  @override
+  String get contentShortcutAddressPrompt =>
+      'Type @handle, a channel id or a full address, then confirm to look for the apps that can open it.';
+
+  @override
+  String get contentShortcutAddressInvalid =>
+      'This is not a channel or an address that can be opened. Try @handle, a channel id, or a full address.';
+
+  @override
+  String get contentShortcutResolving =>
+      'Looking for the apps that can open it…';
+
+  @override
+  String get contentShortcutTargetsEmpty =>
+      'No installed app reported that it can open this address. The address may well be right: this also happens when the app is installed but this version of Android does not let the launcher see it.';
+
+  @override
+  String get contentShortcutChooseTarget => 'Choose the app that will open it:';
+
+  @override
+  String contentShortcutTarget(String appName) {
+    return 'Opens in $appName';
+  }
+
+  @override
+  String get contentShortcutNoTarget => 'No app chosen yet';
+
+  @override
+  String get contentShortcutUnavailable => 'Unavailable';
 }
