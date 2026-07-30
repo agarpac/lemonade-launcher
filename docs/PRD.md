@@ -420,3 +420,19 @@ Verificado al hacer la fase 0 del fondo por escena. No se arregló ahí porque e
 Arreglado comparando la ruta del fichero de vídeo efectivo con la anterior, en lugar de dar por cambiado cualquier vídeo. La condición `hay vídeo` desaparece de la comprobación; el contrato `force: true` de las rutas que guardan o eligen un fichero sigue cubriendo el caso de sobrescribir el mismo nombre con contenido nuevo.
 
 Nota: no existía **ninguna** prueba que cubriera la ruta del vídeo, lo que explica que el defecto pasara desapercibido. Para poder probar el cambio real de día a noche hizo falta un punto de inyección del reloj (`debugNow`), siguiendo el patrón `debugResolveNow` que ya existía en el mismo fichero.
+
+### 13.4 El botón de ajustes del salvapantallas apunta a un paquete que no existe
+
+`android/app/src/main/res/xml/screensaver.xml`
+
+```xml
+<dream android:settingsActivity="me.efesser.flauncher/.MainActivity" />
+```
+
+Ese componente pertenece al paquete **`me.efesser.flauncher`**, que es el `applicationId` del FLauncher original. En este APK el `applicationId` es `com.omeda.arc`, así que el componente no se resuelve: el botón «Ajustes» del salvapantallas, en la pantalla de salvapantallas de Android, **no lleva a ninguna parte**.
+
+Descubierto el 30/07/2026 al borrar el árbol Java duplicado `me/efesser/flauncher/`, que era una copia íntegra del árbol vivo con el paquete antiguo. Las clases duplicadas no estaban declaradas en el manifest y nada las referenciaba, así que borrarlas no cambia este defecto: la referencia rota apuntaba a un paquete de aplicación inexistente, no a esas clases.
+
+Por qué no se arregla aquí: `android:settingsActivity` exige un nombre de componente completo (`paquete/clase`), y los marcadores de Gradle tipo `${applicationId}` **solo funcionan en el manifest, no en los ficheros de recursos**. Escribir `com.omeda.arc/.MainActivity` a pelo dejaría el botón roto en las compilaciones de depuración, que llevan `applicationIdSuffix '.debug'`. El arreglo limpio es declarar el valor en `build.gradle` con `resValue "string", ...` interpolando `${applicationId}` y referenciarlo como `@string/...` desde el XML. No se hace ahora porque **no se puede verificar sin la caja**: hay que abrir los ajustes de salvapantallas de Android y comprobar que el botón entra en el launcher.
+
+Nota de alcance: las cadenas `me.efesser.flauncher/method`, `/event_apps` y `/event_network` que quedan en `MainActivity.java`, `flauncher_channel.dart`, `brightness_service.dart` y `general_settings_page.dart` son **nombres de canal**, cadenas arbitrarias que solo tienen que coincidir en los dos lados. Coinciden. Renombrarlas es cosmético y exige cambiar ambos lados a la vez, así que se dejan.
