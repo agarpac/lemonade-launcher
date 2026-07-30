@@ -120,6 +120,33 @@ binary:
 unzip -p <apk> lib/arm64-v8a/libapp.so | strings | grep api.github.com
 ```
 
+**Every JDK tool needs the mise prefix too, not just flutter.** `apksigner`, `keytool` and `jarsigner`
+live in the Android SDK or the JDK, and without the activation they fail with "Unable to locate a
+Java Runtime" — which reads like a broken SDK rather than a missing PATH:
+
+```shell
+eval "$(/opt/homebrew/bin/mise env -s bash)" && \
+  ~/Library/Android/sdk/build-tools/35.0.0/apksigner verify --print-certs <apk>
+```
+
+**Generating a keystore: pass `-dname` and skip the interview.** `keytool`'s interactive prompt ends
+with a confirmation whose default is **no**, so pressing ENTER answers "not correct" and it loops
+forever. Worse, answering a question with `no` sets that field's literal value to the string "no" —
+the way to leave a field empty is a single dot. The certificate's distinguished name is embedded
+permanently and visible to anyone inspecting the signature, and changing it means a new key, which
+after the first release breaks the update path for everyone. So get it right in one shot:
+
+```shell
+eval "$(/opt/homebrew/bin/mise env -s bash)" && keytool -genkeypair -v \
+  -keystore android/app/upload-keystore.jks \
+  -storetype PKCS12 -alias lemonade \
+  -keyalg RSA -keysize 4096 -validity 10000 \
+  -dname "CN=agarpac, O=Lemonade Launcher, C=ES"
+```
+
+PKCS12 does not support a key password distinct from the store password, which is why
+`storePassword` and `keyPassword` in `android/local.properties` are the same value.
+
 ## Definition of done
 
 Both of these, actually run, with their real output reported:

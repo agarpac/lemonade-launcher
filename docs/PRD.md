@@ -297,9 +297,9 @@ El precio es que `wallpaperPath` es de facto un booleano con aspecto de ruta, lo
 
 ✅ **Completado — cadenas de Arc Launcher.** No quedaba nada que limpiar: todas las apariciones restantes son **atribución GPL obligatoria** (el diálogo «Acerca de», `aboutLegalese`, los créditos del README) o historia correcta en este documento. Quitarlas rompería la cadena de atribución de la licencia, así que se conservan a propósito.
 
-Pendiente:
+✅ **Completado — identidad propia y primera publicación** (31/07/2026). El `applicationId` pasó a `io.github.agarpac.lemonade` **antes** de publicar, que era la única ventana para hacerlo. Versión propia `1.1.0`, icono y banner con el limón, autoría en el «Acerca de», y el repositorio público en `github.com/agarpac/lemonade-launcher` con la release `v1.1.0` y cuatro APK firmados.
 
-1. Decidir si se renombra el `applicationId` `com.omeda.arc` — **antes** de la primera publicación, nunca después.
+Pendiente: nada del alcance original. Lo que queda son los defectos abiertos de la sección 13.
 
 ## 11. Copia de seguridad y restauración
 
@@ -443,3 +443,33 @@ Descubierto el 30/07/2026 al borrar el árbol Java duplicado `me/efesser/flaunch
 Por qué no se arregla aquí: `android:settingsActivity` exige un nombre de componente completo (`paquete/clase`), y los marcadores de Gradle tipo `${applicationId}` **solo funcionan en el manifest, no en los ficheros de recursos**. Escribir `com.omeda.arc/.MainActivity` a pelo dejaría el botón roto en las compilaciones de depuración, que llevan `applicationIdSuffix '.debug'`. El arreglo limpio es declarar el valor en `build.gradle` con `resValue "string", ...` interpolando `${applicationId}` y referenciarlo como `@string/...` desde el XML. No se hace ahora porque **no se puede verificar sin la caja**: hay que abrir los ajustes de salvapantallas de Android y comprobar que el botón entra en el launcher.
 
 Nota de alcance: las cadenas `me.efesser.flauncher/method`, `/event_apps` y `/event_network` que quedan en `MainActivity.java`, `flauncher_channel.dart`, `brightness_service.dart` y `general_settings_page.dart` son **nombres de canal**, cadenas arbitrarias que solo tienen que coincidir en los dos lados. Coinciden. Renombrarlas es cosmético y exige cambiar ambos lados a la vez, así que se dejan.
+
+### 13.5 La pantalla de inicio solo deja ver una fila de secciones
+
+`lib/flauncher.dart`
+
+El centro de la pantalla se deja libre a propósito mediante un sliver espaciador (sección 3.B), y la consecuencia es que las filas empiezan muy abajo: **solo cabe una sección**, y la siguiente queda fuera del borde inferior. Reordenar las secciones no lo arregla, porque el problema no es el orden — se comprobó moviendo la sección de accesos directos por encima de «All Apps» y siguió sin caber.
+
+Tampoco se pudo desplazar con la cruceta: pulsar abajo repetidamente no lleva el foco hasta la sección de abajo. Queda por determinar si es que el espaciador se come el espacio de desplazamiento o si el foco no sale de la primera fila.
+
+Descubierto el 30/07/2026 al preparar las capturas del README. Es lo primero que ve quien instala la app, así que pesa más de lo que su descripción sugiere.
+
+### 13.6 El panel de la lista de accesos directos abre sin foco
+
+`lib/widgets/settings/content_shortcuts_panel_page.dart`
+
+Al abrir la lista de accesos directos de una sección, **ningún elemento tiene el foco**: pulsar OK no hace nada y hay que pulsar abajo primero. Con un mando eso se percibe como que la aplicación se ha colgado.
+
+Es la trampa del `autofocus` que el `AGENTS.md` documenta: solo actúa si nada del ámbito tiene ya el foco, y aquí el panel se abre desde otro panel que lo retiene. El arreglo es un `focusNode` explícito con `requestFocus`, como ya se hizo para la lista de resultados del buscador de canales.
+
+### 13.7 La dirección se corta en el editor de un acceso directo
+
+`lib/widgets/settings/content_shortcut_panel_page.dart`
+
+El campo «Canal o dirección» muestra `https://www.youtube.com/@hia…` y el texto se sale del borde del panel sin puntos suspensivos ni salto de línea. Cosmético, pero impide comprobar de un vistazo que la dirección guardada es la correcta.
+
+### 13.8 Los títulos de categoría se muestran en inglés
+
+Los encabezados de sección se leen «All Apps» y «Favorites» en una interfaz cuyo idioma por defecto es el español. **El valor almacenado no se puede traducir**: se compara por igualdad contra la base de datos y contra una migración, y el dock localiza su fila buscando literalmente `'Favorites'` (ver la sección de trampas del `AGENTS.md`), así que traducirlo vaciaría el dock en silencio.
+
+Lo que sí se puede es traducir **solo lo que se muestra**, dejando intacto el valor guardado: una función que mapee los dos nombres reservados a su cadena localizada en el momento de pintar. Hay que cubrirla con un test que fije que lo almacenado no cambia, porque es exactamente el sitio donde alguien «arreglaría» el original.
