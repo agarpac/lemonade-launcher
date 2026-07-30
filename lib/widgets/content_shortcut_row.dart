@@ -301,6 +301,11 @@ class _ContentShortcutCardState extends State<ContentShortcutCard> {
     final bool launchable = _launchable;
     final Color disabledColor = Theme.of(context).disabledColor;
 
+    // Both branches label the card with the same thing. A picture on its own
+    // identifies the channel only to someone who already recognises the face.
+    final String cardText =
+        (showHandle ? contentShortcutHandle(widget.shortcut.uri) : null) ?? widget.shortcut.label;
+
     if (artwork != null) {
       // Filled edge to edge like an application's banner in [AppCard], inside
       // the same [Material] as the icon variant, so the card keeps its size and
@@ -311,25 +316,30 @@ class _ContentShortcutCardState extends State<ContentShortcutCard> {
           fit: StackFit.expand,
           children: [
             Ink.image(image: artwork, fit: BoxFit.cover),
-            if (!launchable)
-              Positioned(
-                left: 0,
-                right: 0,
-                bottom: 0,
-                child: ColoredBox(
-                  color: const Color(0x99000000),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                    child: Text(
-                      localizations.contentShortcutUnavailable,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 10, color: disabledColor),
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 1,
-                      textAlign: TextAlign.center,
-                    ),
+            // One strip, carrying the name normally and the unavailable caption
+            // when the target is gone: both cannot be true at once, and two
+            // strips would bury the picture they sit on.
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: ColoredBox(
+                color: const Color(0x99000000),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                  child: Text(
+                    launchable ? cardText : localizations.contentShortcutUnavailable,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          fontSize: 10,
+                          color: launchable ? null : disabledColor,
+                        ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                    textAlign: TextAlign.center,
                   ),
                 ),
               ),
+            ),
           ],
         ),
       );
@@ -358,13 +368,7 @@ class _ContentShortcutCardState extends State<ContentShortcutCard> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        // The handle when [showHandle] asks for it and the
-                        // destination has one, the user's label otherwise:
-                        // "@canal" says what this opens, while a name like
-                        // "test" says nothing once there are several. The
-                        // label still appears under the card when app names
-                        // are switched on, regardless of this setting.
-                        (showHandle ? contentShortcutHandle(widget.shortcut.uri) : null) ?? widget.shortcut.label,
+                        cardText,
                         style: Theme.of(context).textTheme.bodySmall,
                         overflow: TextOverflow.ellipsis,
                         maxLines: 2,

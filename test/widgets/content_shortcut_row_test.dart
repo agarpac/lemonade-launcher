@@ -282,6 +282,33 @@ void main() {
     expect(material.borderRadius, isNull);
   });
 
+  testWidgets("A card with artwork still says which channel it is", (tester) async {
+    // A picture alone identifies the channel only to someone who already
+    // recognises the face, so the name has to survive the artwork branch.
+    final appsService = _mkAppsService();
+    final section = _mkSection([
+      _mkShortcut(id: 1, label: "test", uri: "https://www.youtube.com/@LinusTechTips"),
+    ]);
+
+    await _pumpRow(tester, appsService, section, artworkByShortcutId: {1: _fakeArtwork()});
+
+    expect(find.text("@LinusTechTips"), findsOneWidget);
+  });
+
+  testWidgets("An unavailable card with artwork says so instead of naming the channel", (tester) async {
+    // One strip, and the caption wins it: a name is no use on a card that
+    // cannot open anything.
+    final appsService = _mkAppsService();
+    final section = _mkSection([
+      _mkShortcut(id: 1, label: "test", uri: "https://www.youtube.com/@LinusTechTips", available: false),
+    ]);
+
+    await _pumpRow(tester, appsService, section, artworkByShortcutId: {1: _fakeArtwork()});
+
+    expect(find.text("Unavailable"), findsOneWidget);
+    expect(find.text("@LinusTechTips"), findsNothing);
+  });
+
   testWidgets("A shortcut with artwork shows it edge to edge instead of the generic icon", (tester) async {
     final appsService = _mkAppsService();
     final section = _mkSection([_mkShortcut(id: 1, label: "Subscriptions")]);
