@@ -61,6 +61,10 @@ void main() {
     final settingsService = SettingsService(sharedPreferences, scenesService);
     // Avoid needing a NetworkService provider just to render the app bar.
     await settingsService.setShowNetworkIndicatorInStatusBar(false);
+    // This test is about focus wiring, not the frosted-glass rendering: skip
+    // the live blur so the bar's glass cards don't need a WallpaperService
+    // provider that has nothing to do with what this test is checking.
+    await settingsService.setDockBackdropFilterDisabled(true);
     await scenesService.setSceneHideAppBar(SceneKeys.cinema, true);
 
     await tester.pumpWidget(

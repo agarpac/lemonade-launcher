@@ -10,6 +10,7 @@ import '../providers/settings_service.dart';
 import 'daily_wifi_usage_widget.dart';
 import 'date_time_widget.dart';
 import 'network_widget.dart';
+import 'status_bar_glass_card.dart';
 import 'status_bar_weather_widget.dart';
 
 class FocusAwareAppBar extends StatefulWidget implements PreferredSizeWidget
@@ -101,11 +102,17 @@ class FocusAwareAppBarState extends State<FocusAwareAppBar>
           title: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Settings button (moved to left side)
-              _FocusableIconButton(
-                icon: Icons.settings_outlined,
-                focusNode: _settingsFocusNode,
-                onPressed: () => showDialog(context: context, builder: (_) => const SettingsPanel()),
+              // Settings button (moved to left side). A tight padding keeps the
+              // card close to the icon's own bounds rather than the wider pill
+              // used for text content elsewhere in the bar, while the radius and
+              // translucency stay the same everywhere.
+              StatusBarGlassCard(
+                padding: const EdgeInsets.all(6),
+                child: _FocusableIconButton(
+                  icon: Icons.settings_outlined,
+                  focusNode: _settingsFocusNode,
+                  onPressed: () => showDialog(context: context, builder: (_) => const SettingsPanel()),
+                ),
               ),
               const SizedBox(width: 8),
               // Scoped to just this icon: it must not trigger a rebuild of the whole
@@ -114,10 +121,13 @@ class FocusAwareAppBarState extends State<FocusAwareAppBar>
                 selector: (_, scenesService) => scenesService.activeSceneKey,
                 builder: (context, activeSceneKey, _) => Tooltip(
                   message: AppLocalizations.of(context)!.scenes,
-                  child: _FocusableIconButton(
-                    icon: sceneIconFor(activeSceneKey),
-                    focusNode: _scenesFocusNode,
-                    onPressed: () => _openScenePicker(context),
+                  child: StatusBarGlassCard(
+                    padding: const EdgeInsets.all(6),
+                    child: _FocusableIconButton(
+                      icon: sceneIconFor(activeSceneKey),
+                      focusNode: _scenesFocusNode,
+                      onPressed: () => _openScenePicker(context),
+                    ),
                   ),
                 ),
               ),
@@ -128,7 +138,10 @@ class FocusAwareAppBarState extends State<FocusAwareAppBar>
                 builder: (context, showNetwork, _) => showNetwork
                   ? Padding(
                       padding: const EdgeInsets.only(right: 12),
-                      child: _FocusableNetworkWidget(),
+                      child: StatusBarGlassCard(
+                        padding: const EdgeInsets.all(6),
+                        child: _FocusableNetworkWidget(),
+                      ),
                     )
                   : const SizedBox.shrink(),
               ),
@@ -136,7 +149,7 @@ class FocusAwareAppBarState extends State<FocusAwareAppBar>
               Selector<SettingsService, bool>(
                 selector: (_, settings) => settings.showWifiWidgetInStatusBar,
                 builder: (context, showWifi, _) => showWifi
-                  ? const DailyWifiUsageWidget()
+                  ? const StatusBarGlassCard(child: DailyWifiUsageWidget())
                   : const SizedBox.shrink(),
               ),
             ],
@@ -176,6 +189,13 @@ class FocusAwareAppBarState extends State<FocusAwareAppBar>
                 dateFormat: service.dateFormat,
                 timeFormat: service.timeFormat),
                 builder: (context, dateTimeSettings, _) {
+                  // Same "nothing to say, nothing drawn" rule as the weather,
+                  // network and Wi-Fi cards: with both switched off there is no
+                  // content, so no empty frosted pill should appear either.
+                  if (!dateTimeSettings.showDateInStatusBar && !dateTimeSettings.showTimeInStatusBar) {
+                    return const SizedBox.shrink();
+                  }
+
                   // Define standard text style
                   const textStyle = TextStyle(
                     fontSize: 20,
@@ -186,30 +206,35 @@ class FocusAwareAppBarState extends State<FocusAwareAppBar>
                     ],
                   );
 
-                  return Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Date
-                      if (dateTimeSettings.showDateInStatusBar)
-                        DateTimeWidget(
-                          dateTimeSettings.dateFormat,
-                          key: const Key("statusbar_date"),
-                          updateInterval: const Duration(minutes: 1),
-                          textStyle: textStyle,
-                        ),
-                      
-                      if (dateTimeSettings.showDateInStatusBar && dateTimeSettings.showTimeInStatusBar)
-                          const SizedBox(width: 16),
+                  // The date and the clock always sit together as one glance
+                  // ("what time is it, on what day"), so they share a single
+                  // card rather than one each.
+                  return StatusBarGlassCard(
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Date
+                        if (dateTimeSettings.showDateInStatusBar)
+                          DateTimeWidget(
+                            dateTimeSettings.dateFormat,
+                            key: const Key("statusbar_date"),
+                            updateInterval: const Duration(minutes: 1),
+                            textStyle: textStyle,
+                          ),
 
-                      // Clock
-                      if (dateTimeSettings.showTimeInStatusBar)
-                        DateTimeWidget(
-                          dateTimeSettings.timeFormat,
-                          key: const Key("statusbar_clock"),
-                          updateInterval: const Duration(minutes: 1),
-                          textStyle: textStyle.copyWith(fontWeight: FontWeight.bold),
-                        ),
-                    ]
+                        if (dateTimeSettings.showDateInStatusBar && dateTimeSettings.showTimeInStatusBar)
+                            const SizedBox(width: 16),
+
+                        // Clock
+                        if (dateTimeSettings.showTimeInStatusBar)
+                          DateTimeWidget(
+                            dateTimeSettings.timeFormat,
+                            key: const Key("statusbar_clock"),
+                            updateInterval: const Duration(minutes: 1),
+                            textStyle: textStyle.copyWith(fontWeight: FontWeight.bold),
+                          ),
+                      ]
+                    ),
                   );
                 },
               ),

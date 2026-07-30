@@ -18,9 +18,8 @@
 
 import 'package:flauncher/l10n/app_localizations.dart';
 import 'package:flauncher/models/weather.dart';
-import 'package:flauncher/providers/settings_service.dart';
 import 'package:flauncher/providers/weather_service.dart';
-import 'package:flauncher/widgets/cached_blur_backdrop.dart';
+import 'package:flauncher/widgets/status_bar_glass_card.dart';
 import 'package:flauncher/widgets/weather_condition_icon.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -73,16 +72,7 @@ class StatusBarWeatherWidget extends StatelessWidget {
       shadows: [Shadow(color: Colors.black54, offset: Offset(0, 2), blurRadius: 4)],
     );
 
-    final borderRadius = BorderRadius.circular(16);
-    final content = Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      decoration: BoxDecoration(
-        // Same two translucencies as the dock's light surface in
-        // `lib/flauncher.dart`, spelled with the non-deprecated API.
-        color: Colors.white.withValues(alpha: 0.1),
-        borderRadius: borderRadius,
-        border: Border.all(color: Colors.white.withValues(alpha: 0.15), width: 1.5),
-      ),
+    return StatusBarGlassCard(
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -96,16 +86,6 @@ class StatusBarWeatherWidget extends StatelessWidget {
           Text(localizations.weatherTemperature(degrees), style: textStyle),
         ],
       ),
-    );
-
-    // The dock's own escape hatch for GPUs that cannot afford a blur applies
-    // here too: one setting, one visual language, no second frosted surface
-    // quietly ignoring it.
-    final backdropDisabled = context.select<SettingsService, bool>((s) => s.dockBackdropFilterDisabled);
-    return ClipRRect(
-      borderRadius: borderRadius,
-      clipBehavior: Clip.antiAlias,
-      child: backdropDisabled ? content : CachedBlurBackdrop(sigma: 5, child: content),
     );
   }
 }

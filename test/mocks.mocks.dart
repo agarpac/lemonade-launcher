@@ -18,13 +18,14 @@ import 'package:flauncher/models/category.dart' as _i3;
 import 'package:flauncher/models/scene.dart' as _i5;
 import 'package:flauncher/providers/apps_service.dart' as _i20;
 import 'package:flauncher/providers/backup_service.dart' as _i8;
+import 'package:flauncher/providers/network_service.dart' as _i24;
 import 'package:flauncher/providers/scenes_service.dart' as _i23;
 import 'package:flauncher/providers/settings_service.dart' as _i22;
 import 'package:flauncher/providers/wallpaper_service.dart' as _i17;
 import 'package:flauncher/providers/weather_service.dart' as _i6;
 import 'package:flutter/cupertino.dart' as _i13;
 import 'package:flutter/services.dart' as _i14;
-import 'package:image_picker/image_picker.dart' as _i24;
+import 'package:image_picker/image_picker.dart' as _i25;
 import 'package:image_picker_platform_interface/image_picker_platform_interface.dart'
     as _i7;
 import 'package:mockito/mockito.dart' as _i1;
@@ -2747,10 +2748,136 @@ class MockWeatherService extends _i1.Mock implements _i6.WeatherService {
       );
 }
 
+/// A class which mocks [NetworkService].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockNetworkService extends _i1.Mock implements _i24.NetworkService {
+  MockNetworkService() {
+    _i1.throwOnMissingStub(this);
+  }
+
+  @override
+  bool get hasInternetAccess => (super.noSuchMethod(
+        Invocation.getter(#hasInternetAccess),
+        returnValue: false,
+      ) as bool);
+
+  @override
+  _i24.CellularNetworkType get cellularNetworkType => (super.noSuchMethod(
+        Invocation.getter(#cellularNetworkType),
+        returnValue: _i24.CellularNetworkType.Unknown,
+      ) as _i24.CellularNetworkType);
+
+  @override
+  _i24.NetworkType get networkType => (super.noSuchMethod(
+        Invocation.getter(#networkType),
+        returnValue: _i24.NetworkType.Cellular,
+      ) as _i24.NetworkType);
+
+  @override
+  int get wirelessNetworkSignalLevel => (super.noSuchMethod(
+        Invocation.getter(#wirelessNetworkSignalLevel),
+        returnValue: 0,
+      ) as int);
+
+  @override
+  int get dailyWifiUsage => (super.noSuchMethod(
+        Invocation.getter(#dailyWifiUsage),
+        returnValue: 0,
+      ) as int);
+
+  @override
+  bool get hasUsageStatsPermission => (super.noSuchMethod(
+        Invocation.getter(#hasUsageStatsPermission),
+        returnValue: false,
+      ) as bool);
+
+  @override
+  bool get hasListeners => (super.noSuchMethod(
+        Invocation.getter(#hasListeners),
+        returnValue: false,
+      ) as bool);
+
+  @override
+  _i12.Future<void> requestPermission() => (super.noSuchMethod(
+        Invocation.method(
+          #requestPermission,
+          [],
+        ),
+        returnValue: _i12.Future<void>.value(),
+        returnValueForMissingStub: _i12.Future<void>.value(),
+      ) as _i12.Future<void>);
+
+  @override
+  _i12.Future<void> refreshPermissionAndUsage() => (super.noSuchMethod(
+        Invocation.method(
+          #refreshPermissionAndUsage,
+          [],
+        ),
+        returnValue: _i12.Future<void>.value(),
+        returnValueForMissingStub: _i12.Future<void>.value(),
+      ) as _i12.Future<void>);
+
+  @override
+  _i12.Future<void> openWifiSettings() => (super.noSuchMethod(
+        Invocation.method(
+          #openWifiSettings,
+          [],
+        ),
+        returnValue: _i12.Future<void>.value(),
+        returnValueForMissingStub: _i12.Future<void>.value(),
+      ) as _i12.Future<void>);
+
+  @override
+  _i12.Future<int> getWifiUsageForPeriod(String? period) => (super.noSuchMethod(
+        Invocation.method(
+          #getWifiUsageForPeriod,
+          [period],
+        ),
+        returnValue: _i12.Future<int>.value(0),
+      ) as _i12.Future<int>);
+
+  @override
+  void dispose() => super.noSuchMethod(
+        Invocation.method(
+          #dispose,
+          [],
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  void addListener(_i4.VoidCallback? listener) => super.noSuchMethod(
+        Invocation.method(
+          #addListener,
+          [listener],
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  void removeListener(_i4.VoidCallback? listener) => super.noSuchMethod(
+        Invocation.method(
+          #removeListener,
+          [listener],
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  void notifyListeners() => super.noSuchMethod(
+        Invocation.method(
+          #notifyListeners,
+          [],
+        ),
+        returnValueForMissingStub: null,
+      );
+}
+
 /// A class which mocks [ImagePicker].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockImagePicker extends _i1.Mock implements _i24.ImagePicker {
+class MockImagePicker extends _i1.Mock implements _i25.ImagePicker {
   MockImagePicker() {
     _i1.throwOnMissingStub(this);
   }
