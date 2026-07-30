@@ -54,6 +54,20 @@
         <intent>
             <action android:name="android.intent.action.GET_CONTENT" />
         </intent>
+        <!--
+          Content shortcuts ask the PackageManager which installed apps publicly declare
+          an intent-filter for a deep link URI, instead of hardcoding a package name.
+          With targetSdk 35 the Android 11+ package visibility filtering applies, so
+          without this declaration such a query would always come back empty.
+        -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="http" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="https" />
+        </intent>
     </queries>
 
     <application

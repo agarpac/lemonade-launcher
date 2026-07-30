@@ -44,8 +44,10 @@ import androidx.annotation.RequiresApi;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import android.app.usage.NetworkStats;
@@ -176,6 +178,18 @@ public class MainActivity extends FlutterActivity {
                         String contentId = (String) args.get("contentId");
                         String action = (String) args.get("action");
                         result.success(launchWatchNextItem(packageName, contentId, action));
+                    } else {
+                        result.success(false);
+                    }
+                }
+                case "resolveUriTargets" -> result.success(resolveUriTargets(call.arguments()));
+                case "launchUri" -> {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> args = (Map<String, Object>) call.arguments();
+                    if (args != null) {
+                        String uri = (String) args.get("uri");
+                        String packageName = (String) args.get("packageName");
+                        result.success(launchUri(uri, packageName));
                     } else {
                         result.success(false);
                     }
@@ -460,6 +474,88 @@ public class MainActivity extends FlutterActivity {
     private boolean uninstallApp(String packageName) {
         Intent intent = new Intent(Intent.ACTION_DELETE)
                 .setData(Uri.fromParts("package", packageName, null));
+
+        return tryStartActivity(intent);
+    }
+
+    /**
+     * The installed applications that publicly declare an ACTION_VIEW intent filter for
+     * the given URI, one entry per package, shaped like the maps {@link #getApplications()}
+     * returns.
+     *
+     * The target package of a content shortcut is never hardcoded: the PackageManager is
+     * asked which apps declare the contract, and the user picks one of them. A URI that
+     * nothing can handle, or that is not a URI at all, yields an empty list rather than
+     * an error across the channel.
+     */
+    private List<Map<String, Serializable>> resolveUriTargets(String uri) {
+        List<Map<String, Serializable>> targets = new ArrayList<>();
+
+        if (uri == null || uri.isEmpty()) {
+            return targets;
+        }
+
+        try {
+            Uri parsedUri = Uri.parse(uri);
+
+            // A relative reference such as "youtube.com/feed" carries no scheme, so no
+            // intent-filter can match it. Nothing to resolve.
+            if (parsedUri.getScheme() == null) {
+                return targets;
+            }
+
+            PackageManager packageManager = getPackageManager();
+            List<ResolveInfo> intentActivities = packageManager.queryIntentActivities(
+                    new Intent(Intent.ACTION_VIEW, parsedUri),
+                    0);
+
+            String ownPackageName = getPackageName();
+            Set<String> seenPackageNames = new HashSet<>();
+
+            for (ResolveInfo intentActivity : intentActivities) {
+                if (intentActivity.activityInfo == null) {
+                    continue;
+                }
+
+                String packageName = intentActivity.activityInfo.packageName;
+
+                // One entry per application, and never this launcher itself.
+                if (packageName == null || packageName.equals(ownPackageName)
+                        || !seenPackageNames.add(packageName)) {
+                    continue;
+                }
+
+                boolean sideloaded = packageManager.getLeanbackLaunchIntentForPackage(packageName) == null;
+                targets.add(buildAppMap(intentActivity.activityInfo, sideloaded, null));
+            }
+        } catch (Exception ignored) {
+        }
+
+        return targets;
+    }
+
+    private boolean launchUri(String uri, String packageName) {
+        if (uri == null || uri.isEmpty() || packageName == null || packageName.isEmpty()) {
+            return false;
+        }
+
+        Intent intent;
+        try {
+            Uri parsedUri = Uri.parse(uri);
+
+            if (parsedUri.getScheme() == null) {
+                return false;
+            }
+
+            // Pin the chosen package. An unpinned VIEW intent makes Android show its
+            // "choose an app" chooser, which on a television has to be dismissed with the
+            // remote every single time.
+            intent = new Intent(Intent.ACTION_VIEW, parsedUri)
+                    .setPackage(packageName)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        } catch (Exception ignored) {
+            return false;
+        }
 
         return tryStartActivity(intent);
     }

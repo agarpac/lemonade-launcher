@@ -183,6 +183,47 @@ class FLauncherChannel {
     }
   }
 
+  // Content shortcuts (deep links)
+
+  /// The installed applications that publicly declare an intent filter for [uri].
+  ///
+  /// Each entry carries at least a `packageName` and a human-readable `name`.
+  /// Entries the platform side cannot describe are skipped instead of throwing.
+  Future<List<Map<String, dynamic>>> resolveUriTargets(String uri) async {
+    try {
+      final List<dynamic>? targets = await _methodChannel.invokeListMethod("resolveUriTargets", uri);
+      if (targets == null) {
+        return [];
+      }
+      final List<Map<String, dynamic>> resolved = [];
+      for (final target in targets) {
+        if (target is! Map) {
+          continue;
+        }
+        if (target["packageName"] is! String) {
+          continue;
+        }
+        resolved.add(target.cast<String, dynamic>());
+      }
+      return resolved;
+    } on PlatformException {
+      return [];
+    }
+  }
+
+  /// Opens [uri] in [packageName], pinned so that no app chooser can appear.
+  Future<bool> launchUri(String uri, String packageName) async {
+    try {
+      final bool? launched = await _methodChannel.invokeMethod("launchUri", {
+        "uri": uri,
+        "packageName": packageName,
+      });
+      return launched ?? false;
+    } on PlatformException {
+      return false;
+    }
+  }
+
   /// Load image bytes from a content:// URI (for Watch Next posters)
   Future<Uint8List> loadContentUriImage(String contentUri) async {
     try {

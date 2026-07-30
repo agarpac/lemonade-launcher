@@ -142,6 +142,104 @@ void main() {
     expect(getContentAvailable, isTrue);
   });
 
+  test("resolveUriTargets", () async {
+    final channel = MethodChannel('me.efesser.flauncher/method');
+    String? uri;
+    channel.setMockMethodCallHandler((call) async {
+      if (call.method == "resolveUriTargets") {
+        uri = call.arguments as String;
+        return [
+          {'packageName': 'com.teamsmart.videomanager.tv', 'name': 'SmartTube', 'sideloaded': true},
+        ];
+      }
+      fail("Unhandled method name");
+    });
+    final fLauncherChannel = FLauncherChannel();
+
+    final targets = await fLauncherChannel.resolveUriTargets("https://youtube.com/feed/subscriptions");
+
+    expect(uri, "https://youtube.com/feed/subscriptions");
+    expect(targets, [
+      {'packageName': 'com.teamsmart.videomanager.tv', 'name': 'SmartTube', 'sideloaded': true},
+    ]);
+  });
+
+  test("resolveUriTargets skips unparseable entries", () async {
+    final channel = MethodChannel('me.efesser.flauncher/method');
+    channel.setMockMethodCallHandler((call) async {
+      if (call.method == "resolveUriTargets") {
+        return [
+          "not a map",
+          {'name': 'No package name at all'},
+          {'packageName': 42, 'name': 'Package name is not a String'},
+          {'packageName': 'com.teamsmart.videomanager.tv', 'name': 'SmartTube'},
+        ];
+      }
+      fail("Unhandled method name");
+    });
+    final fLauncherChannel = FLauncherChannel();
+
+    final targets = await fLauncherChannel.resolveUriTargets("https://youtube.com");
+
+    expect(targets, [
+      {'packageName': 'com.teamsmart.videomanager.tv', 'name': 'SmartTube'},
+    ]);
+  });
+
+  test("resolveUriTargets with no target", () async {
+    final channel = MethodChannel('me.efesser.flauncher/method');
+    channel.setMockMethodCallHandler((call) async {
+      if (call.method == "resolveUriTargets") {
+        return [];
+      }
+      fail("Unhandled method name");
+    });
+    final fLauncherChannel = FLauncherChannel();
+
+    final targets = await fLauncherChannel.resolveUriTargets("not-a-uri");
+
+    expect(targets, isEmpty);
+  });
+
+  test("resolveUriTargets with null reply", () async {
+    final channel = MethodChannel('me.efesser.flauncher/method');
+    channel.setMockMethodCallHandler((call) async {
+      if (call.method == "resolveUriTargets") {
+        return null;
+      }
+      fail("Unhandled method name");
+    });
+    final fLauncherChannel = FLauncherChannel();
+
+    final targets = await fLauncherChannel.resolveUriTargets("https://youtube.com");
+
+    expect(targets, isEmpty);
+  });
+
+  test("launchUri", () async {
+    final channel = MethodChannel('me.efesser.flauncher/method');
+    Map<dynamic, dynamic>? arguments;
+    channel.setMockMethodCallHandler((call) async {
+      if (call.method == "launchUri") {
+        arguments = call.arguments as Map<dynamic, dynamic>;
+        return true;
+      }
+      fail("Unhandled method name");
+    });
+    final fLauncherChannel = FLauncherChannel();
+
+    final launched = await fLauncherChannel.launchUri(
+      "https://youtube.com/feed/subscriptions",
+      "com.teamsmart.videomanager.tv",
+    );
+
+    expect(launched, isTrue);
+    expect(arguments, {
+      'uri': 'https://youtube.com/feed/subscriptions',
+      'packageName': 'com.teamsmart.videomanager.tv',
+    });
+  });
+
   test("startAmbientMode", () async {
     final channel = MethodChannel('me.efesser.flauncher/method');
     bool called = false;

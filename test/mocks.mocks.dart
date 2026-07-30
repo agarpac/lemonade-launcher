@@ -746,6 +746,33 @@ class MockFLauncherChannel extends _i1.Mock implements _i15.FLauncherChannel {
       ) as _i12.Future<bool>);
 
   @override
+  _i12.Future<List<Map<String, dynamic>>> resolveUriTargets(String? uri) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #resolveUriTargets,
+          [uri],
+        ),
+        returnValue: _i12.Future<List<Map<String, dynamic>>>.value(
+            <Map<String, dynamic>>[]),
+      ) as _i12.Future<List<Map<String, dynamic>>>);
+
+  @override
+  _i12.Future<bool> launchUri(
+    String? uri,
+    String? packageName,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #launchUri,
+          [
+            uri,
+            packageName,
+          ],
+        ),
+        returnValue: _i12.Future<bool>.value(false),
+      ) as _i12.Future<bool>);
+
+  @override
   _i12.Future<_i16.Uint8List> loadContentUriImage(String? contentUri) =>
       (super.noSuchMethod(
         Invocation.method(
