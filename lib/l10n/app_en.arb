@@ -160,7 +160,7 @@
     "updateInstallPermissionBody": "Allow Lemonade Launcher to install unknown apps, then retry the update.",
     "updateOpenPermissionSettingsButton": "Open permission settings",
     "updateErrorGeneric": "Update check failed. Please try again.",
-    "textAboutDialog": "Lemonade Launcher is a fork of Arc Launcher by Meddouri Badis, which is itself based on FLauncher by Étienne Fesser.\n\nArc Launcher (upstream project) source code: {repoUrl}",
+    "textAboutDialog": "Lemonade Launcher by Alberto Garrido — https://github.com/agarpac\n\nIt is a fork of Arc Launcher by Meddouri Badis, which is itself based on FLauncher by Étienne Fesser.\n\nArc Launcher (upstream project) source code: {repoUrl}",
     "@textAboutDialog": {
         "placeholders": {
             "repoUrl": {
@@ -253,7 +253,7 @@
     "noApplicationsFound": "No applications found",
     "invalidFormat": "Invalid format",
     "selectFormatsBelow": "Select formats below",
-    "aboutLegalese": "Fork of Arc Launcher © Meddouri Badis\nBased on FLauncher © Étienne Fesser",
+    "aboutLegalese": "Lemonade Launcher © Alberto Garrido\nFork of Arc Launcher © Meddouri Badis\nBased on FLauncher © Étienne Fesser",
     "preview": "Preview",
     "clockStyleMinimalTitle": "Minimal",
     "clockStyleMinimalSubtitle": "Thin, elegant font (Default)",

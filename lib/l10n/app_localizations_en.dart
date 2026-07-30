@@ -336,7 +336,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String textAboutDialog(String repoUrl) {
-    return 'Lemonade Launcher is a fork of Arc Launcher by Meddouri Badis, which is itself based on FLauncher by Étienne Fesser.\n\nArc Launcher (upstream project) source code: $repoUrl';
+    return 'Lemonade Launcher by Alberto Garrido — https://github.com/agarpac\n\nIt is a fork of Arc Launcher by Meddouri Badis, which is itself based on FLauncher by Étienne Fesser.\n\nArc Launcher (upstream project) source code: $repoUrl';
   }
 
   @override
@@ -552,7 +552,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aboutLegalese =>
-      'Fork of Arc Launcher © Meddouri Badis\nBased on FLauncher © Étienne Fesser';
+      'Lemonade Launcher © Alberto Garrido\nFork of Arc Launcher © Meddouri Badis\nBased on FLauncher © Étienne Fesser';
 
   @override
   String get preview => 'Preview';

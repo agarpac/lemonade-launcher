@@ -707,7 +707,7 @@ abstract class AppLocalizations {
   /// No description provided for @textAboutDialog.
   ///
   /// In en, this message translates to:
-  /// **'Lemonade Launcher is a fork of Arc Launcher by Meddouri Badis, which is itself based on FLauncher by Étienne Fesser.\n\nArc Launcher (upstream project) source code: {repoUrl}'**
+  /// **'Lemonade Launcher by Alberto Garrido — https://github.com/agarpac\n\nIt is a fork of Arc Launcher by Meddouri Badis, which is itself based on FLauncher by Étienne Fesser.\n\nArc Launcher (upstream project) source code: {repoUrl}'**
   String textAboutDialog(String repoUrl);
 
   /// No description provided for @textEmptyCategory.
@@ -1103,7 +1103,7 @@ abstract class AppLocalizations {
   /// No description provided for @aboutLegalese.
   ///
   /// In en, this message translates to:
-  /// **'Fork of Arc Launcher © Meddouri Badis\nBased on FLauncher © Étienne Fesser'**
+  /// **'Lemonade Launcher © Alberto Garrido\nFork of Arc Launcher © Meddouri Badis\nBased on FLauncher © Étienne Fesser'**
   String get aboutLegalese;
 
   /// No description provided for @preview.
