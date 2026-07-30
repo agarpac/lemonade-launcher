@@ -279,16 +279,19 @@ El precio es que `wallpaperPath` es de facto un booleano con aspecto de ruta, lo
 
 ✅ **Completado — animación de foco** (sección 4.1): el requisito estaba mal planteado en la v1; los valores reales son mejores y se conservan documentados.
 
+✅ **Completado — escenas preconfiguradas** (sección 9.1): selector desde la barra superior, editor completo en Ajustes y superposición no destructiva de fondo más seis ajustes de presentación.
+
+✅ **Completado — copia de seguridad y restauración** (sección 11): servicio, interfaz en Ajustes y reconstrucción del árbol de proveedores tras restaurar, en lugar de reiniciar el proceso.
+
+✅ **Completado — clima con Open-Meteo**: servicio, tarjeta en la barra superior y página con buscador de ciudad.
+
 Pendiente:
 
-1. Escenas preconfiguradas (sección 9.1).
-2. Copia de seguridad y restauración de la configuración (sección 11).
-3. Accesos directos a contenido (sección 12).
-4. Widget de clima con Open-Meteo, interruptor y buscador de ciudad en Ajustes.
-5. Encapsular los elementos de la barra superior en tarjetas de cristal.
-6. Squircle para los iconos de aplicación.
-7. Limpiar las cadenas y referencias restantes a Arc Launcher.
-8. Decidir si se renombra el `applicationId` `com.omeda.arc` — **antes** de la primera publicación, nunca después.
+1. Accesos directos a contenido (sección 12).
+2. Encapsular el resto de los elementos de la barra superior en tarjetas de cristal.
+3. Squircle para los iconos de aplicación.
+4. Limpiar las cadenas y referencias restantes a Arc Launcher.
+5. Decidir si se renombra el `applicationId` `com.omeda.arc` — **antes** de la primera publicación, nunca después.
 
 ## 11. Copia de seguridad y restauración
 
@@ -354,11 +357,22 @@ Ejemplos de icono de dock que dejan de ser «abrir SmartTube»: la bandeja de su
 
 ### 12.3 Diseño
 
-1. **Un acceso directo es una entrada del dock más**, con su propio icono, etiqueta y URI de destino. Conceptualmente convive con las aplicaciones, no es una pantalla aparte.
-2. **Paquete de destino explícito.** El intent fija el `packageName` (por ejemplo `com.teamsmart.videomanager.tv`) en lugar de dejar que Android muestre un selector. Sin esto, en una televisión aparecería un diálogo de «elige aplicación» que hay que resolver con el mando cada vez.
-3. **Validación al crear y al restaurar.** Si el paquete de destino no está instalado, el acceso directo se marca como no disponible en lugar de fallar al pulsarlo.
-4. **Descubrimiento en el dispositivo.** Para averiguar qué acepta cualquier aplicación instalada, sin adivinar: `adb shell dumpsys package <packageName>` lista sus `intent-filter` reales. Documentar los contratos confirmados aquí a medida que se verifiquen.
-5. **Sin ingeniería inversa de aplicaciones oficiales.** Solo se soportan contratos declarados públicamente. Un acceso directo que se rompe en silencio tras una actualización es peor que no tenerlo.
+**Decisión de producto (30/07/2026), que sustituye al diseño original:** los accesos directos **no se mezclan con las aplicaciones del dock**, sino que viven en su **propia sección**. Y el caso de uso principal es el **canal concreto**, no el destino fijo tipo «suscripciones».
+
+Ambas cosas cambian el diseño de raíz, así que se anota el porqué:
+
+- Mezclarlos en el dock obligaba a colarlos en la tabla `AppsCategories`, cuya clave ajena apunta a `apps.package_name`. Un acceso directo tendría que fingir ser una aplicación instalada, y `AppsService._refreshState` (`lib/providers/apps_service.dart:284-300`) **borra toda fila de `Apps` cuyo paquete no reporte el sistema**. Además el validador de la copia de seguridad comprueba cada `packageName` contra lo instalado, así que los tiraría al restaurar. Habría hecho falta tallar una excepción en tres sitios distintos, y olvidar uno vacía la sección en silencio.
+- Una sección propia ordena sus propios elementos, así que el problema de intercalarlos con las aplicaciones desaparece por completo.
+- Un catálogo cerrado de destinos verificados no puede contener **los canales del usuario**, que es el caso principal. La entrada manual es obligatoria, no un extra.
+
+1. **Un acceso directo es un tercer tipo de `LauncherSection`**, junto a `Category` y `LauncherSpacer`, con su **propia tabla**, siguiendo exactamente el patrón que ya usa el separador: tabla propia fusionada en la lista ordenada de secciones (`AppsService.launcherSections`). El usuario coloca la sección donde quiera desde Ajustes → Secciones del launcher, igual que cualquier otra. Añadir una tabla es aditivo y no toca ni un dato existente, al contrario que añadir una columna a `Apps`.
+2. **El caso principal es el canal.** El campo de entrada acepta un identificador corto (`@handle`), una URL completa o un id de canal (`UC…`), y lo normaliza. Teclear `@handle` con un mando direccional es viable; teclear una URL entera no lo es, así que el formato corto es el camino principal y la URL completa el de respaldo.
+3. **El paquete de destino lo resuelve el `PackageManager`, no se fija a mano.** Se construye el intent y se pregunta al sistema **qué aplicaciones instaladas declaran un `intent-filter` público** para esa URI; el usuario elige entre las que aparezcan. Esto es exactamente «solo contratos declarados públicamente»: se leen los filtros declarados en lugar de adivinar un `packageName`. Requiere ampliar el bloque `<queries>` del manifest con un `<intent>` de `VIEW` y esquema `https`, porque con `targetSdk 35` aplica el filtrado de visibilidad de paquetes de Android 11.
+4. **El intent fija el paquete elegido.** Nunca se deja que Android muestre el selector: en una televisión sería un diálogo de «elige aplicación» que hay que resolver con el mando **cada vez**.
+5. **Validación al crear y al restaurar.** Si el paquete de destino no está instalado, el acceso directo se marca como no disponible en lugar de fallar al pulsarlo.
+6. **La copia de seguridad tiene que volcar la tabla nueva.** `BackupService` enumera sus cuatro tablas explícitamente (`apps`, `categories`, `apps_categories`, `launcher_spacers`); una quinta tabla que no se añada ahí se pierde en silencio al exportar. Esto sube `backupSchemaVersion`.
+7. **Descubrimiento en el dispositivo.** Para averiguar qué acepta cualquier aplicación instalada, sin adivinar: `adb shell dumpsys package <packageName>` lista sus `intent-filter` reales. Documentar los contratos confirmados aquí a medida que se verifiquen.
+8. **Sin ingeniería inversa de aplicaciones oficiales.** Solo se soportan contratos declarados públicamente. Un acceso directo que se rompe en silencio tras una actualización es peor que no tenerlo.
 
 ## 13. Deuda heredada conocida
 
