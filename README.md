@@ -77,6 +77,20 @@ Categorías y accesos directos son secciones, y las colocas en el orden que quie
 > [!TIP]
 > **Fondos de vídeo:** se cargan en RAM y el desenfoque a pantalla completa cuesta caro en GPU de gama baja. Usa ficheros pequeños, y si notas tirones desactiva el filtro de desenfoque en los ajustes.
 
+## Instalación
+
+Descarga el APK **universal** de la [última release](https://github.com/agarpac/lemonade-launcher/releases), el que no lleva sufijo de arquitectura. Pesa el triple porque incluye las tres, y funciona en todos los casos.
+
+No deduzcas la arquitectura por el modelo del dispositivo: **muchas cajas de Android TV llevan un chip de 64 bits y un espacio de usuario de 32**, así que el APK de `arm64-v8a` falla en ellas con `INSTALL_FAILED_NO_MATCHING_ABIS`. La única comprobación fiable es preguntárselo al aparato:
+
+```shell
+$ adb shell getprop ro.product.cpu.abilist
+```
+
+Y si aun así prefieres el APK pequeño de tu arquitectura, ten en cuenta que **hoy eso rompe el autoactualizador**: Flutter les asigna un `versionCode` más alto que al universal y Android rechaza actualizar a un código menor. Está documentado en `docs/PRD.md`, sección 13.9.
+
+Android pedirá autorizar «instalar aplicaciones desconocidas» la primera vez.
+
 ## Compilar
 
 Requiere la versión de Flutter que fija `pubspec.yaml`. El proyecto la fija además en `mise.toml`, así que con [mise](https://mise.jdx.dev/) instalado no hace falta gestionar versiones a mano.
