@@ -109,7 +109,7 @@ Decisiones registradas para que nadie las «arregle» sin contexto:
 
 Ya existen 23 páginas en `lib/widgets/settings/`, incluidas selección de fondo, gestión de categorías y aplicaciones, colores de acento y formatos de fecha/hora.
 
-⬜ **Pendiente:** página de clima — interruptor de visibilidad y buscador de ciudad.
+✅ **Implementado:** página de clima (`lib/widgets/settings/weather_panel_page.dart`, en Ajustes → Interfaz → Barra de estado) — interruptor de visibilidad y buscador de ciudad.
 ❌ **Eliminado de la v1:** el campo para la API key de OpenWeatherMap. Open-Meteo no necesita clave, así que este requisito desaparece por completo.
 
 ## 6. Proveedor de clima: Open-Meteo
@@ -155,7 +155,7 @@ Notas de implementación:
 - ✅ Cadenas de marca limpiadas, conservando la cadena de atribución GPL: el diálogo «Acerca de» declara que Lemonade Launcher es un fork de Arc Launcher de Meddouri Badis, basado a su vez en FLauncher de Étienne Fesser. El `applicationLegalese` tenía el mismo defecto de atribución y no lo detectaba ninguna búsqueda de «Arc Launcher».
 - ✅ **Autoactualizador propio.** El repositorio de origen ya no está incrustado en el código: se pasa en tiempo de compilación con `--dart-define=UPDATE_REPO_OWNER` y `--dart-define=UPDATE_REPO_NAME` (ver `lib/build_flags.dart`). Sin ambos valores, `kSelfUpdaterAvailable` es `false` y la opción no aparece en los ajustes. Requisitos de publicación documentados en el README.
 - ⬜ **Pendiente:** cuando exista el repositorio propio en GitHub, publicar la primera *release* con etiqueta semántica y un APK universal adjunto, y compilar con el flavor `github` (el único que declara `REQUEST_INSTALL_PACKAGES`).
-- ⬜ **Pendiente:** el `applicationId` sigue siendo `com.omeda.arc` (`android/app/build.gradle`, `namespace` incluido), y las clases nativas viven en el paquete Java `com.leanbitlab.ltvL`, con restos de `me.efesser.flauncher` en `android/app/src/main/java/`. Cambiar el `applicationId` implica que el sistema lo trate como una app distinta: hay que desinstalar antes de instalar, y se pierden los ajustes y la base de datos.
+- ⬜ **Pendiente:** el `applicationId` sigue siendo `com.omeda.arc` (`android/app/build.gradle`, `namespace` incluido), y las clases nativas viven en el directorio `com/leanbitlab/ltvL` aunque todas declaren `package com.omeda.arc` (el duplicado `me/efesser/flauncher/` se borró el 30/07/2026). Cambiar el `applicationId` implica que el sistema lo trate como una app distinta: hay que desinstalar antes de instalar, y se pierden los ajustes y la base de datos.
 
 ## 9. Tesis de producto: en qué se diferencia este fork
 
