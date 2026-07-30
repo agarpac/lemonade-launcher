@@ -88,6 +88,38 @@ Check what is actually in `build/app/outputs/flutter-apk/` before publishing: it
 artifacts from earlier builds, and a stale APK for an architecture the current build no longer
 produces will sit there looking legitimate.
 
+**Never publish the `x86` split.** Gradle's split configuration still emits
+`app-x86-github-release.apk`, but Flutter no longer builds 32-bit x86 native libraries for release,
+so that file contains neither `libflutter.so` nor `libapp.so` — about 2 MB against the ~20 MB of a
+real one. It installs and then crashes on launch. Size alone gives it away; `unzip -l | grep '\.so$'`
+confirms it.
+
+**`gh` resolves the wrong repository in this checkout.** There are two remotes, and `gh` picks
+`upstream` — so `gh release list` shows the upstream project's releases and `gh release create` tries
+to publish *there*, failing on permissions. Always pass `--repo agarpac/lemonade-launcher`
+explicitly, or run `gh repo set-default agarpac/lemonade-launcher` first.
+
+A release the updater will actually offer must be **neither a draft nor a prerelease**, must carry a
+semver tag greater than `pubspec.yaml`'s `version`, and must have at least one `.apk` attached. And
+the self-updater only exists in a build that was given its `--dart-define`s:
+
+```shell
+flutter build apk --release --flavor github \
+  --dart-define=ENABLE_SELF_UPDATER=true \
+  --dart-define=UPDATE_REPO_OWNER=agarpac \
+  --dart-define=UPDATE_REPO_NAME=lemonade-launcher
+```
+
+Pass those flags **literally**, never through a shell variable: this environment runs zsh, which does
+not word-split an unquoted parameter, so `$DEFS` arrives as a single argument and
+`bool.fromEnvironment` quietly reads false. The build succeeds and the updater is simply absent.
+Verify it landed rather than assuming — the API URL is a compile-time constant and shows up in the
+binary:
+
+```shell
+unzip -p <apk> lib/arm64-v8a/libapp.so | strings | grep api.github.com
+```
+
 ## Definition of done
 
 Both of these, actually run, with their real output reported:
