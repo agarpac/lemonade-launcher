@@ -88,6 +88,11 @@ Check what is actually in `build/app/outputs/flutter-apk/` before publishing: it
 artifacts from earlier builds, and a stale APK for an architecture the current build no longer
 produces will sit there looking legitimate.
 
+**A release attaches the universal APK and nothing else.** Flutter offsets each split's
+`versionCode` (armeabi-v7a +1000, arm64-v8a +2000, x86_64 +4000), Android refuses to install a lower
+one, and `pickReleaseApk` prefers the universal — so anyone who took a split could never be updated.
+Splits stay useful for local testing; they do not get published. See `docs/PRD.md` section 13.9.
+
 **Never publish the `x86` split.** Gradle's split configuration still emits
 `app-x86-github-release.apk`, but Flutter no longer builds 32-bit x86 native libraries for release,
 so that file contains neither `libflutter.so` nor `libapp.so` — about 2 MB against the ~20 MB of a

@@ -491,12 +491,11 @@ Android **se niega a instalar un `versionCode` menor que el instalado**, y `Upda
 
 Descubierto el 31/07/2026 justo después de publicar `v1.1.0`, al ver que la caja quedaba en `versionCode=5116`.
 
-Dos arreglos posibles, y son excluyentes:
+✅ **Resuelto el 31/07/2026 publicando solo el universal.** Los tres adjuntos por arquitectura se retiraron de la release `v1.1.0` y el dispositivo de referencia se reinstaló con el universal, para dejarlo en la serie `4116` en lugar de la `5116` en la que había quedado. Todo el mundo comparte ahora una única serie de códigos y el camino de actualización es monótono. El precio son 60 MB de descarga en lugar de 20.
 
-1. **Publicar solo el universal.** Todo el mundo queda en la misma serie de códigos y el camino de actualización es monótono. Cuesta 60 MB de descarga en lugar de 20.
-2. **Que el actualizador elija el APK de la arquitectura del dispositivo** en lugar de preferir el universal, leyendo `Build.SUPPORTED_ABIS` por el canal nativo. Mantiene las descargas pequeñas, pero hay que asegurarse de que un dispositivo nunca salte de una serie a otra.
+**Regla adoptada: una release adjunta el universal y nada más.** Los APK por arquitectura no se publican mientras el actualizador prefiera el universal.
 
-Mientras no se decida, **una release no debe adjuntar los dos tipos a la vez**.
+La alternativa, si algún día molestan los 60 MB, es **que el actualizador elija el APK de la arquitectura del dispositivo** leyendo `Build.SUPPORTED_ABIS` por el canal nativo. Mantendría las descargas pequeñas, pero hay que garantizar que un dispositivo nunca salte de una serie de `versionCode` a otra, que es exactamente lo que rompió esto.
 
 ### 13.10 La guía de descarga del README daba mal la arquitectura
 
