@@ -107,6 +107,25 @@ String? normalizeContentShortcutUri(String input) {
 /// the last part of the address is offered as a starting point. Returns null
 /// when nothing better than the raw address could be suggested — an opaque
 /// channel id is not a name, and neither is a bare hostname's TLD.
+/// The `@handle` the normalized [uri] points at, or `null` when it names none.
+///
+/// The card shows this instead of the user's own label: a handle identifies the
+/// destination, while a label like "test" identifies nothing once there are
+/// several shortcuts. A channel id is deliberately NOT returned — `UC…` is
+/// opaque and worse than whatever name the user chose.
+String? contentShortcutHandle(String uri) {
+  final Uri? parsed = Uri.tryParse(uri);
+  if (parsed == null) {
+    return null;
+  }
+  for (final String segment in parsed.pathSegments) {
+    if (_handlePattern.hasMatch(segment)) {
+      return segment;
+    }
+  }
+  return null;
+}
+
 String? contentShortcutLabelSuggestion(String input) {
   final String trimmed = input.trim();
   if (trimmed.isEmpty) {

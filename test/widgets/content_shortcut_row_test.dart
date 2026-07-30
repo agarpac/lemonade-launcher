@@ -63,6 +63,30 @@ void main() {
     );
   });
 
+  testWidgets("The card shows the destination's handle instead of the name that was typed", (tester) async {
+    final appsService = _mkAppsService();
+    final section = _mkSection([
+      _mkShortcut(id: 1, label: "test", uri: "https://www.youtube.com/@LinusTechTips"),
+    ]);
+
+    await _pumpRow(tester, appsService, section);
+
+    // "@LinusTechTips" says what this opens; "test" says nothing.
+    expect(find.text("@LinusTechTips"), findsOneWidget);
+    expect(find.text("test"), findsNothing);
+  });
+
+  testWidgets("The card keeps the typed name when the address names no handle", (tester) async {
+    final appsService = _mkAppsService();
+    final section = _mkSection([
+      _mkShortcut(id: 1, label: "Subscriptions", uri: "https://www.youtube.com/feed/subscriptions"),
+    ]);
+
+    await _pumpRow(tester, appsService, section);
+
+    expect(find.text("Subscriptions"), findsOneWidget);
+  });
+
   testWidgets("The first shortcut takes the focus, and pressing it launches it", (tester) async {
     final appsService = _mkAppsService();
     final shortcut = _mkShortcut(id: 1, label: "Subscriptions");

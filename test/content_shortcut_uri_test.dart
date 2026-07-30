@@ -20,6 +20,29 @@ import 'package:flauncher/content_shortcut_uri.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  group("contentShortcutHandle", () {
+    test("returns the handle a channel address points at", () {
+      expect(contentShortcutHandle("https://www.youtube.com/@LinusTechTips"), "@LinusTechTips");
+      expect(contentShortcutHandle("https://youtube.com/@a_b.c-d/videos"), "@a_b.c-d");
+    });
+
+    test("returns nothing for a channel id, which is not a name", () {
+      // Showing `UCxxxx…` on the card would be worse than the label the user
+      // typed, which is the whole reason this returns null instead of the id.
+      expect(contentShortcutHandle("https://www.youtube.com/channel/UCXuqSBlHAE6Xw-yeJA0Tunw"), isNull);
+    });
+
+    test("returns nothing for an address that names no handle at all", () {
+      expect(contentShortcutHandle("https://www.youtube.com/feed/subscriptions"), isNull);
+      expect(contentShortcutHandle("https://example.com/some/path"), isNull);
+    });
+
+    test("returns nothing rather than throwing on unparseable input", () {
+      expect(contentShortcutHandle(""), isNull);
+      expect(contentShortcutHandle("::::"), isNull);
+    });
+  });
+
   group("normalizeContentShortcutUri", () {
     test("turns a short handle into the channel's address", () {
       // The main case (PRD 12.3, point 2): this is the one thing that is

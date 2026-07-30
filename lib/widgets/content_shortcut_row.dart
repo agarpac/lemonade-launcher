@@ -16,6 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import 'package:flauncher/content_shortcut_uri.dart';
 import 'package:flauncher/actions.dart';
 import 'package:flauncher/l10n/app_localizations.dart';
 import 'package:flauncher/providers/apps_service.dart';
@@ -350,7 +351,12 @@ class _ContentShortcutCardState extends State<ContentShortcutCard> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        widget.shortcut.label,
+                        // The handle when the destination has one, the user's
+                        // label otherwise: "@canal" says what this opens, while
+                        // a name like "test" says nothing once there are
+                        // several. The label still appears under the card when
+                        // app names are switched on.
+                        contentShortcutHandle(widget.shortcut.uri) ?? widget.shortcut.label,
                         style: Theme.of(context).textTheme.bodySmall,
                         overflow: TextOverflow.ellipsis,
                         maxLines: 2,
