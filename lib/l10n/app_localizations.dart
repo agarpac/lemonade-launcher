@@ -1357,6 +1357,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The configuration could not be restored. Nothing was changed.'**
   String get backupImportRestoreFailed;
+
+  /// No description provided for @weather.
+  ///
+  /// In en, this message translates to:
+  /// **'Weather'**
+  String get weather;
+
+  /// No description provided for @weatherShowInStatusBar.
+  ///
+  /// In en, this message translates to:
+  /// **'Show in the status bar'**
+  String get weatherShowInStatusBar;
+
+  /// No description provided for @weatherNoCity.
+  ///
+  /// In en, this message translates to:
+  /// **'No city chosen'**
+  String get weatherNoCity;
+
+  /// No description provided for @weatherClearCity.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear city'**
+  String get weatherClearCity;
+
+  /// No description provided for @weatherSearchCity.
+  ///
+  /// In en, this message translates to:
+  /// **'Search a city'**
+  String get weatherSearchCity;
+
+  /// No description provided for @weatherSearchPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Type a city name, then confirm to search.'**
+  String get weatherSearchPrompt;
+
+  /// No description provided for @weatherSearching.
+  ///
+  /// In en, this message translates to:
+  /// **'Searching…'**
+  String get weatherSearching;
+
+  /// No description provided for @weatherSearchNoResults.
+  ///
+  /// In en, this message translates to:
+  /// **'No city matches that name.'**
+  String get weatherSearchNoResults;
+
+  /// No description provided for @weatherSearchFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The search could not be completed. Check the connection and try again.'**
+  String get weatherSearchFailed;
+
+  /// No description provided for @weatherTemperature.
+  ///
+  /// In en, this message translates to:
+  /// **'{degrees}°'**
+  String weatherTemperature(String degrees);
 }
 
 class _AppLocalizationsDelegate

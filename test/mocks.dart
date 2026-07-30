@@ -25,6 +25,7 @@ import 'package:flauncher/providers/backup_service.dart';
 import 'package:flauncher/providers/scenes_service.dart';
 import 'package:flauncher/providers/settings_service.dart';
 import 'package:flauncher/providers/wallpaper_service.dart';
+import 'package:flauncher/providers/weather_service.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mockito/annotations.dart';
@@ -39,6 +40,7 @@ import 'package:flauncher/models/scene.dart';
   AppsService,
   SettingsService,
   ScenesService,
+  WeatherService,
   ImagePicker,
 ], customMocks: [
   MockSpec<BackupService>(),

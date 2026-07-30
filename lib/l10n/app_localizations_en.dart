@@ -696,4 +696,37 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get backupImportRestoreFailed =>
       'The configuration could not be restored. Nothing was changed.';
+
+  @override
+  String get weather => 'Weather';
+
+  @override
+  String get weatherShowInStatusBar => 'Show in the status bar';
+
+  @override
+  String get weatherNoCity => 'No city chosen';
+
+  @override
+  String get weatherClearCity => 'Clear city';
+
+  @override
+  String get weatherSearchCity => 'Search a city';
+
+  @override
+  String get weatherSearchPrompt => 'Type a city name, then confirm to search.';
+
+  @override
+  String get weatherSearching => 'Searching…';
+
+  @override
+  String get weatherSearchNoResults => 'No city matches that name.';
+
+  @override
+  String get weatherSearchFailed =>
+      'The search could not be completed. Check the connection and try again.';
+
+  @override
+  String weatherTemperature(String degrees) {
+    return '$degrees°';
+  }
 }

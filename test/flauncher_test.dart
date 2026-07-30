@@ -508,6 +508,10 @@ SettingsService mkSettingsService() {
   when(settingsService.showWifiWidgetInStatusBar).thenReturn(false);
   when(settingsService.showDateInStatusBar).thenReturn(false);
   when(settingsService.showTimeInStatusBar).thenReturn(false);
+  // Read by FocusAwareAppBar to decide whether the weather block exists at
+  // all. Off keeps `WeatherService` out of these tests' provider tree, exactly
+  // like a launcher the user has never switched the weather on in.
+  when(settingsService.showWeather).thenReturn(false);
   return settingsService;
 }
 

@@ -300,5 +300,20 @@
     "backupImportInvalidFile": "This file is not a backup, or it is damaged. Nothing was changed.",
     "backupImportUnsupportedVersion": "This backup was created by a newer version of the launcher and cannot be read. Nothing was changed.",
     "backupImportInstalledAppsUnavailable": "The list of installed applications could not be read, so the backup could not be checked. Nothing was changed.",
-    "backupImportRestoreFailed": "The configuration could not be restored. Nothing was changed."
+    "backupImportRestoreFailed": "The configuration could not be restored. Nothing was changed.",
+    "weather": "Weather",
+    "weatherShowInStatusBar": "Show in the status bar",
+    "weatherNoCity": "No city chosen",
+    "weatherClearCity": "Clear city",
+    "weatherSearchCity": "Search a city",
+    "weatherSearchPrompt": "Type a city name, then confirm to search.",
+    "weatherSearching": "Searching…",
+    "weatherSearchNoResults": "No city matches that name.",
+    "weatherSearchFailed": "The search could not be completed. Check the connection and try again.",
+    "weatherTemperature": "{degrees}°",
+    "@weatherTemperature": {
+        "placeholders": {
+            "degrees": { "type": "String" }
+        }
+    }
 }

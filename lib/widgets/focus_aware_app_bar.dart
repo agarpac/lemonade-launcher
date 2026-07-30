@@ -10,6 +10,7 @@ import '../providers/settings_service.dart';
 import 'daily_wifi_usage_widget.dart';
 import 'date_time_widget.dart';
 import 'network_widget.dart';
+import 'status_bar_weather_widget.dart';
 
 class FocusAwareAppBar extends StatefulWidget implements PreferredSizeWidget
 {
@@ -140,8 +141,27 @@ class FocusAwareAppBarState extends State<FocusAwareAppBar>
               ),
             ],
           ),
-          // Right side: Date/Time only
+          // Right side: weather, then Date/Time
           actions: [
+            // To the *left* of the clock on purpose: the date and time keep the
+            // corner the user's eye already goes to, and the weather grows
+            // inwards from there.
+            //
+            // Gated on the setting here rather than only inside the widget so
+            // that a launcher with the weather switched off — the default —
+            // never even looks up `WeatherService`. Same shape as the network
+            // and Wi-Fi indicators on the other side of the bar.
+            //
+            // `AppBar` lays its actions out with `CrossAxisAlignment.stretch`,
+            // so the card is centred explicitly; without this it would grow to
+            // the full toolbar height.
+            Center(
+              child: Selector<SettingsService, bool>(
+                selector: (_, settings) => settings.showWeather,
+                builder: (context, showWeather, _) =>
+                    showWeather ? const StatusBarWeatherWidget() : const SizedBox.shrink(),
+              ),
+            ),
             Padding(
               padding: const EdgeInsets.only(left: 16, right: 32),
               child: Selector<SettingsService,

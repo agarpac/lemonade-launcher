@@ -290,5 +290,20 @@
     "backupImportInvalidFile": "Este archivo no es una copia de seguridad, o está dañado. No se cambió nada.",
     "backupImportUnsupportedVersion": "Esta copia de seguridad se creó con una versión más reciente del lanzador y no se puede leer. No se cambió nada.",
     "backupImportInstalledAppsUnavailable": "No se pudo leer la lista de aplicaciones instaladas, así que no se pudo comprobar la copia de seguridad. No se cambió nada.",
-    "backupImportRestoreFailed": "No se pudo restaurar la configuración. No se cambió nada."
+    "backupImportRestoreFailed": "No se pudo restaurar la configuración. No se cambió nada.",
+    "weather": "Clima",
+    "weatherShowInStatusBar": "Mostrar en la barra de estado",
+    "weatherNoCity": "Sin ciudad elegida",
+    "weatherClearCity": "Quitar la ciudad",
+    "weatherSearchCity": "Buscar una ciudad",
+    "weatherSearchPrompt": "Escribe el nombre de una ciudad y confirma para buscar.",
+    "weatherSearching": "Buscando…",
+    "weatherSearchNoResults": "Ninguna ciudad coincide con ese nombre.",
+    "weatherSearchFailed": "No se pudo completar la búsqueda. Comprueba la conexión e inténtalo de nuevo.",
+    "weatherTemperature": "{degrees}°",
+    "@weatherTemperature": {
+        "placeholders": {
+            "degrees": { "type": "String" }
+        }
+    }
 }

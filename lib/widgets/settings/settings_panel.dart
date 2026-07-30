@@ -26,6 +26,7 @@ import 'package:flauncher/widgets/settings/launcher_section_panel_page.dart';
 import 'package:flauncher/widgets/settings/settings_panel_page.dart';
 import 'package:flauncher/widgets/settings/status_bar_panel_page.dart';
 import 'package:flauncher/widgets/settings/wallpaper_panel_page.dart';
+import 'package:flauncher/widgets/settings/weather_panel_page.dart';
 import 'package:flauncher/widgets/settings/wifi_usage_period_page.dart';
 import 'package:flauncher/widgets/settings/back_button_action_page.dart';
 import 'package:flauncher/widgets/settings/date_time_format_page.dart';
@@ -90,6 +91,8 @@ class _SettingsPanelState extends State<SettingsPanel> {
                       return _FastPageRoute(builder: (_) => WallpaperPanelPage());
                     case StatusBarPanelPage.routeName:
                       return _FastPageRoute(builder: (_) => StatusBarPanelPage());
+                    case WeatherPanelPage.routeName:
+                      return _FastPageRoute(builder: (_) => const WeatherPanelPage());
                     case GradientPanelPage.routeName:
                       return _FastPageRoute(builder: (_) => GradientPanelPage());
                     case ApplicationsPanelPage.routeName:

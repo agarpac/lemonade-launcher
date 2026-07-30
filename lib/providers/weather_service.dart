@@ -35,6 +35,52 @@ const String _cachedReadingKey = "weather_cached_reading";
 /// a different shape is ignored, not misread.
 const int _cachedReadingVersion = 1;
 
+/// How a city search ended.
+///
+/// The forecast path deliberately reports nothing at all — PRD section 6 says
+/// a status bar is no place to announce that a weather server is down. A
+/// *search* is the opposite case: the user asked for it, is waiting for it,
+/// and can act on the answer. Telling someone with no Wi-Fi that "no city
+/// matches that name" makes them retype the name of their own city until they
+/// give up, so the two outcomes are kept apart.
+enum WeatherCitySearchStatus {
+  /// The provider answered and the answer was understood. The matched cities
+  /// are in [WeatherCitySearchResult.cities], which may legitimately be empty:
+  /// that is a genuine "no city is called that".
+  completed,
+
+  /// No usable answer arrived: no network, a timeout, a non-200, or a body
+  /// that is not the documented shape. Nothing is known about whether such a
+  /// city exists.
+  failed,
+}
+
+/// The outcome of [WeatherService.searchCities], shaped like this launcher's
+/// other service results (`BackupExportResult`, `BackupImportResult`): a
+/// status the UI switches on, plus the payload.
+class WeatherCitySearchResult {
+  final WeatherCitySearchStatus status;
+
+  /// What the provider matched. Always empty when [status] is
+  /// [WeatherCitySearchStatus.failed] — a failed search knows nothing.
+  final List<WeatherCity> cities;
+
+  const WeatherCitySearchResult.completed(this.cities) : status = WeatherCitySearchStatus.completed;
+
+  const WeatherCitySearchResult.failed()
+      : status = WeatherCitySearchStatus.failed,
+        cities = const [];
+
+  bool get failed => status == WeatherCitySearchStatus.failed;
+
+  /// The provider answered, and answered that it knows no such place. Distinct
+  /// from [failed]: this one is an answer.
+  bool get noMatch => status == WeatherCitySearchStatus.completed && cities.isEmpty;
+
+  @override
+  String toString() => "WeatherCitySearchResult(${status.name}, ${cities.length} cities)";
+}
+
 /// Current weather for the city the user picked, from Open-Meteo (PRD section
 /// 6): no API key, no registration, no GPS and no IP geolocation.
 ///
@@ -222,14 +268,25 @@ class WeatherService extends ChangeNotifier {
   /// Searches Open-Meteo's geocoding endpoint for cities matching [query].
   ///
   /// [language] is the caller's: the settings page knows the active locale,
-  /// this service does not. Returns an empty list for an empty query, for a
-  /// failed request, and for a reply with no `results` key at all — the
-  /// endpoint *omits* that key when nothing matches rather than sending an
-  /// empty array, so "absent" is the ordinary no-match answer, not an error.
-  Future<List<WeatherCity>> searchCities(String query, {required String language, int count = 5}) async {
+  /// this service does not.
+  ///
+  /// Never throws — like everything else here, this runs on the device's only
+  /// home screen. Unlike [refresh], though, it does *report*: the returned
+  /// [WeatherCitySearchResult] separates "the provider says there is no such
+  /// city" from "the search never got through", because the user asked for
+  /// this one and deserves an honest answer (see [WeatherCitySearchStatus]).
+  ///
+  /// An empty query is not a failure: it completes with no cities, having
+  /// touched no network.
+  ///
+  /// A reply with no `results` key at all is the ordinary no-match answer, not
+  /// an error — the endpoint *omits* that key rather than sending an empty
+  /// array. A `results` that is present but is not a list is something else
+  /// entirely: a body we do not understand, which is a failure.
+  Future<WeatherCitySearchResult> searchCities(String query, {required String language, int count = 5}) async {
     final trimmed = query.trim();
     if (trimmed.isEmpty) {
-      return const [];
+      return const WeatherCitySearchResult.completed([]);
     }
     try {
       final uri = Uri.https("geocoding-api.open-meteo.com", "/v1/search", {
@@ -240,15 +297,22 @@ class WeatherService extends ChangeNotifier {
       });
       final response = await _httpClient.get(uri).timeout(requestTimeout);
       if (response.statusCode != 200) {
-        return const [];
+        debugPrint("WeatherService: city search returned ${response.statusCode}");
+        return const WeatherCitySearchResult.failed();
       }
       final decoded = jsonDecode(response.body);
       if (decoded is! Map) {
-        return const [];
+        debugPrint("WeatherService: city search returned a body that is not an object");
+        return const WeatherCitySearchResult.failed();
       }
       final results = decoded["results"];
+      if (results == null) {
+        // Documented no-match: Open-Meteo drops the key instead of sending [].
+        return const WeatherCitySearchResult.completed([]);
+      }
       if (results is! List) {
-        return const [];
+        debugPrint("WeatherService: city search returned a 'results' that is not a list");
+        return const WeatherCitySearchResult.failed();
       }
       final cities = <WeatherCity>[];
       for (final entry in results) {
@@ -271,10 +335,13 @@ class WeatherService extends ChangeNotifier {
           admin1: admin1 is String ? admin1 : null,
         ));
       }
-      return cities;
+      return WeatherCitySearchResult.completed(cities);
     } catch (e) {
+      // A timeout, a dead socket, a body that is not JSON at all. The user
+      // gets told the search did not go through, not that their city does not
+      // exist.
       debugPrint("WeatherService: city search failed ($e)");
-      return const [];
+      return const WeatherCitySearchResult.failed();
     }
   }
 

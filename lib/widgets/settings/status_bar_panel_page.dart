@@ -17,6 +17,8 @@
  */
 
 import 'package:flauncher/widgets/rounded_switch_list_tile.dart';
+import 'package:flauncher/widgets/settings/focusable_settings_tile.dart';
+import 'package:flauncher/widgets/settings/weather_panel_page.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flauncher/l10n/app_localizations.dart';
@@ -70,6 +72,14 @@ class StatusBarPanelPage extends StatelessWidget {
                   onChanged: (value) => settingsService.setShowNetworkIndicatorInStatusBar(value),
                   title: Text(localizations.networkIndicator),
                   secondary: Icon(Icons.signal_wifi_4_bar)
+                ),
+                // The weather is a status-bar element like the four above, but
+                // it needs a page of its own rather than a switch: picking the
+                // city is a search, not a toggle.
+                FocusableSettingsTile(
+                  leading: Icon(Icons.wb_sunny_outlined),
+                  title: Text(localizations.weather, style: Theme.of(context).textTheme.bodyMedium),
+                  onPressed: () => Navigator.of(context).pushNamed(WeatherPanelPage.routeName),
                 ),
               ],
             ),

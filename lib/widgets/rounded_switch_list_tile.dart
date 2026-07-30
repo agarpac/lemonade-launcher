@@ -8,19 +8,25 @@ class RoundedSwitchListTile extends StatelessWidget {
   final Widget title;
   final Widget secondary;
 
+  /// Forwarded to [FocusableSettingsTile.focusNode], so a page can put the
+  /// remote's focus back on this switch after the tile that had it disappeared.
+  final FocusNode? focusNode;
+
   const RoundedSwitchListTile({
     super.key,
     required this.value,
     required this.onChanged,
     required this.title,
     required this.secondary,
-    this.autofocus = false
+    this.autofocus = false,
+    this.focusNode,
   });
 
   @override
   Widget build(BuildContext context) {
     return FocusableSettingsTile(
       autofocus: autofocus,
+      focusNode: focusNode,
       onPressed: () => onChanged(!value),
       leading: secondary,
       title: title,

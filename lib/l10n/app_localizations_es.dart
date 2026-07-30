@@ -709,4 +709,39 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get backupImportRestoreFailed =>
       'No se pudo restaurar la configuración. No se cambió nada.';
+
+  @override
+  String get weather => 'Clima';
+
+  @override
+  String get weatherShowInStatusBar => 'Mostrar en la barra de estado';
+
+  @override
+  String get weatherNoCity => 'Sin ciudad elegida';
+
+  @override
+  String get weatherClearCity => 'Quitar la ciudad';
+
+  @override
+  String get weatherSearchCity => 'Buscar una ciudad';
+
+  @override
+  String get weatherSearchPrompt =>
+      'Escribe el nombre de una ciudad y confirma para buscar.';
+
+  @override
+  String get weatherSearching => 'Buscando…';
+
+  @override
+  String get weatherSearchNoResults =>
+      'Ninguna ciudad coincide con ese nombre.';
+
+  @override
+  String get weatherSearchFailed =>
+      'No se pudo completar la búsqueda. Comprueba la conexión e inténtalo de nuevo.';
+
+  @override
+  String weatherTemperature(String degrees) {
+    return '$degrees°';
+  }
 }

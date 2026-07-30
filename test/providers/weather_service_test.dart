@@ -500,8 +500,12 @@ void main() async {
       final service = WeatherService(settings, sharedPreferences, httpClient: server.client);
       addTearDown(service.dispose);
 
-      final cities = await service.searchCities("Sevilla", language: "es");
+      final result = await service.searchCities("Sevilla", language: "es");
 
+      expect(result.status, WeatherCitySearchStatus.completed);
+      expect(result.failed, isFalse);
+      expect(result.noMatch, isFalse);
+      final cities = result.cities;
       expect(cities, hasLength(2));
       expect(cities.first.name, "Sevilla");
       expect(cities.first.latitude, 37.38283);
@@ -529,14 +533,37 @@ void main() async {
       expect(server.requests.single.queryParameters["count"], "3");
     });
 
-    test("returns nothing when the reply has no results key at all", () async {
-      // Open-Meteo omits `results` rather than sending an empty array.
+    test("reports a genuine no-match when the reply has no results key at all", () async {
+      // Open-Meteo omits `results` rather than sending an empty array, so an
+      // absent key is the provider answering "no such place" — an answer, not
+      // a failure, and the settings page says so in different words.
       final settings = newSettings();
       final service = WeatherService(settings, sharedPreferences,
           httpClient: _StubServer((_) async => http.Response(jsonEncode({"generationtime_ms": 0.5}), 200)).client);
       addTearDown(service.dispose);
 
-      expect(await service.searchCities("Xyzzy", language: "es"), isEmpty);
+      final result = await service.searchCities("Xyzzy", language: "es");
+
+      expect(result.status, WeatherCitySearchStatus.completed);
+      expect(result.cities, isEmpty);
+      expect(result.noMatch, isTrue);
+      expect(result.failed, isFalse);
+    });
+
+    test("reports a failure when 'results' is present but is not a list", () async {
+      // Not the documented no-match shape: a body we cannot read says nothing
+      // about whether the city exists.
+      final settings = newSettings();
+      final service = WeatherService(settings, sharedPreferences,
+          httpClient: _StubServer((_) async => http.Response(jsonEncode({"results": "nonsense"}), 200)).client);
+      addTearDown(service.dispose);
+
+      final result = await service.searchCities("Sevilla", language: "es");
+
+      expect(result.status, WeatherCitySearchStatus.failed);
+      expect(result.failed, isTrue);
+      expect(result.noMatch, isFalse);
+      expect(result.cities, isEmpty);
     });
 
     test("skips entries that are missing the fields a city needs", () async {
@@ -555,28 +582,57 @@ void main() async {
               )).client);
       addTearDown(service.dispose);
 
-      final cities = await service.searchCities("whatever", language: "es");
+      final result = await service.searchCities("whatever", language: "es");
 
-      expect(cities, hasLength(1));
-      expect(cities.single.name, "Usable");
+      // Unusable entries are dropped, but the search itself did complete.
+      expect(result.status, WeatherCitySearchStatus.completed);
+      expect(result.cities, hasLength(1));
+      expect(result.cities.single.name, "Usable");
     });
 
-    test("returns nothing, without throwing, on an empty query, a non-200 and a failed request", () async {
+    test("an empty query completes with nothing, without touching the network", () async {
       final settings = newSettings();
       final server = _StubServer((_) async => http.Response("", 503));
       final service = WeatherService(settings, sharedPreferences, httpClient: server.client);
       addTearDown(service.dispose);
 
-      expect(await service.searchCities("   ", language: "es"), isEmpty);
-      expect(server.requests, isEmpty, reason: "an empty query must not reach the network");
+      final result = await service.searchCities("   ", language: "es");
 
-      expect(await service.searchCities("Sevilla", language: "es"), isEmpty);
+      expect(result.cities, isEmpty);
+      // Typing nothing is not a network problem, and must not be reported as
+      // one: the settings page shows its "type a city name" prompt for this.
+      expect(result.failed, isFalse);
+      expect(result.status, WeatherCitySearchStatus.completed);
+      expect(server.requests, isEmpty, reason: "an empty query must not reach the network");
+    });
+
+    test("reports a failure, without throwing, on a non-200, a dead socket and a malformed body", () async {
+      final settings = newSettings();
+      final server = _StubServer((_) async => http.Response("", 503));
+      final service = WeatherService(settings, sharedPreferences, httpClient: server.client);
+      addTearDown(service.dispose);
+
+      final nonTwoHundred = await service.searchCities("Sevilla", language: "es");
+      expect(nonTwoHundred.status, WeatherCitySearchStatus.failed);
+      expect(nonTwoHundred.cities, isEmpty);
+      expect(nonTwoHundred.noMatch, isFalse, reason: "a 503 says nothing about whether the city exists");
 
       server.handler = (_) => Future.error(const SocketExceptionStub());
-      expect(await service.searchCities("Sevilla", language: "es"), isEmpty);
+      final deadSocket = await service.searchCities("Sevilla", language: "es");
+      expect(deadSocket.status, WeatherCitySearchStatus.failed);
+      expect(deadSocket.cities, isEmpty);
+      expect(deadSocket.noMatch, isFalse);
 
       server.handler = (_) async => http.Response("{not json", 200);
-      expect(await service.searchCities("Sevilla", language: "es"), isEmpty);
+      final malformed = await service.searchCities("Sevilla", language: "es");
+      expect(malformed.status, WeatherCitySearchStatus.failed);
+      expect(malformed.cities, isEmpty);
+      expect(malformed.noMatch, isFalse);
+
+      server.handler = (_) async => http.Response(jsonEncode(["not an object"]), 200);
+      final notAnObject = await service.searchCities("Sevilla", language: "es");
+      expect(notAnObject.status, WeatherCitySearchStatus.failed);
+      expect(notAnObject.cities, isEmpty);
     });
   });
 }

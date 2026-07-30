@@ -7,6 +7,15 @@ class FocusableSettingsTile extends StatefulWidget {
   final VoidCallback? onPressed;
   final bool autofocus;
 
+  /// Lets a caller move the remote's focus onto this tile after it appears.
+  ///
+  /// [autofocus] only fires while nothing else in the enclosing scope already
+  /// holds focus, which is exactly not the case for a list that appears
+  /// *because* the user just submitted a text field — the field still has the
+  /// focus. Handing in a node makes "put the focus on the first result" an
+  /// explicit request instead of a race.
+  final FocusNode? focusNode;
+
   const FocusableSettingsTile({
     Key? key,
     required this.title,
@@ -14,6 +23,7 @@ class FocusableSettingsTile extends StatefulWidget {
     this.trailing,
     this.onPressed,
     this.autofocus = false,
+    this.focusNode,
   }) : super(key: key);
 
   @override
@@ -34,6 +44,7 @@ class _FocusableSettingsTileState extends State<FocusableSettingsTile> {
             ButtonActivateIntent: CallbackAction<ButtonActivateIntent>(onInvoke: (_) => widget.onPressed?.call()),
           },
           child: Focus(
+            focusNode: widget.focusNode,
             autofocus: widget.autofocus,
             onFocusChange: (hasFocus) => setState(() => _focused = hasFocus),
             child: InkWell(
