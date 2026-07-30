@@ -47,8 +47,10 @@ El launcher se ejecuta en la **caja Xiaomi TV Box S**, conectada por HDMI a un t
 | Izquierda | Ajustes del launcher | ✅ implementado |
 | Izquierda | Indicador de red (Wi-Fi/Ethernet), atajo a ajustes de red | ✅ implementado |
 | Izquierda | Consumo diario de datos | ✅ implementado |
-| Derecha | **Clima** — temperatura actual + icono | ⬜ **pendiente** |
+| Derecha | **Clima** — temperatura actual + icono | ✅ implementado |
 | Derecha | Fecha y hora (formato configurable) | ✅ implementado |
+
+Todos los elementos van ya encapsulados en tarjetas de cristal, con una única definición compartida en `lib/widgets/status_bar_glass_card.dart`.
 
 Requisitos del bloque de clima:
 1. Proveedor: **Open-Meteo** (ver sección 6).
@@ -67,7 +69,7 @@ Requisitos del bloque de clima:
 
 ✅ **Ya implementado.** Método `_dock()` en `lib/flauncher.dart`: fila única alimentada por la categoría `Favorites`, con cristal esmerilado (`CachedBlurBackdrop`), borde de 1,5 dp blanco al 15 %, radio 24 y sombra opcional. Los nombres de las apps están ocultos por defecto (`showAppNamesBelowIcons`).
 
-⬜ **Pendiente:** forma **squircle** (superelipse iOS) para los iconos. Hoy son `BorderRadius.circular(12)` en `lib/widgets/app_card.dart`. Requiere un `CustomClipper` propio.
+✅ **Implementado:** forma **squircle** (superelipse iOS) para los iconos, en `lib/widgets/app_card.dart` y en las tarjetas de accesos directos. Este requisito decía que hacía falta un `CustomClipper` propio y **ya no es cierto**: el Flutter 3.41.9 que fija el proyecto trae `RoundedSuperellipseBorder` sobre la primitiva nativa `RSuperellipse`, que es exactamente esta forma. El radio vive en una sola constante, `kAppCardCornerRadius`.
 
 ## 4. Experiencia de usuario y foco (D-Pad)
 
