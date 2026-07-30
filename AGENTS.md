@@ -47,8 +47,46 @@ eval "$(/opt/homebrew/bin/mise env -s bash)" && flutter gen-l10n
 eval "$(/opt/homebrew/bin/mise env -s bash)" && flutter build apk --debug --flavor github
 ```
 
-Debug builds carry `applicationIdSuffix '.debug'`, so they install as `com.omeda.arc.debug`, a
-separate app that does not replace a working launcher. That is the safe way to test on a real box.
+Debug builds carry `applicationIdSuffix '.debug'`, so they install as
+`io.github.agarpac.lemonade.debug`, a separate app that does not replace a working launcher. That is
+the safe way to test on a real box.
+
+### Release builds
+
+Signing reads `android/local.properties` — **not** `key.properties`, which nothing looks at — for
+`storeFile`, `storePassword`, `keyAlias` and `keyPassword`, or failing that the environment
+variables `SIGNING_KEYSTORE_PASSWORD` / `SIGNING_KEY_ALIAS` / `SIGNING_KEY_PASSWORD` when
+`android/app/upload-keystore.jks` exists. Both the keystore and that properties file are
+gitignored. Without them a release build comes out **unsigned**, which is the same as having no
+release at all.
+
+A universal APK carries all three ABIs and weighs about 60 MB, most of it `libflutter.so` and
+`libapp.so` repeated per architecture. Per-ABI builds are one flag and about 20 MB each:
+
+```shell
+eval "$(/opt/homebrew/bin/mise env -s bash)" && flutter build apk --release --flavor github --split-per-abi
+```
+
+`--split-per-abi` does **not** also produce the universal APK, so a release that wants both needs
+two builds.
+
+**Rename the artifacts before attaching them to a release.** `UpdateService.isAbiSplitApk` decides
+what is a per-ABI build from the file name alone, matching a `-arm64-v8a.apk`, `-armeabi-v7a.apk`,
+`-armeabi.apk`, `-x86_64.apk` or `-x86.apk` suffix, and `pickReleaseApk` then prefers the asset that
+has no such suffix. Gradle's own names end in `-github-release.apk`, which matches nothing, so
+uploaded as-is every asset looks universal and the updater can hand someone an APK for the wrong
+architecture. The names it expects:
+
+```
+lemonade-launcher-<version>.apk               # universal, no ABI suffix
+lemonade-launcher-<version>-arm64-v8a.apk
+lemonade-launcher-<version>-armeabi-v7a.apk
+lemonade-launcher-<version>-x86_64.apk
+```
+
+Check what is actually in `build/app/outputs/flutter-apk/` before publishing: it accumulates
+artifacts from earlier builds, and a stale APK for an architecture the current build no longer
+produces will sit there looking legitimate.
 
 ## Definition of done
 
