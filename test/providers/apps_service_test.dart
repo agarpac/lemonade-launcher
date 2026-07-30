@@ -105,8 +105,22 @@ void main() {
           AppsCompanion.insert(packageName: "com.omeda.arc", name: "Lemonade Launcher", version: "2.0.0"),
         ]),
         database.deleteApps([]),
-        database.insertCategory(CategoriesCompanion.insert(name: "All Apps", order: 0)),
-        database.insertCategory(CategoriesCompanion.insert(name: "Favorites", order: 0)),
+        database.insertCategory(CategoriesCompanion.insert(
+          name: "All Apps",
+          sort: Value(CategorySort.manual),
+          type: Value(CategoryType.grid),
+          rowHeight: Value(Category.RowHeight),
+          columnsCount: Value(Category.ColumnsCount),
+          order: 0,
+        )),
+        database.insertCategory(CategoriesCompanion.insert(
+          name: "Favorites",
+          sort: Value(CategorySort.manual),
+          type: Value(CategoryType.grid),
+          rowHeight: Value(Category.RowHeight),
+          columnsCount: Value(Category.ColumnsCount),
+          order: 0,
+        )),
       ]);
 
       // The most recently created category is inserted at order 0 and pushes older ones down,
@@ -427,8 +441,63 @@ void main() {
 
     await appsService.addCategory("New Category");
 
-    verify(database.insertCategory(CategoriesCompanion.insert(name: "New Category", order: 0)));
+    verify(database.insertCategory(CategoriesCompanion.insert(
+      name: "New Category",
+      sort: Value(CategorySort.manual),
+      type: Value(CategoryType.grid),
+      rowHeight: Value(Category.RowHeight),
+      columnsCount: Value(Category.ColumnsCount),
+      order: 0,
+    )));
     verify(database.updateCategories([CategoriesCompanion(id: Value(existingCategory.id), order: Value(1))]));
+  });
+
+  // Regression. `addCategory` used to write a companion holding only `name` and
+  // `order` while building the in-memory [Category] from all six values it had
+  // been handed. Every display setting the caller chose was therefore left to
+  // the column default: the launcher showed what the user asked for until the
+  // next restart, then loaded the row and showed something else. The absence of
+  // this test is what let that live.
+  //
+  // `type` is the one that bit hardest, because the default it fell back to was
+  // itself wrong on any migrated database (the v4 migration wrote
+  // `DEFAULT 0` — `CategoryType.row` — where a fresh install has 1), so a
+  // grid came back as a row. Note that `CategoryType.row` is *not*
+  // `Category.Type`, so this asks for a non-default value on purpose.
+  test("addCategory stores every display setting instead of leaving it to the column defaults", () async {
+    final channel = MockFLauncherChannel();
+    final database = MockFLauncherDatabase();
+    final appsService = await _buildInitialisedAppsService(
+      channel,
+      database,
+      [fakeCategory(name: "Existing Category", order: 0)],
+    );
+    when(database.insertCategory(any)).thenAnswer((_) => Future.value(501));
+
+    await appsService.addCategory(
+      "Movies",
+      sort: CategorySort.lastUsed,
+      type: CategoryType.row,
+      columnsCount: 3,
+      rowHeight: 200,
+    );
+
+    verify(database.insertCategory(CategoriesCompanion.insert(
+      name: "Movies",
+      sort: Value(CategorySort.lastUsed),
+      type: Value(CategoryType.row),
+      rowHeight: Value(200),
+      columnsCount: Value(3),
+      order: 0,
+    )));
+
+    // And the object handed to the UI agrees with the row that was written —
+    // the disagreement between the two is the bug.
+    final Category created = appsService.categories.firstWhere((category) => category.name == "Movies");
+    expect(created.sort, CategorySort.lastUsed);
+    expect(created.type, CategoryType.row);
+    expect(created.columnsCount, 3);
+    expect(created.rowHeight, 200);
   });
 
   test("renameCategory renames category", () async {
