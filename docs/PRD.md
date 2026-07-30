@@ -473,3 +473,33 @@ El campo «Canal o dirección» muestra `https://www.youtube.com/@hia…` y el t
 Los encabezados de sección se leen «All Apps» y «Favorites» en una interfaz cuyo idioma por defecto es el español. **El valor almacenado no se puede traducir**: se compara por igualdad contra la base de datos y contra una migración, y el dock localiza su fila buscando literalmente `'Favorites'` (ver la sección de trampas del `AGENTS.md`), así que traducirlo vaciaría el dock en silencio.
 
 Lo que sí se puede es traducir **solo lo que se muestra**, dejando intacto el valor guardado: una función que mapee los dos nombres reservados a su cadena localizada en el momento de pintar. Hay que cubrirla con un test que fije que lo almacenado no cambia, porque es exactamente el sitio donde alguien «arreglaría» el original.
+
+### 13.9 Los APK por arquitectura rompen el autoactualizador
+
+`android/app/build.gradle` (bloque `splits`) y `lib/providers/update_service.dart`
+
+Flutter añade un desplazamiento al `versionCode` de cada APK dividido, para que un mismo `pubspec` produzca códigos distintos y ordenados por arquitectura. Con la versión `1.1.0+4116` los cuatro adjuntos de la release `v1.1.0` salieron así:
+
+| APK | `versionCode` |
+| --- | --- |
+| universal | 4116 |
+| armeabi-v7a | 5116 |
+| arm64-v8a | 6116 |
+| x86_64 | 8116 |
+
+Android **se niega a instalar un `versionCode` menor que el instalado**, y `UpdateService.pickReleaseApk` **prefiere el universal**. Así que quien instale un APK por arquitectura queda en 5116 o 6116, y la actualización a la siguiente versión —universal, `4117`— se rechaza por ser un retroceso. El autoactualizador queda roto precisamente para quien eligió la descarga pequeña, que es la que el README recomienda.
+
+Descubierto el 31/07/2026 justo después de publicar `v1.1.0`, al ver que la caja quedaba en `versionCode=5116`.
+
+Dos arreglos posibles, y son excluyentes:
+
+1. **Publicar solo el universal.** Todo el mundo queda en la misma serie de códigos y el camino de actualización es monótono. Cuesta 60 MB de descarga en lugar de 20.
+2. **Que el actualizador elija el APK de la arquitectura del dispositivo** en lugar de preferir el universal, leyendo `Build.SUPPORTED_ABIS` por el canal nativo. Mantiene las descargas pequeñas, pero hay que asegurarse de que un dispositivo nunca salte de una serie a otra.
+
+Mientras no se decida, **una release no debe adjuntar los dos tipos a la vez**.
+
+### 13.10 La guía de descarga del README daba mal la arquitectura
+
+El README y las notas de la `v1.1.0` decían que `arm64-v8a` es «lo normal en cajas y televisores Android TV actuales». **Es falso para el dispositivo de referencia de este proyecto**: la Xiaomi TV Box S reporta `ro.product.cpu.abilist = armeabi-v7a,armeabi`, un espacio de usuario de 32 bits sobre un chip que sí es de 64. Instalar el APK de arm64 falla con `INSTALL_FAILED_NO_MATCHING_ABIS`.
+
+Corregido el 31/07/2026. La comprobación fiable es `adb shell getprop ro.product.cpu.abilist`, y la recomendación por defecto pasa a ser el universal, que funciona en todos los casos.
