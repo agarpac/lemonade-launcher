@@ -109,22 +109,6 @@ android {
         }
     }
 
-    splits {
-        abi {
-            // https://stackoverflow.com/a/39950584/21037183
-            enable gradle.startParameter.taskNames.any {
-                it.startsWith("assemble") && it.endsWith("Release")
-            }
-            reset()
-            // CI publishes arm-only APKs; local release builds keep x86 for emulators.
-            def releaseAbis = System.getenv("CI") == "true"
-                ? ["arm64-v8a", "armeabi-v7a"]
-                : ["arm64-v8a", "armeabi-v7a", "x86", "x86_64"]
-            include(*releaseAbis)
-            universalApk true
-        }
-    }
-
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17

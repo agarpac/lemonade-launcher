@@ -493,7 +493,9 @@ Descubierto el 31/07/2026 justo después de publicar `v1.1.0`, al ver que la caj
 
 ✅ **Resuelto el 31/07/2026 publicando solo el universal.** Los tres adjuntos por arquitectura se retiraron de la release `v1.1.0` y el dispositivo de referencia se reinstaló con el universal, para dejarlo en la serie `4116` en lugar de la `5116` en la que había quedado. Todo el mundo comparte ahora una única serie de códigos y el camino de actualización es monótono. El precio son 60 MB de descarga en lugar de 20.
 
-**Regla adoptada: una release adjunta el universal y nada más.** Los APK por arquitectura no se publican mientras el actualizador prefiera el universal.
+**Regla adoptada: una release adjunta el universal y nada más.** Y para que no dependa de recordarlo, el bloque `splits` se eliminó de `android/app/build.gradle` el 31/07/2026.
+
+Al quitarlo salió a la luz que **no estaba condicionado a `--split-per-abi`**: se activaba en cualquier `assembleRelease`, así que toda compilación de release emitía cuatro APK extra sin que nadie los pidiera — incluido el cascarón de `x86` sin librerías nativas de la sección anterior. Lo que se había documentado como «artefactos de compilaciones anteriores» se estaba generando cada vez. Verificado tras eliminarlo: una compilación limpia produce un único `app-github-release.apk`.
 
 La alternativa, si algún día molestan los 60 MB, es **que el actualizador elija el APK de la arquitectura del dispositivo** leyendo `Build.SUPPORTED_ABIS` por el canal nativo. Mantendría las descargas pequeñas, pero hay que garantizar que un dispositivo nunca salte de una serie de `versionCode` a otra, que es exactamente lo que rompió esto.
 

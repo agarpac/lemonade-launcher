@@ -81,9 +81,9 @@ Categorías y accesos directos son secciones, y las colocas en el orden que quie
 
 Descarga el APK de la [última release](https://github.com/agarpac/lemonade-launcher/releases). Es **universal**: lleva las tres arquitecturas, pesa unos 60 MB y funciona en cualquier dispositivo.
 
-Se publica solo el universal a propósito, y no APK más pequeños por arquitectura. El motivo está en `docs/PRD.md`, sección 13.9: Flutter les asigna un `versionCode` más alto, Android rechaza actualizar a un código menor, y eso dejaría sin actualizaciones justo a quien eligiera la descarga pequeña.
+Solo hay un APK a propósito: la compilación por arquitectura se quitó del proyecto. El motivo está en `docs/PRD.md`, sección 13.9: Flutter les asigna un `versionCode` más alto que al universal, Android rechaza actualizar a un código menor, y eso dejaría sin actualizaciones justo a quien eligiera la descarga pequeña.
 
-De paso, un aviso si alguna vez compilas por arquitectura: **no deduzcas la del dispositivo por su modelo**. Muchas cajas de Android TV llevan un chip de 64 bits y un espacio de usuario de 32, así que el APK de `arm64-v8a` falla en ellas con `INSTALL_FAILED_NO_MATCHING_ABIS`. La comprobación fiable es `adb shell getprop ro.product.cpu.abilist`.
+Si alguna vez la reintroduces, un aviso: **no deduzcas la arquitectura del dispositivo por su modelo**. Muchas cajas de Android TV llevan un chip de 64 bits y un espacio de usuario de 32, así que un APK de `arm64-v8a` falla en ellas con `INSTALL_FAILED_NO_MATCHING_ABIS`. La comprobación fiable es `adb shell getprop ro.product.cpu.abilist`.
 
 Android pedirá autorizar «instalar aplicaciones desconocidas» la primera vez.
 

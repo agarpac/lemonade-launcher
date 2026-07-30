@@ -60,44 +60,28 @@ variables `SIGNING_KEYSTORE_PASSWORD` / `SIGNING_KEY_ALIAS` / `SIGNING_KEY_PASSW
 gitignored. Without them a release build comes out **unsigned**, which is the same as having no
 release at all.
 
-A universal APK carries all three ABIs and weighs about 60 MB, most of it `libflutter.so` and
-`libapp.so` repeated per architecture. Per-ABI builds are one flag and about 20 MB each:
+A release build produces **one APK**, universal, about 60 MB — most of it `libflutter.so` and
+`libapp.so` repeated once per architecture.
 
-```shell
-eval "$(/opt/homebrew/bin/mise env -s bash)" && flutter build apk --release --flavor github --split-per-abi
+Per-ABI splitting was **removed from `android/app/build.gradle`** on 31/07/2026. The block was not
+gated on `--split-per-abi`: it enabled itself on *any* `assembleRelease`, so every release build
+quietly emitted four extra APKs into the output directory, one of them an x86 shell with no native
+libraries at all that installs and then crashes. Worse, Flutter offsets each split's `versionCode`
+(armeabi-v7a +1000, arm64-v8a +2000, x86_64 +4000) while `pickReleaseApk` prefers the universal, so
+anyone who installed a split could never be updated — the next universal reads as a downgrade and
+Android refuses it. See `docs/PRD.md` section 13.9.
+
+If splitting is ever reintroduced, all three of those have to be answered first, and the release
+process has to stop attaching both kinds at once.
+
+**Name the artifact before attaching it to a release.** `UpdateService.isAbiSplitApk` treats a
+`-arm64-v8a.apk`, `-armeabi-v7a.apk`, `-armeabi.apk`, `-x86_64.apk` or `-x86.apk` suffix as a per-ABI
+build, and `pickReleaseApk` prefers the asset without one. Gradle's own name ends in
+`-github-release.apk`; rename it:
+
 ```
-
-`--split-per-abi` does **not** also produce the universal APK, so a release that wants both needs
-two builds.
-
-**Rename the artifacts before attaching them to a release.** `UpdateService.isAbiSplitApk` decides
-what is a per-ABI build from the file name alone, matching a `-arm64-v8a.apk`, `-armeabi-v7a.apk`,
-`-armeabi.apk`, `-x86_64.apk` or `-x86.apk` suffix, and `pickReleaseApk` then prefers the asset that
-has no such suffix. Gradle's own names end in `-github-release.apk`, which matches nothing, so
-uploaded as-is every asset looks universal and the updater can hand someone an APK for the wrong
-architecture. The names it expects:
-
+lemonade-launcher-<version>.apk
 ```
-lemonade-launcher-<version>.apk               # universal, no ABI suffix
-lemonade-launcher-<version>-arm64-v8a.apk
-lemonade-launcher-<version>-armeabi-v7a.apk
-lemonade-launcher-<version>-x86_64.apk
-```
-
-Check what is actually in `build/app/outputs/flutter-apk/` before publishing: it accumulates
-artifacts from earlier builds, and a stale APK for an architecture the current build no longer
-produces will sit there looking legitimate.
-
-**A release attaches the universal APK and nothing else.** Flutter offsets each split's
-`versionCode` (armeabi-v7a +1000, arm64-v8a +2000, x86_64 +4000), Android refuses to install a lower
-one, and `pickReleaseApk` prefers the universal — so anyone who took a split could never be updated.
-Splits stay useful for local testing; they do not get published. See `docs/PRD.md` section 13.9.
-
-**Never publish the `x86` split.** Gradle's split configuration still emits
-`app-x86-github-release.apk`, but Flutter no longer builds 32-bit x86 native libraries for release,
-so that file contains neither `libflutter.so` nor `libapp.so` — about 2 MB against the ~20 MB of a
-real one. It installs and then crashes on launch. Size alone gives it away; `unzip -l | grep '\.so$'`
-confirms it.
 
 **`gh` resolves the wrong repository in this checkout.** There are two remotes, and `gh` picks
 `upstream` — so `gh release list` shows the upstream project's releases and `gh release create` tries
