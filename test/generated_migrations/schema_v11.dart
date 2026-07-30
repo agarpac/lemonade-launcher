@@ -2,6 +2,15 @@
 // ignore_for_file: type=lint
 //@dart=2.12
 import 'package:drift/drift.dart';
+// Manually added: `drift_dev schema dump` records a column's default value as
+// raw source text (`Constant(Category.Sort.index)`, etc.) without the import
+// it depends on — the tool's own JSON reader intentionally discards
+// "client default code" because "that usually depends on imports from the
+// database" (drift_dev, lib/src/services/schema/schema_files.dart:468-469).
+// `schema generate` then splices that raw text into this file verbatim, so
+// this import is required for the file the generator produced to compile.
+// No schema content (columns, types, defaults) was changed by hand.
+import 'package:flauncher/models/category.dart';
 
 class Apps extends Table with TableInfo<Apps, AppsData> {
   @override
@@ -17,29 +26,19 @@ class Apps extends Table with TableInfo<Apps, AppsData> {
   late final GeneratedColumn<String> version = GeneratedColumn<String>(
       'version', aliasedName, false,
       type: DriftSqlType.string, requiredDuringInsert: true);
-  late final GeneratedColumn<Uint8List> banner = GeneratedColumn<Uint8List>(
-      'banner', aliasedName, true,
-      type: DriftSqlType.blob, requiredDuringInsert: false);
-  late final GeneratedColumn<Uint8List> icon = GeneratedColumn<Uint8List>(
-      'icon', aliasedName, true,
-      type: DriftSqlType.blob, requiredDuringInsert: false);
   late final GeneratedColumn<bool> hidden = GeneratedColumn<bool>(
       'hidden', aliasedName, false,
       type: DriftSqlType.bool,
       requiredDuringInsert: false,
       defaultConstraints:
           GeneratedColumn.constraintIsAlways('CHECK ("hidden" IN (0, 1))'),
-      defaultValue: Constant(false));
-  late final GeneratedColumn<bool> sideloaded = GeneratedColumn<bool>(
-      'sideloaded', aliasedName, false,
-      type: DriftSqlType.bool,
-      requiredDuringInsert: false,
-      defaultConstraints:
-          GeneratedColumn.constraintIsAlways('CHECK ("sideloaded" IN (0, 1))'),
-      defaultValue: Constant(false));
+      defaultValue: const Constant(false));
+  late final GeneratedColumn<DateTime> lastLaunchedAt =
+      GeneratedColumn<DateTime>('last_launched_at', aliasedName, true,
+          type: DriftSqlType.dateTime, requiredDuringInsert: false);
   @override
   List<GeneratedColumn> get $columns =>
-      [packageName, name, version, banner, icon, hidden, sideloaded];
+      [packageName, name, version, hidden, lastLaunchedAt];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -57,14 +56,10 @@ class Apps extends Table with TableInfo<Apps, AppsData> {
           .read(DriftSqlType.string, data['${effectivePrefix}name'])!,
       version: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}version'])!,
-      banner: attachedDatabase.typeMapping
-          .read(DriftSqlType.blob, data['${effectivePrefix}banner']),
-      icon: attachedDatabase.typeMapping
-          .read(DriftSqlType.blob, data['${effectivePrefix}icon']),
       hidden: attachedDatabase.typeMapping
           .read(DriftSqlType.bool, data['${effectivePrefix}hidden'])!,
-      sideloaded: attachedDatabase.typeMapping
-          .read(DriftSqlType.bool, data['${effectivePrefix}sideloaded'])!,
+      lastLaunchedAt: attachedDatabase.typeMapping.read(
+          DriftSqlType.dateTime, data['${effectivePrefix}last_launched_at']),
     );
   }
 
@@ -78,32 +73,24 @@ class AppsData extends DataClass implements Insertable<AppsData> {
   final String packageName;
   final String name;
   final String version;
-  final Uint8List? banner;
-  final Uint8List? icon;
   final bool hidden;
-  final bool sideloaded;
+  final DateTime? lastLaunchedAt;
   const AppsData(
       {required this.packageName,
       required this.name,
       required this.version,
-      this.banner,
-      this.icon,
       required this.hidden,
-      required this.sideloaded});
+      this.lastLaunchedAt});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['package_name'] = Variable<String>(packageName);
     map['name'] = Variable<String>(name);
     map['version'] = Variable<String>(version);
-    if (!nullToAbsent || banner != null) {
-      map['banner'] = Variable<Uint8List>(banner);
-    }
-    if (!nullToAbsent || icon != null) {
-      map['icon'] = Variable<Uint8List>(icon);
-    }
     map['hidden'] = Variable<bool>(hidden);
-    map['sideloaded'] = Variable<bool>(sideloaded);
+    if (!nullToAbsent || lastLaunchedAt != null) {
+      map['last_launched_at'] = Variable<DateTime>(lastLaunchedAt);
+    }
     return map;
   }
 
@@ -112,11 +99,10 @@ class AppsData extends DataClass implements Insertable<AppsData> {
       packageName: Value(packageName),
       name: Value(name),
       version: Value(version),
-      banner:
-          banner == null && nullToAbsent ? const Value.absent() : Value(banner),
-      icon: icon == null && nullToAbsent ? const Value.absent() : Value(icon),
       hidden: Value(hidden),
-      sideloaded: Value(sideloaded),
+      lastLaunchedAt: lastLaunchedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastLaunchedAt),
     );
   }
 
@@ -127,10 +113,8 @@ class AppsData extends DataClass implements Insertable<AppsData> {
       packageName: serializer.fromJson<String>(json['packageName']),
       name: serializer.fromJson<String>(json['name']),
       version: serializer.fromJson<String>(json['version']),
-      banner: serializer.fromJson<Uint8List?>(json['banner']),
-      icon: serializer.fromJson<Uint8List?>(json['icon']),
       hidden: serializer.fromJson<bool>(json['hidden']),
-      sideloaded: serializer.fromJson<bool>(json['sideloaded']),
+      lastLaunchedAt: serializer.fromJson<DateTime?>(json['lastLaunchedAt']),
     );
   }
   @override
@@ -140,10 +124,8 @@ class AppsData extends DataClass implements Insertable<AppsData> {
       'packageName': serializer.toJson<String>(packageName),
       'name': serializer.toJson<String>(name),
       'version': serializer.toJson<String>(version),
-      'banner': serializer.toJson<Uint8List?>(banner),
-      'icon': serializer.toJson<Uint8List?>(icon),
       'hidden': serializer.toJson<bool>(hidden),
-      'sideloaded': serializer.toJson<bool>(sideloaded),
+      'lastLaunchedAt': serializer.toJson<DateTime?>(lastLaunchedAt),
     };
   }
 
@@ -151,18 +133,15 @@ class AppsData extends DataClass implements Insertable<AppsData> {
           {String? packageName,
           String? name,
           String? version,
-          Value<Uint8List?> banner = const Value.absent(),
-          Value<Uint8List?> icon = const Value.absent(),
           bool? hidden,
-          bool? sideloaded}) =>
+          Value<DateTime?> lastLaunchedAt = const Value.absent()}) =>
       AppsData(
         packageName: packageName ?? this.packageName,
         name: name ?? this.name,
         version: version ?? this.version,
-        banner: banner.present ? banner.value : this.banner,
-        icon: icon.present ? icon.value : this.icon,
         hidden: hidden ?? this.hidden,
-        sideloaded: sideloaded ?? this.sideloaded,
+        lastLaunchedAt:
+            lastLaunchedAt.present ? lastLaunchedAt.value : this.lastLaunchedAt,
       );
   AppsData copyWithCompanion(AppsCompanion data) {
     return AppsData(
@@ -170,11 +149,10 @@ class AppsData extends DataClass implements Insertable<AppsData> {
           data.packageName.present ? data.packageName.value : this.packageName,
       name: data.name.present ? data.name.value : this.name,
       version: data.version.present ? data.version.value : this.version,
-      banner: data.banner.present ? data.banner.value : this.banner,
-      icon: data.icon.present ? data.icon.value : this.icon,
       hidden: data.hidden.present ? data.hidden.value : this.hidden,
-      sideloaded:
-          data.sideloaded.present ? data.sideloaded.value : this.sideloaded,
+      lastLaunchedAt: data.lastLaunchedAt.present
+          ? data.lastLaunchedAt.value
+          : this.lastLaunchedAt,
     );
   }
 
@@ -184,23 +162,15 @@ class AppsData extends DataClass implements Insertable<AppsData> {
           ..write('packageName: $packageName, ')
           ..write('name: $name, ')
           ..write('version: $version, ')
-          ..write('banner: $banner, ')
-          ..write('icon: $icon, ')
           ..write('hidden: $hidden, ')
-          ..write('sideloaded: $sideloaded')
+          ..write('lastLaunchedAt: $lastLaunchedAt')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(
-      packageName,
-      name,
-      version,
-      $driftBlobEquality.hash(banner),
-      $driftBlobEquality.hash(icon),
-      hidden,
-      sideloaded);
+  int get hashCode =>
+      Object.hash(packageName, name, version, hidden, lastLaunchedAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -208,39 +178,31 @@ class AppsData extends DataClass implements Insertable<AppsData> {
           other.packageName == this.packageName &&
           other.name == this.name &&
           other.version == this.version &&
-          $driftBlobEquality.equals(other.banner, this.banner) &&
-          $driftBlobEquality.equals(other.icon, this.icon) &&
           other.hidden == this.hidden &&
-          other.sideloaded == this.sideloaded);
+          other.lastLaunchedAt == this.lastLaunchedAt);
 }
 
 class AppsCompanion extends UpdateCompanion<AppsData> {
   final Value<String> packageName;
   final Value<String> name;
   final Value<String> version;
-  final Value<Uint8List?> banner;
-  final Value<Uint8List?> icon;
   final Value<bool> hidden;
-  final Value<bool> sideloaded;
+  final Value<DateTime?> lastLaunchedAt;
   final Value<int> rowid;
   const AppsCompanion({
     this.packageName = const Value.absent(),
     this.name = const Value.absent(),
     this.version = const Value.absent(),
-    this.banner = const Value.absent(),
-    this.icon = const Value.absent(),
     this.hidden = const Value.absent(),
-    this.sideloaded = const Value.absent(),
+    this.lastLaunchedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   AppsCompanion.insert({
     required String packageName,
     required String name,
     required String version,
-    this.banner = const Value.absent(),
-    this.icon = const Value.absent(),
     this.hidden = const Value.absent(),
-    this.sideloaded = const Value.absent(),
+    this.lastLaunchedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   })  : packageName = Value(packageName),
         name = Value(name),
@@ -249,20 +211,16 @@ class AppsCompanion extends UpdateCompanion<AppsData> {
     Expression<String>? packageName,
     Expression<String>? name,
     Expression<String>? version,
-    Expression<Uint8List>? banner,
-    Expression<Uint8List>? icon,
     Expression<bool>? hidden,
-    Expression<bool>? sideloaded,
+    Expression<DateTime>? lastLaunchedAt,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
       if (packageName != null) 'package_name': packageName,
       if (name != null) 'name': name,
       if (version != null) 'version': version,
-      if (banner != null) 'banner': banner,
-      if (icon != null) 'icon': icon,
       if (hidden != null) 'hidden': hidden,
-      if (sideloaded != null) 'sideloaded': sideloaded,
+      if (lastLaunchedAt != null) 'last_launched_at': lastLaunchedAt,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -271,19 +229,15 @@ class AppsCompanion extends UpdateCompanion<AppsData> {
       {Value<String>? packageName,
       Value<String>? name,
       Value<String>? version,
-      Value<Uint8List?>? banner,
-      Value<Uint8List?>? icon,
       Value<bool>? hidden,
-      Value<bool>? sideloaded,
+      Value<DateTime?>? lastLaunchedAt,
       Value<int>? rowid}) {
     return AppsCompanion(
       packageName: packageName ?? this.packageName,
       name: name ?? this.name,
       version: version ?? this.version,
-      banner: banner ?? this.banner,
-      icon: icon ?? this.icon,
       hidden: hidden ?? this.hidden,
-      sideloaded: sideloaded ?? this.sideloaded,
+      lastLaunchedAt: lastLaunchedAt ?? this.lastLaunchedAt,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -300,17 +254,11 @@ class AppsCompanion extends UpdateCompanion<AppsData> {
     if (version.present) {
       map['version'] = Variable<String>(version.value);
     }
-    if (banner.present) {
-      map['banner'] = Variable<Uint8List>(banner.value);
-    }
-    if (icon.present) {
-      map['icon'] = Variable<Uint8List>(icon.value);
-    }
     if (hidden.present) {
       map['hidden'] = Variable<bool>(hidden.value);
     }
-    if (sideloaded.present) {
-      map['sideloaded'] = Variable<bool>(sideloaded.value);
+    if (lastLaunchedAt.present) {
+      map['last_launched_at'] = Variable<DateTime>(lastLaunchedAt.value);
     }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
@@ -324,10 +272,8 @@ class AppsCompanion extends UpdateCompanion<AppsData> {
           ..write('packageName: $packageName, ')
           ..write('name: $name, ')
           ..write('version: $version, ')
-          ..write('banner: $banner, ')
-          ..write('icon: $icon, ')
           ..write('hidden: $hidden, ')
-          ..write('sideloaded: $sideloaded, ')
+          ..write('lastLaunchedAt: $lastLaunchedAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -353,22 +299,22 @@ class Categories extends Table with TableInfo<Categories, CategoriesData> {
       'sort', aliasedName, false,
       type: DriftSqlType.int,
       requiredDuringInsert: false,
-      defaultValue: Constant(0));
+      defaultValue: Constant(Category.Sort.index));
   late final GeneratedColumn<int> type = GeneratedColumn<int>(
       'type', aliasedName, false,
       type: DriftSqlType.int,
       requiredDuringInsert: false,
-      defaultValue: Constant(0));
+      defaultValue: Constant(Category.Type.index));
   late final GeneratedColumn<int> rowHeight = GeneratedColumn<int>(
       'row_height', aliasedName, false,
       type: DriftSqlType.int,
       requiredDuringInsert: false,
-      defaultValue: Constant(110));
+      defaultValue: const Constant(Category.RowHeight));
   late final GeneratedColumn<int> columnsCount = GeneratedColumn<int>(
       'columns_count', aliasedName, false,
       type: DriftSqlType.int,
       requiredDuringInsert: false,
-      defaultValue: Constant(6));
+      defaultValue: const Constant(Category.ColumnsCount));
   late final GeneratedColumn<int> order = GeneratedColumn<int>(
       'order', aliasedName, false,
       type: DriftSqlType.int, requiredDuringInsert: true);
@@ -853,17 +799,518 @@ class AppsCategoriesCompanion extends UpdateCompanion<AppsCategoriesData> {
   }
 }
 
-class DatabaseAtV5 extends GeneratedDatabase {
-  DatabaseAtV5(QueryExecutor e) : super(e);
+class LauncherSpacers extends Table
+    with TableInfo<LauncherSpacers, LauncherSpacersData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  LauncherSpacers(this.attachedDatabase, [this._alias]);
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+      'id', aliasedName, false,
+      hasAutoIncrement: true,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('PRIMARY KEY AUTOINCREMENT'));
+  late final GeneratedColumn<int> height = GeneratedColumn<int>(
+      'height', aliasedName, false,
+      type: DriftSqlType.int, requiredDuringInsert: true);
+  late final GeneratedColumn<int> order = GeneratedColumn<int>(
+      'order', aliasedName, false,
+      type: DriftSqlType.int, requiredDuringInsert: true);
+  @override
+  List<GeneratedColumn> get $columns => [id, height, order];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'launcher_spacers';
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  LauncherSpacersData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return LauncherSpacersData(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}id'])!,
+      height: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}height'])!,
+      order: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}order'])!,
+    );
+  }
+
+  @override
+  LauncherSpacers createAlias(String alias) {
+    return LauncherSpacers(attachedDatabase, alias);
+  }
+}
+
+class LauncherSpacersData extends DataClass
+    implements Insertable<LauncherSpacersData> {
+  final int id;
+  final int height;
+  final int order;
+  const LauncherSpacersData(
+      {required this.id, required this.height, required this.order});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['height'] = Variable<int>(height);
+    map['order'] = Variable<int>(order);
+    return map;
+  }
+
+  LauncherSpacersCompanion toCompanion(bool nullToAbsent) {
+    return LauncherSpacersCompanion(
+      id: Value(id),
+      height: Value(height),
+      order: Value(order),
+    );
+  }
+
+  factory LauncherSpacersData.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return LauncherSpacersData(
+      id: serializer.fromJson<int>(json['id']),
+      height: serializer.fromJson<int>(json['height']),
+      order: serializer.fromJson<int>(json['order']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'height': serializer.toJson<int>(height),
+      'order': serializer.toJson<int>(order),
+    };
+  }
+
+  LauncherSpacersData copyWith({int? id, int? height, int? order}) =>
+      LauncherSpacersData(
+        id: id ?? this.id,
+        height: height ?? this.height,
+        order: order ?? this.order,
+      );
+  LauncherSpacersData copyWithCompanion(LauncherSpacersCompanion data) {
+    return LauncherSpacersData(
+      id: data.id.present ? data.id.value : this.id,
+      height: data.height.present ? data.height.value : this.height,
+      order: data.order.present ? data.order.value : this.order,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LauncherSpacersData(')
+          ..write('id: $id, ')
+          ..write('height: $height, ')
+          ..write('order: $order')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, height, order);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is LauncherSpacersData &&
+          other.id == this.id &&
+          other.height == this.height &&
+          other.order == this.order);
+}
+
+class LauncherSpacersCompanion extends UpdateCompanion<LauncherSpacersData> {
+  final Value<int> id;
+  final Value<int> height;
+  final Value<int> order;
+  const LauncherSpacersCompanion({
+    this.id = const Value.absent(),
+    this.height = const Value.absent(),
+    this.order = const Value.absent(),
+  });
+  LauncherSpacersCompanion.insert({
+    this.id = const Value.absent(),
+    required int height,
+    required int order,
+  })  : height = Value(height),
+        order = Value(order);
+  static Insertable<LauncherSpacersData> custom({
+    Expression<int>? id,
+    Expression<int>? height,
+    Expression<int>? order,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (height != null) 'height': height,
+      if (order != null) 'order': order,
+    });
+  }
+
+  LauncherSpacersCompanion copyWith(
+      {Value<int>? id, Value<int>? height, Value<int>? order}) {
+    return LauncherSpacersCompanion(
+      id: id ?? this.id,
+      height: height ?? this.height,
+      order: order ?? this.order,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (height.present) {
+      map['height'] = Variable<int>(height.value);
+    }
+    if (order.present) {
+      map['order'] = Variable<int>(order.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LauncherSpacersCompanion(')
+          ..write('id: $id, ')
+          ..write('height: $height, ')
+          ..write('order: $order')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class ContentShortcuts extends Table
+    with TableInfo<ContentShortcuts, ContentShortcutsData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  ContentShortcuts(this.attachedDatabase, [this._alias]);
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+      'id', aliasedName, false,
+      hasAutoIncrement: true,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('PRIMARY KEY AUTOINCREMENT'));
+  late final GeneratedColumn<int> sectionId = GeneratedColumn<int>(
+      'section_id', aliasedName, false,
+      type: DriftSqlType.int, requiredDuringInsert: true);
+  late final GeneratedColumn<int> sectionOrder = GeneratedColumn<int>(
+      'section_order', aliasedName, false,
+      type: DriftSqlType.int, requiredDuringInsert: true);
+  late final GeneratedColumn<int> order = GeneratedColumn<int>(
+      'order', aliasedName, false,
+      type: DriftSqlType.int, requiredDuringInsert: true);
+  late final GeneratedColumn<String> label = GeneratedColumn<String>(
+      'label', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  late final GeneratedColumn<String> uri = GeneratedColumn<String>(
+      'uri', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  late final GeneratedColumn<String> targetPackage = GeneratedColumn<String>(
+      'target_package', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  @override
+  List<GeneratedColumn> get $columns =>
+      [id, sectionId, sectionOrder, order, label, uri, targetPackage];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'content_shortcuts';
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ContentShortcutsData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ContentShortcutsData(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}id'])!,
+      sectionId: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}section_id'])!,
+      sectionOrder: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}section_order'])!,
+      order: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}order'])!,
+      label: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}label'])!,
+      uri: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}uri'])!,
+      targetPackage: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}target_package'])!,
+    );
+  }
+
+  @override
+  ContentShortcuts createAlias(String alias) {
+    return ContentShortcuts(attachedDatabase, alias);
+  }
+}
+
+class ContentShortcutsData extends DataClass
+    implements Insertable<ContentShortcutsData> {
+  final int id;
+  final int sectionId;
+  final int sectionOrder;
+  final int order;
+  final String label;
+  final String uri;
+  final String targetPackage;
+  const ContentShortcutsData(
+      {required this.id,
+      required this.sectionId,
+      required this.sectionOrder,
+      required this.order,
+      required this.label,
+      required this.uri,
+      required this.targetPackage});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['section_id'] = Variable<int>(sectionId);
+    map['section_order'] = Variable<int>(sectionOrder);
+    map['order'] = Variable<int>(order);
+    map['label'] = Variable<String>(label);
+    map['uri'] = Variable<String>(uri);
+    map['target_package'] = Variable<String>(targetPackage);
+    return map;
+  }
+
+  ContentShortcutsCompanion toCompanion(bool nullToAbsent) {
+    return ContentShortcutsCompanion(
+      id: Value(id),
+      sectionId: Value(sectionId),
+      sectionOrder: Value(sectionOrder),
+      order: Value(order),
+      label: Value(label),
+      uri: Value(uri),
+      targetPackage: Value(targetPackage),
+    );
+  }
+
+  factory ContentShortcutsData.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ContentShortcutsData(
+      id: serializer.fromJson<int>(json['id']),
+      sectionId: serializer.fromJson<int>(json['sectionId']),
+      sectionOrder: serializer.fromJson<int>(json['sectionOrder']),
+      order: serializer.fromJson<int>(json['order']),
+      label: serializer.fromJson<String>(json['label']),
+      uri: serializer.fromJson<String>(json['uri']),
+      targetPackage: serializer.fromJson<String>(json['targetPackage']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'sectionId': serializer.toJson<int>(sectionId),
+      'sectionOrder': serializer.toJson<int>(sectionOrder),
+      'order': serializer.toJson<int>(order),
+      'label': serializer.toJson<String>(label),
+      'uri': serializer.toJson<String>(uri),
+      'targetPackage': serializer.toJson<String>(targetPackage),
+    };
+  }
+
+  ContentShortcutsData copyWith(
+          {int? id,
+          int? sectionId,
+          int? sectionOrder,
+          int? order,
+          String? label,
+          String? uri,
+          String? targetPackage}) =>
+      ContentShortcutsData(
+        id: id ?? this.id,
+        sectionId: sectionId ?? this.sectionId,
+        sectionOrder: sectionOrder ?? this.sectionOrder,
+        order: order ?? this.order,
+        label: label ?? this.label,
+        uri: uri ?? this.uri,
+        targetPackage: targetPackage ?? this.targetPackage,
+      );
+  ContentShortcutsData copyWithCompanion(ContentShortcutsCompanion data) {
+    return ContentShortcutsData(
+      id: data.id.present ? data.id.value : this.id,
+      sectionId: data.sectionId.present ? data.sectionId.value : this.sectionId,
+      sectionOrder: data.sectionOrder.present
+          ? data.sectionOrder.value
+          : this.sectionOrder,
+      order: data.order.present ? data.order.value : this.order,
+      label: data.label.present ? data.label.value : this.label,
+      uri: data.uri.present ? data.uri.value : this.uri,
+      targetPackage: data.targetPackage.present
+          ? data.targetPackage.value
+          : this.targetPackage,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ContentShortcutsData(')
+          ..write('id: $id, ')
+          ..write('sectionId: $sectionId, ')
+          ..write('sectionOrder: $sectionOrder, ')
+          ..write('order: $order, ')
+          ..write('label: $label, ')
+          ..write('uri: $uri, ')
+          ..write('targetPackage: $targetPackage')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+      id, sectionId, sectionOrder, order, label, uri, targetPackage);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ContentShortcutsData &&
+          other.id == this.id &&
+          other.sectionId == this.sectionId &&
+          other.sectionOrder == this.sectionOrder &&
+          other.order == this.order &&
+          other.label == this.label &&
+          other.uri == this.uri &&
+          other.targetPackage == this.targetPackage);
+}
+
+class ContentShortcutsCompanion extends UpdateCompanion<ContentShortcutsData> {
+  final Value<int> id;
+  final Value<int> sectionId;
+  final Value<int> sectionOrder;
+  final Value<int> order;
+  final Value<String> label;
+  final Value<String> uri;
+  final Value<String> targetPackage;
+  const ContentShortcutsCompanion({
+    this.id = const Value.absent(),
+    this.sectionId = const Value.absent(),
+    this.sectionOrder = const Value.absent(),
+    this.order = const Value.absent(),
+    this.label = const Value.absent(),
+    this.uri = const Value.absent(),
+    this.targetPackage = const Value.absent(),
+  });
+  ContentShortcutsCompanion.insert({
+    this.id = const Value.absent(),
+    required int sectionId,
+    required int sectionOrder,
+    required int order,
+    required String label,
+    required String uri,
+    required String targetPackage,
+  })  : sectionId = Value(sectionId),
+        sectionOrder = Value(sectionOrder),
+        order = Value(order),
+        label = Value(label),
+        uri = Value(uri),
+        targetPackage = Value(targetPackage);
+  static Insertable<ContentShortcutsData> custom({
+    Expression<int>? id,
+    Expression<int>? sectionId,
+    Expression<int>? sectionOrder,
+    Expression<int>? order,
+    Expression<String>? label,
+    Expression<String>? uri,
+    Expression<String>? targetPackage,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (sectionId != null) 'section_id': sectionId,
+      if (sectionOrder != null) 'section_order': sectionOrder,
+      if (order != null) 'order': order,
+      if (label != null) 'label': label,
+      if (uri != null) 'uri': uri,
+      if (targetPackage != null) 'target_package': targetPackage,
+    });
+  }
+
+  ContentShortcutsCompanion copyWith(
+      {Value<int>? id,
+      Value<int>? sectionId,
+      Value<int>? sectionOrder,
+      Value<int>? order,
+      Value<String>? label,
+      Value<String>? uri,
+      Value<String>? targetPackage}) {
+    return ContentShortcutsCompanion(
+      id: id ?? this.id,
+      sectionId: sectionId ?? this.sectionId,
+      sectionOrder: sectionOrder ?? this.sectionOrder,
+      order: order ?? this.order,
+      label: label ?? this.label,
+      uri: uri ?? this.uri,
+      targetPackage: targetPackage ?? this.targetPackage,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (sectionId.present) {
+      map['section_id'] = Variable<int>(sectionId.value);
+    }
+    if (sectionOrder.present) {
+      map['section_order'] = Variable<int>(sectionOrder.value);
+    }
+    if (order.present) {
+      map['order'] = Variable<int>(order.value);
+    }
+    if (label.present) {
+      map['label'] = Variable<String>(label.value);
+    }
+    if (uri.present) {
+      map['uri'] = Variable<String>(uri.value);
+    }
+    if (targetPackage.present) {
+      map['target_package'] = Variable<String>(targetPackage.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ContentShortcutsCompanion(')
+          ..write('id: $id, ')
+          ..write('sectionId: $sectionId, ')
+          ..write('sectionOrder: $sectionOrder, ')
+          ..write('order: $order, ')
+          ..write('label: $label, ')
+          ..write('uri: $uri, ')
+          ..write('targetPackage: $targetPackage')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class DatabaseAtV11 extends GeneratedDatabase {
+  DatabaseAtV11(QueryExecutor e) : super(e);
   late final Apps apps = Apps(this);
   late final Categories categories = Categories(this);
   late final AppsCategories appsCategories = AppsCategories(this);
+  late final LauncherSpacers launcherSpacers = LauncherSpacers(this);
+  late final ContentShortcuts contentShortcuts = ContentShortcuts(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
   List<DatabaseSchemaEntity> get allSchemaEntities =>
-      [apps, categories, appsCategories];
+      [apps, categories, appsCategories, launcherSpacers, contentShortcuts];
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 11;
 }

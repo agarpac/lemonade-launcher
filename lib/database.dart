@@ -135,7 +135,7 @@ class FLauncherDatabase extends _$FLauncherDatabase
   FLauncherDatabase.inMemory() : super(LazyDatabase(() => NativeDatabase.memory()));
 
   @override
-  int get schemaVersion => 11;
+  int get schemaVersion => 12;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -174,7 +174,14 @@ class FLauncherDatabase extends _$FLauncherDatabase
           if (from < 4 && to >= 4) {
             // v4 added the per-category display settings.
             await customStatement('ALTER TABLE categories ADD COLUMN "sort" INTEGER NOT NULL DEFAULT 0;');
-            await customStatement('ALTER TABLE categories ADD COLUMN "type" INTEGER NOT NULL DEFAULT 0;');
+            // DEFAULT 1, not 0: the live table declares
+            // `withDefault(Constant(Category.Type.index))`, and `Category.Type`
+            // is `CategoryType.grid`, whose index is 1. Written as 0 this step
+            // left every migrated database with a column default that a fresh
+            // install never had — invisible for years because the only insert
+            // that relied on it also omitted the column, so a category created
+            // on a migrated database came back as a row after a restart.
+            await customStatement('ALTER TABLE categories ADD COLUMN "type" INTEGER NOT NULL DEFAULT 1;');
             await customStatement('ALTER TABLE categories ADD COLUMN "row_height" INTEGER NOT NULL DEFAULT 110;');
             await customStatement('ALTER TABLE categories ADD COLUMN "columns_count" INTEGER NOT NULL DEFAULT 6;');
             // "Applications" is the default category and is rendered as a grid.
@@ -228,6 +235,9 @@ class FLauncherDatabase extends _$FLauncherDatabase
                 '"label" TEXT NOT NULL, '
                 '"uri" TEXT NOT NULL, '
                 '"target_package" TEXT NOT NULL)');
+          }
+          if (from < 12 && to >= 12) {
+            await _rebuildCategoriesWithCorrectTypeDefault();
           }
         },
         beforeOpen: (openingDetails) async {
@@ -303,6 +313,94 @@ class FLauncherDatabase extends _$FLauncherDatabase
       "(SELECT app_package_name FROM apps_categories WHERE category_id = ?)",
       [allAppsId, favId],
     );
+  }
+
+  /// Migration (v12): recreates "categories" so that its `type` column carries
+  /// the same default a fresh install has.
+  ///
+  /// The v4 step that introduced the column wrote `DEFAULT 0` where a fresh
+  /// install has `DEFAULT 1` (`CategoryType.grid`). Fixing the v4 step is not
+  /// enough: a database that has already been at v4 or later owns the column
+  /// with the wrong default, `from < 4` never runs for it again, and SQLite
+  /// cannot alter a column default in place. The only way out is to rebuild the
+  /// table, which is why this step exists at all — it changes no column, no
+  /// name and no value, only the stored DDL.
+  ///
+  /// ## Why this ordering is safe
+  ///
+  /// `apps_categories.category_id` is declared
+  /// `REFERENCES categories(id) ON DELETE CASCADE`, and `apps_categories` holds
+  /// every app-to-category membership there is: the whole dock and every
+  /// category's contents. With foreign keys enforced, `DROP TABLE categories`
+  /// counts as deleting every parent row and fires that cascade, so the naive
+  /// create/copy/drop/rename would empty the launcher on the way past.
+  ///
+  /// Hence, in order:
+  ///
+  ///  1. `PRAGMA foreign_keys = OFF`, issued **outside** any transaction. The
+  ///     pragma is a silent no-op while a transaction is open, and drift does
+  ///     not wrap `onUpgrade` in one (`DelegatedDatabase._runMigrations` calls
+  ///     `beforeOpen` — and therefore `onUpgrade` — directly), so this is the
+  ///     one place it can take effect. The previous value is read first and put
+  ///     back afterwards, so this step cannot change the state a later step
+  ///     runs under. In the app the value here is SQLite's default of *off*
+  ///     anyway: `beforeOpen` turns foreign keys on only after every migration
+  ///     step has finished. Setting it explicitly means the step does not
+  ///     depend on that.
+  ///  2. Everything else inside a single transaction. A rebuild that failed
+  ///     halfway would leave a database the launcher cannot open, and this
+  ///     launcher is the device's only home screen; rolling back to an intact
+  ///     v11 and retrying on the next open is the only acceptable failure mode.
+  ///  3. The replacement is created under a temporary name and renamed **last**.
+  ///     `apps_categories` is never written to, dropped or recreated, so its
+  ///     `REFERENCES categories(id)` clause survives untouched: nothing
+  ///     references the temporary name, and with foreign keys off SQLite does
+  ///     not rewrite `REFERENCES` clauses on rename either way. Its rows are
+  ///     briefly orphaned between the `DROP` and the `RENAME`, which is
+  ///     harmless precisely because enforcement is off and both statements are
+  ///     in the same transaction.
+  ///
+  /// Rows are copied column by column, by name, so `'All Apps'` and
+  /// `'Favorites'` come across byte for byte — both names are matched by string
+  /// equality elsewhere, including by the dock, and altering either empties the
+  /// launcher in silence.
+  ///
+  /// The only thing not carried over is the AUTOINCREMENT high-water mark in
+  /// `sqlite_sequence`: it is re-derived from the copied ids, so after this step
+  /// a new category may take an id previously used by a deleted one. Nothing
+  /// keeps a reference to a deleted category (memberships cascade), so this is
+  /// a non-issue.
+  ///
+  /// Literal SQL, per the rules above `onUpgrade`, written character for
+  /// character as drift's own `createAll` writes it: a migrated database and a
+  /// fresh one must hold exactly the same DDL, which is the whole point of the
+  /// step and which `database_migration_test.dart` asserts.
+  Future<void> _rebuildCategoriesWithCorrectTypeDefault() async {
+    final foreignKeysRow = await customSelect('PRAGMA foreign_keys').getSingleOrNull();
+    final foreignKeysWereOn = (foreignKeysRow?.read<int>('foreign_keys') ?? 0) != 0;
+
+    await customStatement('PRAGMA foreign_keys = OFF;');
+    try {
+      await transaction(() async {
+        await customStatement('CREATE TABLE "categories_v12" ('
+            '"id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, '
+            '"name" TEXT NOT NULL, '
+            '"sort" INTEGER NOT NULL DEFAULT 0, '
+            '"type" INTEGER NOT NULL DEFAULT 1, '
+            '"row_height" INTEGER NOT NULL DEFAULT 110, '
+            '"columns_count" INTEGER NOT NULL DEFAULT 6, '
+            '"order" INTEGER NOT NULL)');
+        await customStatement('INSERT INTO "categories_v12" '
+            '("id", "name", "sort", "type", "row_height", "columns_count", "order") '
+            'SELECT "id", "name", "sort", "type", "row_height", "columns_count", "order" FROM "categories";');
+        await customStatement('DROP TABLE "categories";');
+        await customStatement('ALTER TABLE "categories_v12" RENAME TO "categories";');
+      });
+    } finally {
+      if (foreignKeysWereOn) {
+        await customStatement('PRAGMA foreign_keys = ON;');
+      }
+    }
   }
 
   Future<void> persistApps(Iterable<AppsCompanion> applications) =>
