@@ -64,6 +64,31 @@ void main() {
     expect(find.text("Save"), findsNothing);
   });
 
+  testWidgets("Creating a shortcut pre-fills the address with '@', caret after it", (tester) async {
+    // Hunting for "@" on a D-pad keyboard is the slow part of adding a channel,
+    // so the field starts with it and the caret sits just past it.
+    final appsService = _mkAppsService();
+
+    await _pumpPage(tester, appsService, const ContentShortcutPanelPageArguments());
+
+    final TextField addressField = tester.widget<TextField>(_addressField);
+    expect(addressField.controller!.text, "@");
+    expect(addressField.controller!.selection.baseOffset, 1);
+    // A lone "@" is not a valid address, so there is still nothing to save.
+    expect(find.text("Save"), findsNothing);
+  });
+
+  testWidgets("Editing an existing shortcut does not force a '@' over its address", (tester) async {
+    final appsService = _mkAppsService(targets: [_target(_smartTube, "SmartTube")]);
+
+    await _pumpPage(tester, appsService, ContentShortcutPanelPageArguments(shortcut: _mkShortcut()));
+
+    expect(
+      tester.widget<TextField>(_addressField).controller!.text,
+      "https://www.youtube.com/feed/subscriptions",
+    );
+  });
+
   testWidgets("Typing the address resolves nothing; submitting it resolves exactly once", (tester) async {
     final appsService = _mkAppsService(targets: [_target(_smartTube, "SmartTube")]);
 

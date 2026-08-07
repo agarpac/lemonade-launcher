@@ -103,7 +103,19 @@ class _ContentShortcutPanelPageState extends State<ContentShortcutPanelPage> {
   void initState() {
     super.initState();
     _labelController = TextEditingController(text: _shortcut?.label ?? "");
-    _addressController = TextEditingController(text: _shortcut?.uri ?? "");
+    // Creating a channel shortcut almost always starts with a YouTube @handle,
+    // and hunting for "@" on a D-pad keyboard is the slow part of the job. Seed
+    // the field with it and drop the caret just after, so the user types the
+    // handle straight away. `normalizeContentShortcutUri` turns "@handle" into
+    // the channel URL; a lone "@" is still rejected as invalid, so this is only
+    // ever a starting point, never a value that can be saved on its own.
+    final String initialAddress = _shortcut?.uri ?? "@";
+    _addressController = TextEditingController.fromValue(
+      TextEditingValue(
+        text: initialAddress,
+        selection: TextSelection.collapsed(offset: initialAddress.length),
+      ),
+    );
     _uri = _shortcut?.uri;
     _targetPackage = _shortcut?.targetPackage;
   }
