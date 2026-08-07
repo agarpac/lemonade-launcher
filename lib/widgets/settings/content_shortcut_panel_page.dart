@@ -297,6 +297,14 @@ class _ContentShortcutPanelPageState extends State<ContentShortcutPanelPage> {
                     // keystroke: there is no `onChanged` here on purpose.
                     onSubmitted: _resolve,
                     textInputAction: TextInputAction.search,
+                    // A single line clips a long URL with no visible sign that
+                    // there is more of it, which is exactly the part the user
+                    // most needs to check. Wrapping keeps the whole stored
+                    // value on screen instead. `textInputAction` still governs
+                    // the IME action button regardless of `maxLines`, so the
+                    // submit-on-confirm behaviour above is unaffected.
+                    minLines: 1,
+                    maxLines: 3,
                     decoration: InputDecoration(
                       labelText: localizations.contentShortcutAddress,
                       prefixIcon: const Icon(Icons.link),
