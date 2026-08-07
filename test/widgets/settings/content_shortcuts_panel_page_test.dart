@@ -21,12 +21,14 @@ import 'package:flauncher/models/category.dart';
 import 'package:flauncher/providers/apps_service.dart';
 import 'package:flauncher/widgets/settings/content_shortcut_panel_page.dart';
 import 'package:flauncher/widgets/settings/content_shortcuts_panel_page.dart';
+import 'package:flauncher/widgets/settings/focusable_settings_tile.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:provider/provider.dart';
 
+import '../../flauncher_test.dart' show isFocused;
 import '../../mocks.mocks.dart';
 
 const _smartTube = "com.teamsmart.videomanager.tv";
@@ -53,6 +55,37 @@ void main() {
       tester.getCenter(find.text("Subscriptions")).dy < tester.getCenter(find.text("Lo-fi radio")).dy,
       isTrue,
     );
+  });
+
+  testWidgets("The first shortcut takes the focus as soon as the panel opens", (tester) async {
+    // Regression test for defect 13.6: this panel is pushed from another panel
+    // that still holds the focus, so `autofocus` never fires and OK does
+    // nothing until the user presses Down first.
+    final appsService = MockAppsService();
+    final firstShortcut = _mkShortcut(1, "Subscriptions");
+    when(appsService.contentShortcutSections)
+        .thenReturn([_mkSection([firstShortcut, _mkShortcut(2, "Lo-fi radio")])]);
+
+    await _pumpPage(tester, appsService);
+
+    // By the shortcut's own key rather than `find.byType(Focus)`: the page's
+    // ancestor chain (MaterialApp, Actions, Shortcuts...) contains more than
+    // one `Focus` widget, so matching by type alone is ambiguous.
+    final firstTile = tester.element(find.byKey(ObjectKey(firstShortcut)));
+    expect(isFocused(firstTile), isTrue);
+  });
+
+  testWidgets("'Add shortcut' takes the focus instead, when the section is empty", (tester) async {
+    // The empty-section message is not a tile and cannot hold focus, so the
+    // panel must never be left with nothing focused at all.
+    final appsService = MockAppsService();
+    when(appsService.contentShortcutSections).thenReturn([]);
+
+    await _pumpPage(tester, appsService);
+
+    final addTile =
+        tester.element(find.ancestor(of: find.text("Add shortcut"), matching: find.byType(FocusableSettingsTile)));
+    expect(isFocused(addTile), isTrue);
   });
 
   testWidgets("An unavailable shortcut is marked as such here too", (tester) async {
