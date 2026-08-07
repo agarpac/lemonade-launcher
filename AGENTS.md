@@ -162,6 +162,13 @@ so plainly instead.
   exact key parity.
 - Comments explain **why**, not what. The codebase is dense with rationale for decisions that look
   arbitrary; keep that up rather than stripping it.
+- **Keep this file current — in the same change that earns it.** When a development alters the build,
+  the release process, the architecture, a workflow a future agent must follow, or uncovers a new
+  trap, record it here as part of that change, not as a later chore. Keep the boundary clean:
+  AGENTS.md holds what an agent needs to work the code safely (build, traps, conventions, workflow);
+  `docs/PRD.md` holds product decisions. Each fact lives in exactly one of them — never mirror the
+  same information across both. This file is the fork's institutional memory: a trap left unwritten
+  here has already cost real bugs, and the next agent starts blind.
 
 ## Architecture
 
@@ -200,6 +207,12 @@ free; introducing a **new** sigma allocates another full-screen image.
 **`GridView` and `ListView` build children lazily**, so `autofocus` on an item below the fold fails
 silently. And `autofocus` only fires when nothing in the scope holds focus — a list that appears
 *because* a text field was submitted needs an explicit `focusNode` and `requestFocus`.
+
+**A shared `FocusNode` reassigned to a different widget during a rebuild drops the focus instead of
+moving it.** In a reorderable list, keying the initial-focus node to "whichever item sits at index 0"
+tears the node away from the item the remote is actually on the moment the order changes. Capture the
+initial-focus target once, by stable id, so the node keeps the same widget identity for the widget's
+whole lifetime. This cost a real bug fixing PRD 13.6.
 
 **The hidden top bar is reached by a programmatic intent**, not by directional traversal, and that
 works at zero height. Never make its reachability depend on geometry, or a collapsed bar traps the
