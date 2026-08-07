@@ -814,6 +814,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get contentShortcutAddress => 'Canal o dirección';
 
   @override
+  String get contentShortcutNameOptional => 'Nombre (opcional)';
+
+  @override
   String get contentShortcutAddressPrompt =>
       'Escribe @nombre, un id de canal o una dirección completa y confirma para buscar las aplicaciones que pueden abrirlo.';
 

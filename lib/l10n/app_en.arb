@@ -342,6 +342,7 @@
     },
     "contentShortcutSectionEmpty": "This section has no shortcuts.",
     "contentShortcutAddress": "Channel or address",
+    "contentShortcutNameOptional": "Name (optional)",
     "contentShortcutAddressPrompt": "Type @handle, a channel id or a full address, then confirm to look for the apps that can open it.",
     "contentShortcutAddressInvalid": "This is not a channel or an address that can be opened. Try @handle, a channel id, or a full address.",
     "contentShortcutResolving": "Looking for the apps that can open it…",

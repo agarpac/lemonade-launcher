@@ -299,7 +299,7 @@ class _ContentShortcutPanelPageState extends State<ContentShortcutPanelPage> {
                     textInputAction: TextInputAction.next,
                     onChanged: (_) => setState(() {}),
                     decoration: InputDecoration(
-                      labelText: localizations.name,
+                      labelText: localizations.contentShortcutNameOptional,
                       prefixIcon: const Icon(Icons.label_outline),
                     ),
                   ),

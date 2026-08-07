@@ -1532,6 +1532,12 @@ abstract class AppLocalizations {
   /// **'Channel or address'**
   String get contentShortcutAddress;
 
+  /// No description provided for @contentShortcutNameOptional.
+  ///
+  /// In en, this message translates to:
+  /// **'Name (optional)'**
+  String get contentShortcutNameOptional;
+
   /// No description provided for @contentShortcutAddressPrompt.
   ///
   /// In en, this message translates to:

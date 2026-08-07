@@ -332,6 +332,7 @@
     },
     "contentShortcutSectionEmpty": "Esta sección no tiene accesos directos.",
     "contentShortcutAddress": "Canal o dirección",
+    "contentShortcutNameOptional": "Nombre (opcional)",
     "contentShortcutAddressPrompt": "Escribe @nombre, un id de canal o una dirección completa y confirma para buscar las aplicaciones que pueden abrirlo.",
     "contentShortcutAddressInvalid": "Esto no es un canal ni una dirección que se pueda abrir. Prueba con @nombre, un id de canal o una dirección completa.",
     "contentShortcutResolving": "Buscando las aplicaciones que pueden abrirlo…",

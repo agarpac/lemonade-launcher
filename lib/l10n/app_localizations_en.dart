@@ -798,6 +798,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get contentShortcutAddress => 'Channel or address';
 
   @override
+  String get contentShortcutNameOptional => 'Name (optional)';
+
+  @override
   String get contentShortcutAddressPrompt =>
       'Type @handle, a channel id or a full address, then confirm to look for the apps that can open it.';
 

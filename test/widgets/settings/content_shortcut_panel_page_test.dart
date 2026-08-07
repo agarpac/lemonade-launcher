@@ -100,6 +100,14 @@ void main() {
     expect(tester.widget<TextField>(_nameField).autofocus, isFalse);
   });
 
+  testWidgets("The name field is labelled optional", (tester) async {
+    final appsService = _mkAppsService();
+
+    await _pumpPage(tester, appsService, const ContentShortcutPanelPageArguments());
+
+    expect(find.text("Name (optional)"), findsOneWidget);
+  });
+
   testWidgets("The name is optional: cleared, it is derived from the handle on save", (tester) async {
     final appsService = _mkAppsService(targets: [_target(_smartTube, "SmartTube")]);
 
