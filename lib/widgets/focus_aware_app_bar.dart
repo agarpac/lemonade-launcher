@@ -112,13 +112,10 @@ class FocusAwareAppBarState extends State<FocusAwareAppBar>
               // card close to the icon's own bounds rather than the wider pill
               // used for text content elsewhere in the bar, while the radius and
               // translucency stay the same everywhere.
-              StatusBarGlassCard(
-                padding: const EdgeInsets.all(6),
-                child: _FocusableIconButton(
-                  icon: Icons.settings_outlined,
-                  focusNode: _settingsFocusNode,
-                  onPressed: () => showDialog(context: context, builder: (_) => const SettingsPanel()),
-                ),
+              _FocusableIconButton(
+                icon: Icons.settings_outlined,
+                focusNode: _settingsFocusNode,
+                onPressed: () => showDialog(context: context, builder: (_) => const SettingsPanel()),
               ),
               // The master Scenes switch (default off, see
               // `SettingsService.scenesEnabled`) gates only this home-bar entry
@@ -142,13 +139,10 @@ class FocusAwareAppBarState extends State<FocusAwareAppBar>
                           selector: (_, scenesService) => scenesService.activeSceneKey,
                           builder: (context, activeSceneKey, _) => Tooltip(
                             message: AppLocalizations.of(context)!.scenes,
-                            child: StatusBarGlassCard(
-                              padding: const EdgeInsets.all(6),
-                              child: _FocusableIconButton(
-                                icon: sceneIconFor(activeSceneKey),
-                                focusNode: _scenesFocusNode,
-                                onPressed: () => _openScenePicker(context),
-                              ),
+                            child: _FocusableIconButton(
+                              icon: sceneIconFor(activeSceneKey),
+                              focusNode: _scenesFocusNode,
+                              onPressed: () => _openScenePicker(context),
                             ),
                           ),
                         ),
@@ -163,10 +157,7 @@ class FocusAwareAppBarState extends State<FocusAwareAppBar>
                 builder: (context, showNetwork, _) => showNetwork
                   ? Padding(
                       padding: const EdgeInsets.only(right: 12),
-                      child: StatusBarGlassCard(
-                        padding: const EdgeInsets.all(6),
-                        child: _FocusableNetworkWidget(),
-                      ),
+                      child: _FocusableNetworkWidget(),
                     )
                   : const SizedBox.shrink(),
               ),
@@ -289,37 +280,36 @@ class _FocusableIconButtonState extends State<_FocusableIconButton> {
 
   @override
   Widget build(BuildContext context) {
-    return Actions(
-      actions: <Type, Action<Intent>>{
-        ActivateIntent: CallbackAction<ActivateIntent>(onInvoke: (_) => widget.onPressed()),
-        ButtonActivateIntent: CallbackAction<ButtonActivateIntent>(onInvoke: (_) => widget.onPressed()),
-      },
-      child: Focus(
-        focusNode: widget.focusNode,
-        onFocusChange: (hasFocus) {
-          if (hasFocus) {
-            context.read<LauncherState>().setAppGridFocused(false);
-          }
-          setState(() => _focused = hasFocus);
+    // The card is built here, around the `Focus` node, rather than by the
+    // caller: `StatusBarGlassCard` never owns focus state (see its class
+    // doc), so the widget that does own it — this one — is the only place
+    // that can tell the card whether to paint the outline.
+    return StatusBarGlassCard(
+      padding: const EdgeInsets.all(6),
+      focused: _focused,
+      child: Actions(
+        actions: <Type, Action<Intent>>{
+          ActivateIntent: CallbackAction<ActivateIntent>(onInvoke: (_) => widget.onPressed()),
+          ButtonActivateIntent: CallbackAction<ButtonActivateIntent>(onInvoke: (_) => widget.onPressed()),
         },
-        child: InkWell(
-          onTap: widget.onPressed,
-          borderRadius: BorderRadius.circular(8),
-          child: Container(
-            padding: const EdgeInsets.all(4),  // Match network indicator padding
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(8),
-              border: _focused
-                ? Border.all(color: Theme.of(context).colorScheme.primary, width: 2)
-                : null,
-              boxShadow: _focused
-                ? const [BoxShadow(color: Colors.black54, blurRadius: 8, spreadRadius: 1)]
-                : null,
-            ),
-            child: Icon(widget.icon,
-              shadows: const [
-                Shadow(color: Colors.black54, blurRadius: 8, offset: Offset(0, 2))
-              ],
+        child: Focus(
+          focusNode: widget.focusNode,
+          onFocusChange: (hasFocus) {
+            if (hasFocus) {
+              context.read<LauncherState>().setAppGridFocused(false);
+            }
+            setState(() => _focused = hasFocus);
+          },
+          child: InkWell(
+            onTap: widget.onPressed,
+            borderRadius: BorderRadius.circular(8),
+            child: Padding(
+              padding: const EdgeInsets.all(4),  // Match network indicator padding
+              child: Icon(widget.icon,
+                shadows: const [
+                  Shadow(color: Colors.black54, blurRadius: 8, offset: Offset(0, 2))
+                ],
+              ),
             ),
           ),
         ),
@@ -339,23 +329,19 @@ class _FocusableNetworkWidgetState extends State<_FocusableNetworkWidget> {
 
   @override
   Widget build(BuildContext context) {
-    return Focus(
-      onFocusChange: (hasFocus) {
-        if (hasFocus) {
-          context.read<LauncherState>().setAppGridFocused(false);
-        }
-        setState(() => _focused = hasFocus);
-      },
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(8),
-          border: _focused
-            ? Border.all(color: Theme.of(context).colorScheme.primary, width: 2)
-            : null,
-          boxShadow: _focused
-            ? const [BoxShadow(color: Colors.black54, blurRadius: 8, spreadRadius: 1)]
-            : null,
-        ),
+    // Same rationale as `_FocusableIconButton`: the card is built here so the
+    // state that knows about focus is the state that drives the card's
+    // outline, without `StatusBarGlassCard` itself ever touching focus.
+    return StatusBarGlassCard(
+      padding: const EdgeInsets.all(6),
+      focused: _focused,
+      child: Focus(
+        onFocusChange: (hasFocus) {
+          if (hasFocus) {
+            context.read<LauncherState>().setAppGridFocused(false);
+          }
+          setState(() => _focused = hasFocus);
+        },
         child: const NetworkWidget(),
       ),
     );
