@@ -112,10 +112,19 @@ class FocusAwareAppBarState extends State<FocusAwareAppBar>
               // card close to the icon's own bounds rather than the wider pill
               // used for text content elsewhere in the bar, while the radius and
               // translucency stay the same everywhere.
-              _FocusableIconButton(
-                icon: Icons.settings_outlined,
-                focusNode: _settingsFocusNode,
-                onPressed: () => showDialog(context: context, builder: (_) => const SettingsPanel()),
+              // Each left-side item carries its own gap to the right, applied
+              // only while it is shown. That way hiding any of them — the scenes
+              // icon when the feature is off, the network or Wi-Fi indicator when
+              // switched off — never glues two neighbours together nor leaves an
+              // uneven gap: the spacing belongs to the item, not to a fixed
+              // SizedBox that survives when its icon does not.
+              Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: _FocusableIconButton(
+                  icon: Icons.settings_outlined,
+                  focusNode: _settingsFocusNode,
+                  onPressed: () => showDialog(context: context, builder: (_) => const SettingsPanel()),
+                ),
               ),
               // The master Scenes switch (default off, see
               // `SettingsService.scenesEnabled`) gates only this home-bar entry
@@ -129,25 +138,21 @@ class FocusAwareAppBarState extends State<FocusAwareAppBar>
               Selector<SettingsService, bool>(
                 selector: (_, settings) => settings.scenesEnabled,
                 builder: (context, scenesEnabled, _) => scenesEnabled
-                  ? Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const SizedBox(width: 8),
-                        // Scoped to just this icon: it must not trigger a rebuild of the whole
-                        // app bar every time the active scene changes.
-                        Selector<ScenesService, String>(
-                          selector: (_, scenesService) => scenesService.activeSceneKey,
-                          builder: (context, activeSceneKey, _) => Tooltip(
-                            message: AppLocalizations.of(context)!.scenes,
-                            child: _FocusableIconButton(
-                              icon: sceneIconFor(activeSceneKey),
-                              focusNode: _scenesFocusNode,
-                              onPressed: () => _openScenePicker(context),
-                            ),
+                  ? Padding(
+                      padding: const EdgeInsets.only(right: 12),
+                      // Scoped to just this icon: it must not trigger a rebuild of the whole
+                      // app bar every time the active scene changes.
+                      child: Selector<ScenesService, String>(
+                        selector: (_, scenesService) => scenesService.activeSceneKey,
+                        builder: (context, activeSceneKey, _) => Tooltip(
+                          message: AppLocalizations.of(context)!.scenes,
+                          child: _FocusableIconButton(
+                            icon: sceneIconFor(activeSceneKey),
+                            focusNode: _scenesFocusNode,
+                            onPressed: () => _openScenePicker(context),
                           ),
                         ),
-                        const SizedBox(width: 16),
-                      ],
+                      ),
                     )
                   : const SizedBox.shrink(),
               ),
