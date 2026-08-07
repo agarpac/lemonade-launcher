@@ -462,6 +462,8 @@ Descubierto el 30/07/2026 al preparar las capturas del README. Es lo primero que
 
 `lib/widgets/settings/content_shortcuts_panel_page.dart`
 
+✅ **Resuelto el 07/08/2026** (commit `8a62349`). Un `FocusNode` explícito, pedido en un `addPostFrameCallback`, toma el primer acceso directo al abrir —o el tile «Añadir» si la sección está vacía—; el objetivo se captura una sola vez por id, para que reordenar la lista no le arranque el foco.
+
 Al abrir la lista de accesos directos de una sección, **ningún elemento tiene el foco**: pulsar OK no hace nada y hay que pulsar abajo primero. Con un mando eso se percibe como que la aplicación se ha colgado.
 
 Es la trampa del `autofocus` que el `AGENTS.md` documenta: solo actúa si nada del ámbito tiene ya el foco, y aquí el panel se abre desde otro panel que lo retiene. El arreglo es un `focusNode` explícito con `requestFocus`, como ya se hizo para la lista de resultados del buscador de canales.
@@ -470,9 +472,13 @@ Es la trampa del `autofocus` que el `AGENTS.md` documenta: solo actúa si nada d
 
 `lib/widgets/settings/content_shortcut_panel_page.dart`
 
+✅ **Resuelto el 07/08/2026** (commit `67fce76`). El campo usa `minLines`/`maxLines`, de modo que una dirección larga se ajusta en varias líneas en lugar de cortarse sin aviso.
+
 El campo «Canal o dirección» muestra `https://www.youtube.com/@hia…` y el texto se sale del borde del panel sin puntos suspensivos ni salto de línea. Cosmético, pero impide comprobar de un vistazo que la dirección guardada es la correcta.
 
 ### 13.8 Los títulos de categoría se muestran en inglés
+
+✅ **Resuelto el 07/08/2026** (commit `ef6df7b`). Una función pura mapea solo los dos nombres reservados a su cadena localizada en el momento de pintar; el valor almacenado no se toca, cubierto por un test que fija ambos lados (lo mostrado se localiza, lo guardado sigue siendo `'Favorites'`/`'All Apps'`).
 
 Los encabezados de sección se leen «All Apps» y «Favorites» en una interfaz cuyo idioma por defecto es el español. **El valor almacenado no se puede traducir**: se compara por igualdad contra la base de datos y contra una migración, y el dock localiza su fila buscando literalmente `'Favorites'` (ver la sección de trampas del `AGENTS.md`), así que traducirlo vaciaría el dock en silencio.
 
