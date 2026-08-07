@@ -206,6 +206,9 @@ MockSettingsService _mkSettingsService({bool showWeather = true}) {
   when(settingsService.showTimeInStatusBar).thenReturn(true);
   when(settingsService.dateFormat).thenReturn(SettingsService.defaultDateFormat);
   when(settingsService.timeFormat).thenReturn(SettingsService.defaultTimeFormat);
+  // Not what these tests are about: off, matching the production default,
+  // since none of them exercise the scenes icon itself.
+  when(settingsService.scenesEnabled).thenReturn(false);
   return settingsService;
 }
 

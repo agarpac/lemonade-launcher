@@ -589,6 +589,10 @@ SettingsService mkSettingsService() {
   // all. Off keeps `WeatherService` out of these tests' provider tree, exactly
   // like a launcher the user has never switched the weather on in.
   when(settingsService.showWeather).thenReturn(false);
+  // On, not the production default: "Pressing select on the scenes icon"
+  // below navigates onto this icon by directional focus, so it must be
+  // present the way it always was before the master switch existed.
+  when(settingsService.scenesEnabled).thenReturn(true);
   return settingsService;
 }
 

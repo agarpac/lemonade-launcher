@@ -199,6 +199,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get scenes => 'Scenes';
 
   @override
+  String get scenesEnable => 'Enable scenes';
+
+  @override
   String get sceneNormal => 'Normal';
 
   @override

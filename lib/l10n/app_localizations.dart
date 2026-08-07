@@ -458,6 +458,12 @@ abstract class AppLocalizations {
   /// **'Scenes'**
   String get scenes;
 
+  /// No description provided for @scenesEnable.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable scenes'**
+  String get scenesEnable;
+
   /// No description provided for @sceneNormal.
   ///
   /// In en, this message translates to:

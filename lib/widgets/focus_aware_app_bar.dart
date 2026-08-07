@@ -55,7 +55,13 @@ class FocusAwareAppBarState extends State<FocusAwareAppBar>
   /// never ends up focused on a widget that's no longer on screen.
   Future<void> _openScenePicker(BuildContext context) async {
     await showDialog(context: context, builder: (_) => const ScenePickerPanel());
-    if (mounted) {
+    // `_scenesFocusNode` is only attached to a widget while the scenes icon is
+    // actually built (see `scenesEnabled` gating in `build`), so this checks
+    // attachment rather than only `mounted`: the icon can only be reached
+    // through this same method, but a dangling `requestFocus()` on a
+    // detached node is cheap to guard against and expensive to debug if the
+    // gating above ever changes shape.
+    if (mounted && _scenesFocusNode.context != null) {
       _scenesFocusNode.requestFocus();
     }
   }
@@ -114,24 +120,43 @@ class FocusAwareAppBarState extends State<FocusAwareAppBar>
                   onPressed: () => showDialog(context: context, builder: (_) => const SettingsPanel()),
                 ),
               ),
-              const SizedBox(width: 8),
-              // Scoped to just this icon: it must not trigger a rebuild of the whole
-              // app bar every time the active scene changes.
-              Selector<ScenesService, String>(
-                selector: (_, scenesService) => scenesService.activeSceneKey,
-                builder: (context, activeSceneKey, _) => Tooltip(
-                  message: AppLocalizations.of(context)!.scenes,
-                  child: StatusBarGlassCard(
-                    padding: const EdgeInsets.all(6),
-                    child: _FocusableIconButton(
-                      icon: sceneIconFor(activeSceneKey),
-                      focusNode: _scenesFocusNode,
-                      onPressed: () => _openScenePicker(context),
-                    ),
-                  ),
-                ),
+              // The master Scenes switch (default off, see
+              // `SettingsService.scenesEnabled`) gates only this home-bar entry
+              // point, never the Scenes tile inside Settings — so when the
+              // feature is off, nothing here is built at all: no spacing, no
+              // icon, and critically no `_FocusableIconButton` for
+              // `_scenesFocusNode` to attach to. A hidden control never gets a
+              // chance to request focus (see `_openScenePicker`'s own
+              // attachment guard), and turning the feature back on rebuilds
+              // this exactly as if it had never been hidden.
+              Selector<SettingsService, bool>(
+                selector: (_, settings) => settings.scenesEnabled,
+                builder: (context, scenesEnabled, _) => scenesEnabled
+                  ? Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const SizedBox(width: 8),
+                        // Scoped to just this icon: it must not trigger a rebuild of the whole
+                        // app bar every time the active scene changes.
+                        Selector<ScenesService, String>(
+                          selector: (_, scenesService) => scenesService.activeSceneKey,
+                          builder: (context, activeSceneKey, _) => Tooltip(
+                            message: AppLocalizations.of(context)!.scenes,
+                            child: StatusBarGlassCard(
+                              padding: const EdgeInsets.all(6),
+                              child: _FocusableIconButton(
+                                icon: sceneIconFor(activeSceneKey),
+                                focusNode: _scenesFocusNode,
+                                onPressed: () => _openScenePicker(context),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                      ],
+                    )
+                  : const SizedBox.shrink(),
               ),
-              const SizedBox(width: 16),
               // Network indicator (conditionally shown)
               Selector<SettingsService, bool>(
                 selector: (_, settings) => settings.showNetworkIndicatorInStatusBar,

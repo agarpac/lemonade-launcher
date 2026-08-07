@@ -51,6 +51,7 @@ const String _weatherLatitude = "weather_latitude";
 const String _weatherLongitude = "weather_longitude";
 const String _weatherLocationLabel = "weather_location_label";
 const String _showContentShortcutHandle = "show_content_shortcut_handle";
+const String _scenesEnabled = "scenes_enabled";
 
 // WiFi usage period options
 const String WIFI_USAGE_DAILY = "daily";
@@ -194,6 +195,19 @@ class SettingsService extends ChangeNotifier {
   /// card is controlled by [showAppNamesBelowIcons] and always stays the
   /// label, whatever this setting says.
   bool get showContentShortcutHandle => _readBool(_showContentShortcutHandle) ?? true;
+
+  /// Master on/off switch for the whole Scenes feature. Read through
+  /// [_readBool] for the same reason as every other guarded setting: the
+  /// backup feature imports a user-supplied JSON straight into the store, so
+  /// a value of the wrong type under this key is reachable input.
+  ///
+  /// Defaults to **false**, unlike most presentation toggles in this file: a
+  /// clean install should not surface scenes at all until the user opts in,
+  /// since a feature nobody asked to see is worse than one hidden behind a
+  /// switch. Turning this off is presentation-only — it hides the home-bar
+  /// entry point (see `FocusAwareAppBar`) but never deletes a scene, so
+  /// switching back on restores exactly what was configured before.
+  bool get scenesEnabled => _readBool(_scenesEnabled) ?? false;
 
   // ---------------------------------------------------------------------
   // Weather (PRD sections 3.A and 6).
@@ -396,6 +410,10 @@ class SettingsService extends ChangeNotifier {
 
   Future<void> setShowContentShortcutHandle(bool value) async {
     return set(_showContentShortcutHandle, value);
+  }
+
+  Future<void> setScenesEnabled(bool value) async {
+    return set(_scenesEnabled, value);
   }
 
   Future<void> setShowWeather(bool value) async {

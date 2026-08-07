@@ -19,6 +19,7 @@
 import 'package:flauncher/l10n/app_localizations.dart';
 import 'package:flauncher/models/scene.dart';
 import 'package:flauncher/providers/scenes_service.dart';
+import 'package:flauncher/providers/settings_service.dart';
 import 'package:flauncher/widgets/settings/scene_editor_page.dart';
 import 'package:flauncher/widgets/settings/scenes_panel_page.dart';
 import 'package:flutter/material.dart';
@@ -38,6 +39,12 @@ void main() {
     binding.platformDispatcher.textScaleFactorTestValue = 0.8;
   });
 
+  MockSettingsService mkSettingsService({bool scenesEnabled = true}) {
+    final settingsService = MockSettingsService();
+    when(settingsService.scenesEnabled).thenReturn(scenesEnabled);
+    return settingsService;
+  }
+
   testWidgets("All scenes are displayed", (tester) async {
     final scenesService = MockScenesService();
     when(scenesService.scenes).thenReturn([
@@ -46,7 +53,7 @@ void main() {
       fakeScene(key: SceneKeys.night, name: "Night"),
     ]);
 
-    await _pumpWidgetWithProviders(tester, scenesService);
+    await _pumpWidgetWithProviders(tester, scenesService, mkSettingsService());
 
     expect(find.text("Normal"), findsOneWidget);
     expect(find.text("Cinema"), findsOneWidget);
@@ -60,20 +67,52 @@ void main() {
       fakeScene(key: SceneKeys.cinema, name: "Cinema"),
     ]);
 
-    await _pumpWidgetWithProviders(tester, scenesService);
+    await _pumpWidgetWithProviders(tester, scenesService, mkSettingsService());
 
     await tester.tap(find.text("Cinema"));
     await tester.pumpAndSettle();
 
     expect(find.byKey(Key("SceneEditorPage")), findsOneWidget);
   });
+
+  testWidgets("The switch is always shown and reflects scenesEnabled", (tester) async {
+    final scenesService = MockScenesService();
+    when(scenesService.scenes).thenReturn([fakeScene(key: SceneKeys.normal, name: "Normal")]);
+
+    await _pumpWidgetWithProviders(tester, scenesService, mkSettingsService(scenesEnabled: false));
+
+    expect(find.byType(Switch), findsOneWidget);
+    expect(tester.widget<Switch>(find.byType(Switch)).value, isFalse);
+    // The switch stays reachable, but the list underneath it is what
+    // disappears while the feature is off — see `ScenesPanelPage`.
+    expect(find.text("Normal"), findsNothing);
+  });
+
+  testWidgets("Flipping the switch persists the setting", (tester) async {
+    final scenesService = MockScenesService();
+    when(scenesService.scenes).thenReturn([fakeScene(key: SceneKeys.normal, name: "Normal")]);
+    final settingsService = mkSettingsService(scenesEnabled: false);
+    when(settingsService.setScenesEnabled(true)).thenAnswer((_) async {});
+
+    await _pumpWidgetWithProviders(tester, scenesService, settingsService);
+
+    await tester.tap(find.byType(Switch));
+    await tester.pumpAndSettle();
+
+    verify(settingsService.setScenesEnabled(true)).called(1);
+  });
 }
 
-Future<void> _pumpWidgetWithProviders(WidgetTester tester, ScenesService scenesService) async {
+Future<void> _pumpWidgetWithProviders(
+  WidgetTester tester,
+  ScenesService scenesService,
+  SettingsService settingsService,
+) async {
   await tester.pumpWidget(
     MultiProvider(
       providers: [
         ChangeNotifierProvider<ScenesService>.value(value: scenesService),
+        ChangeNotifierProvider<SettingsService>.value(value: settingsService),
       ],
       builder: (_, __) => MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
