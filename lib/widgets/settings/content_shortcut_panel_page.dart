@@ -205,20 +205,24 @@ class _ContentShortcutPanelPageState extends State<ContentShortcutPanelPage> {
     });
   }
 
-  /// Whether there is enough to store: a name, an address, and an application to
-  /// pin the intent to. The package is picked, never guessed (PRD 12.3, point 3),
-  /// so no default is filled in here.
-  bool get _canSave =>
-      _labelController.text.trim().isNotEmpty &&
-      (_uri?.isNotEmpty ?? false) &&
-      (_targetPackage?.isNotEmpty ?? false);
+  /// Whether there is enough to store: an address and an application to pin the
+  /// intent to. The name is optional — an empty one is derived from the handle
+  /// (or the address) in [_save], so a channel can be added without typing a
+  /// name at all. The package is picked, never guessed (PRD 12.3, point 3).
+  bool get _canSave => (_uri?.isNotEmpty ?? false) && (_targetPackage?.isNotEmpty ?? false);
 
   Future<void> _save() async {
-    final String label = _labelController.text.trim();
     final String? uri = _uri;
     final String? targetPackage = _targetPackage;
-    if (label.isEmpty || uri == null || targetPackage == null) {
+    if (uri == null || targetPackage == null) {
       return;
+    }
+    // The name is optional. Left blank, it falls back to the handle the address
+    // names — or the address itself — so the card and the settings list always
+    // have something to show, without making the user type a name with a remote.
+    String label = _labelController.text.trim();
+    if (label.isEmpty) {
+      label = contentShortcutLabelSuggestion(uri) ?? uri;
     }
 
     final AppsService appsService = context.read<AppsService>();
@@ -292,7 +296,6 @@ class _ContentShortcutPanelPageState extends State<ContentShortcutPanelPage> {
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   child: TextField(
                     controller: _labelController,
-                    autofocus: _creating,
                     textInputAction: TextInputAction.next,
                     onChanged: (_) => setState(() {}),
                     decoration: InputDecoration(
@@ -305,6 +308,10 @@ class _ContentShortcutPanelPageState extends State<ContentShortcutPanelPage> {
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   child: TextField(
                     controller: _addressController,
+                    // Focus starts here when creating: the field already holds
+                    // "@", so the remote lands ready to type the handle, and the
+                    // name below is optional (derived on save when left blank).
+                    autofocus: _creating,
                     // The query waits for an explicit submit. Never one per
                     // keystroke: there is no `onChanged` here on purpose.
                     onSubmitted: _resolve,

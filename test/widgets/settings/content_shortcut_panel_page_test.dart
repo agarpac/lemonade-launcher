@@ -89,6 +89,44 @@ void main() {
     );
   });
 
+  testWidgets("Creating puts the autofocus on the address field, not the name", (tester) async {
+    // The address is what starts the flow — it seeds the name and resolves the
+    // targets — so the remote should land there, not on the optional name.
+    final appsService = _mkAppsService();
+
+    await _pumpPage(tester, appsService, const ContentShortcutPanelPageArguments());
+
+    expect(tester.widget<TextField>(_addressField).autofocus, isTrue);
+    expect(tester.widget<TextField>(_nameField).autofocus, isFalse);
+  });
+
+  testWidgets("The name is optional: cleared, it is derived from the handle on save", (tester) async {
+    final appsService = _mkAppsService(targets: [_target(_smartTube, "SmartTube")]);
+
+    await _pumpPage(tester, appsService, const ContentShortcutPanelPageArguments());
+    await _submitAddress(tester, "@LinusTechTips");
+    // Submitting suggested "LinusTechTips" as the name; clear it to prove that
+    // saving no longer requires one.
+    await tester.enterText(_nameField, "");
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text("SmartTube"));
+    await tester.pumpAndSettle();
+
+    // Save is offered with an empty name...
+    expect(find.text("Save"), findsOneWidget);
+    await tester.tap(find.text("Save"));
+    await tester.pumpAndSettle();
+
+    // ...and the stored label falls back to the handle the address names.
+    verify(appsService.addContentShortcut(
+      label: "LinusTechTips",
+      uri: "https://www.youtube.com/@LinusTechTips",
+      targetPackage: _smartTube,
+      sectionId: null,
+    )).called(1);
+  });
+
   testWidgets("Typing the address resolves nothing; submitting it resolves exactly once", (tester) async {
     final appsService = _mkAppsService(targets: [_target(_smartTube, "SmartTube")]);
 
