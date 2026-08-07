@@ -109,6 +109,8 @@ Decisiones registradas para que nadie las «arregle» sin contexto:
 
 Ya existen 23 páginas en `lib/widgets/settings/`, incluidas selección de fondo, gestión de categorías y aplicaciones, colores de acento y formatos de fecha/hora.
 
+**Organización por intención (07/08/2026).** El menú se agrupa por lo que el usuario quiere hacer, no como una lista plana: **Interfaz** reúne Secciones, Fondo, Barra de estado, Apariencia (con subgrupos Dock / Efectos / Color, donde Color absorbe el acento), Contenido (títulos de categoría, nombres bajo iconos, `@handle` en vez de nombre, «Continuar viendo») y Escenas; **Sistema** va con subencabezados Brillo / Salvapantallas / Fecha y hora / Comportamiento / Red / Datos. Se eliminó el cajón de sastre «Varios» repartiendo sus interruptores a su sitio. Regla para el futuro: **no reintroducir un cajón misceláneo**; cada ajuste nuevo entra en el grupo cuya intención comparte. Reorganizar es solo presentación — no cambia ninguna clave de `SettingsService`.
+
 ✅ **Implementado:** página de clima (`lib/widgets/settings/weather_panel_page.dart`, en Ajustes → Interfaz → Barra de estado) — interruptor de visibilidad y buscador de ciudad.
 ❌ **Eliminado de la v1:** el campo para la API key de OpenWeatherMap. Open-Meteo no necesita clave, así que este requisito desaparece por completo.
 
