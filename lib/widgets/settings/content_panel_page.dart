@@ -1,4 +1,3 @@
-
 import 'package:flauncher/providers/settings_service.dart';
 import 'package:flauncher/providers/watch_next_service.dart';
 import 'package:flauncher/widgets/rounded_switch_list_tile.dart';
@@ -6,10 +5,14 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flauncher/l10n/app_localizations.dart';
 
-class MiscPanelPage extends StatelessWidget {
-  static const String routeName = "misc_panel";
+/// What the home screen's grid shows and how, as opposed to how it looks:
+/// category titles, app names, the content-shortcut handle and the Watch
+/// Next row. This used to live in the "Miscellaneous" catch-all; it earned
+/// its own page because all four are about grid *content*, not appearance.
+class ContentPanelPage extends StatelessWidget {
+  static const String routeName = "content_panel";
 
-  const MiscPanelPage({Key? key}) : super(key: key);
+  const ContentPanelPage({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -18,7 +21,7 @@ class MiscPanelPage extends StatelessWidget {
 
     return Column(
       children: [
-        Text(localizations.miscellaneous, style: Theme.of(context).textTheme.titleLarge),
+        Text(localizations.contentSettings, style: Theme.of(context).textTheme.titleLarge),
         const Divider(),
         Expanded(
           child: ListView(
@@ -26,40 +29,22 @@ class MiscPanelPage extends StatelessWidget {
             children: [
               RoundedSwitchListTile(
                 autofocus: true,
-                value: settingsService.appHighlightAnimationEnabled,
-                onChanged: (value) => settingsService.setAppHighlightAnimationEnabled(value),
-                title: Text(localizations.appCardHighlightAnimation, style: Theme.of(context).textTheme.bodyMedium),
-                secondary: Icon(Icons.filter_center_focus),
-              ),
-              RoundedSwitchListTile(
-                value: settingsService.appKeyClickEnabled,
-                onChanged: (value) => settingsService.setAppKeyClickEnabled(value),
-                title: Text(localizations.appKeyClick, style: Theme.of(context).textTheme.bodyMedium),
-                secondary: Icon(Icons.notifications_active),
-              ),
-              RoundedSwitchListTile(
                 value: settingsService.userShowCategoryTitles,
                 onChanged: (value) => settingsService.setShowCategoryTitles(value),
                 title: Text(localizations.showCategoryTitles, style: Theme.of(context).textTheme.bodyMedium),
-                secondary: Icon(Icons.abc),
+                secondary: const Icon(Icons.abc),
               ),
               RoundedSwitchListTile(
                 value: settingsService.userShowAppNamesBelowIcons,
                 onChanged: (value) => settingsService.setShowAppNamesBelowIcons(value),
                 title: Text(localizations.sceneOverrideShowAppNames, style: Theme.of(context).textTheme.bodyMedium),
-                secondary: Icon(Icons.subtitles),
-              ),
-              RoundedSwitchListTile(
-                value: settingsService.showFocusBorders,
-                onChanged: (value) => settingsService.setShowFocusBorders(value),
-                title: Text(localizations.showFocusBorders, style: Theme.of(context).textTheme.bodyMedium),
-                secondary: Icon(Icons.border_outer),
+                secondary: const Icon(Icons.subtitles),
               ),
               RoundedSwitchListTile(
                 value: settingsService.showContentShortcutHandle,
                 onChanged: (value) => settingsService.setShowContentShortcutHandle(value),
                 title: Text(localizations.showContentShortcutHandle, style: Theme.of(context).textTheme.bodyMedium),
-                secondary: Icon(Icons.alternate_email),
+                secondary: const Icon(Icons.alternate_email),
               ),
               RoundedSwitchListTile(
                 value: settingsService.userShowWatchNextSection,
@@ -73,7 +58,7 @@ class MiscPanelPage extends StatelessWidget {
                   }
                 },
                 title: Text(localizations.showWatchNextSection, style: Theme.of(context).textTheme.bodyMedium),
-                secondary: Icon(Icons.play_circle_outline),
+                secondary: const Icon(Icons.play_circle_outline),
               ),
               if (settingsService.userShowWatchNextSection)
                 Consumer<WatchNextService>(

@@ -426,13 +426,40 @@ class AppLocalizationsEs extends AppLocalizations {
   String get watchNextCheckPermission => 'Comprobar de nuevo';
 
   @override
-  String get miscellaneous => 'Varios';
-
-  @override
   String get interface => 'Interfaz';
 
   @override
   String get system => 'Sistema';
+
+  @override
+  String get contentSettings => 'Contenido';
+
+  @override
+  String get settingsSectionDock => 'Dock';
+
+  @override
+  String get settingsSectionEffects => 'Efectos';
+
+  @override
+  String get settingsSectionColor => 'Color';
+
+  @override
+  String get settingsSectionBrightness => 'Brillo';
+
+  @override
+  String get settingsSectionScreensaver => 'Salvapantallas';
+
+  @override
+  String get settingsSectionDateTime => 'Fecha y hora';
+
+  @override
+  String get settingsSectionBehavior => 'Comportamiento';
+
+  @override
+  String get settingsSectionNetwork => 'Red';
+
+  @override
+  String get settingsSectionData => 'Datos';
 
   @override
   String get brightnessScheduler => 'Programador de brillo';
