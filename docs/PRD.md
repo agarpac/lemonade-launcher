@@ -248,6 +248,8 @@ El PIN se guarda como SHA-256 con sal aleatoria por escritura, se compara en tie
 
 Conviene no romper eso: si algún día ese camino pasara a depender de la travesía direccional, un widget de altura cero tiene un rectángulo degenerado y la barra podría volverse imposible de alcanzar — dejando al usuario encerrado en la escena.
 
+**Interruptor maestro de escenas — desactivado por defecto (07/08/2026).** La función completa se enciende o apaga con un único interruptor en Ajustes (`SettingsService.scenesEnabled`, clave `scenes_enabled`, lectura protegida). Nace **desactivado**, para que una instalación limpia no muestre las escenas hasta que el usuario las pida; una caja ya instalada, que no tiene esa clave, lee el mismo valor por defecto al actualizar y verá las escenas ocultas hasta que active el interruptor. Apagado, **oculta el icono de escenas de la barra superior del home** (el botón y su nodo de foco no se llegan a montar); no borra ninguna escena —es presentación pura— y se reactiva con un toque. El interruptor vive en la propia página de Escenas de Ajustes, que sigue siendo accesible desde el menú de Interfaz aunque la función esté apagada.
+
 ### 9.1.2 El PIN queda aplazado
 
 El bloqueo por PIN **no forma parte del alcance actual**. La capacidad está implementada y probada en el servicio, pero es opcional: sin PIN configurado no interviene en nada, y ninguna escena se siembra con uno.

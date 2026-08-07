@@ -218,6 +218,11 @@ whole lifetime. This cost a real bug fixing PRD 13.6.
 works at zero height. Never make its reachability depend on geometry, or a collapsed bar traps the
 user with no way into Settings.
 
+**The scenes master switch must stay reachable when scenes are off.** `scenesEnabled == false` hides
+the scenes icon from the home bar, but the switch that turns it back on lives on the Scenes settings
+page. Gate the home icon on the flag, never the Interface-menu tile that reaches that page — gate
+both and the user can never re-enable scenes.
+
 **Migrations are stepped and gated on both `from` and `to`**, with literal SQL pinned to the schema
 as it was at that version — never the live Dart tables. `test/generated_migrations/` holds snapshots
 for v1–v5 and the current version only; v6–v9 cannot be reconstructed honestly and are not covered
