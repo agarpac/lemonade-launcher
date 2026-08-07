@@ -208,6 +208,14 @@ free; introducing a **new** sigma allocates another full-screen image.
 silently. And `autofocus` only fires when nothing in the scope holds focus — a list that appears
 *because* a text field was submitted needs an explicit `focusNode` and `requestFocus`.
 
+**A focused `TextField` swallows the D-pad's up/down** — the arrows move the caret, not the focus —
+so on a remote the user cannot leave the field to reach the buttons below it. To let them out,
+intercept arrow up/down on the enclosing `FocusScopeNode.onKeyEvent` while the field holds focus and
+call `previousFocus()`/`nextFocus()` yourself, guarding against the key firing on both key-down and
+key-up (which would move two steps). `LauncherSectionPanelPage` and `ContentShortcutPanelPage` both
+do this; a settings page with a text field above its buttons needs it, or the buttons are
+unreachable — this is what made an existing content shortcut impossible to delete.
+
 **A shared `FocusNode` reassigned to a different widget during a rebuild drops the focus instead of
 moving it.** In a reorderable list, keying the initial-focus node to "whichever item sits at index 0"
 tears the node away from the item the remote is actually on the moment the order changes. Capture the

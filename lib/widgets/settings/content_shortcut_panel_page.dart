@@ -22,6 +22,7 @@ import 'package:flauncher/models/category.dart';
 import 'package:flauncher/providers/apps_service.dart';
 import 'package:flauncher/widgets/settings/focusable_settings_tile.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 /// What the results area of the page is showing. There is always exactly one of
@@ -80,6 +81,15 @@ class _ContentShortcutPanelPageState extends State<ContentShortcutPanelPage> {
   /// field still does — it is what was just submitted.
   final FocusNode _firstTargetFocusNode = FocusNode();
 
+  /// The two text fields need their own nodes so the D-pad escape below can tell
+  /// when one of them holds the focus.
+  final FocusNode _nameFocusNode = FocusNode();
+  final FocusNode _addressFocusNode = FocusNode();
+
+  /// Guards against up/down firing on both the key-down and key-up event and so
+  /// moving the focus two steps at once. Same guard as `LauncherSectionPanelPage`.
+  bool _ignoreTextFieldKeyEvent = false;
+
   _ResolveStatus _status = _ResolveStatus.prompt;
   List<Map<String, dynamic>> _targets = const [];
 
@@ -121,10 +131,43 @@ class _ContentShortcutPanelPageState extends State<ContentShortcutPanelPage> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // A focused TextField swallows the D-pad's up and down, so on a remote the
+    // user cannot leave the name or address field to reach the resolved targets
+    // or the Save/Delete buttons below — the bug that made an existing shortcut
+    // impossible to delete. Same escape hatch as `LauncherSectionPanelPage`:
+    // when a text field holds the focus, translate up/down into a focus move.
+    final FocusScopeNode focusScopeNode = FocusScope.of(context);
+    focusScopeNode.onKeyEvent = (node, keyEvent) {
+      final FocusNode? active = _nameFocusNode.hasFocus
+          ? _nameFocusNode
+          : (_addressFocusNode.hasFocus ? _addressFocusNode : null);
+      final bool isUpDown = keyEvent.logicalKey == LogicalKeyboardKey.arrowUp ||
+          keyEvent.logicalKey == LogicalKeyboardKey.arrowDown;
+      if (active != null && isUpDown) {
+        if (!_ignoreTextFieldKeyEvent) {
+          if (keyEvent.logicalKey == LogicalKeyboardKey.arrowUp) {
+            active.previousFocus();
+          } else {
+            active.nextFocus();
+          }
+        }
+        _ignoreTextFieldKeyEvent = false;
+      } else {
+        _ignoreTextFieldKeyEvent = true;
+      }
+      return KeyEventResult.ignored;
+    };
+  }
+
+  @override
   void dispose() {
     _labelController.dispose();
     _addressController.dispose();
     _firstTargetFocusNode.dispose();
+    _nameFocusNode.dispose();
+    _addressFocusNode.dispose();
     super.dispose();
   }
 
@@ -296,6 +339,7 @@ class _ContentShortcutPanelPageState extends State<ContentShortcutPanelPage> {
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   child: TextField(
                     controller: _labelController,
+                    focusNode: _nameFocusNode,
                     textInputAction: TextInputAction.next,
                     onChanged: (_) => setState(() {}),
                     decoration: InputDecoration(
@@ -308,6 +352,7 @@ class _ContentShortcutPanelPageState extends State<ContentShortcutPanelPage> {
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   child: TextField(
                     controller: _addressController,
+                    focusNode: _addressFocusNode,
                     // Focus starts here when creating: the field already holds
                     // "@", so the remote lands ready to type the handle, and the
                     // name below is optional (derived on save when left blank).
