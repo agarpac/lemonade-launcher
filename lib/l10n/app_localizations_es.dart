@@ -163,6 +163,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get allApplications => 'Todas las aplicaciones';
 
   @override
+  String get favorites => 'Favoritos';
+
+  @override
   String get nonTvApplications => 'Otras aplicaciones';
 
   @override

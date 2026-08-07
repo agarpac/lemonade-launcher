@@ -92,6 +92,37 @@ void main() {
     expect(findAppCardByPackageName(tester, "me.efesser.flauncher.2"), isNotNull);
   });
 
+  // PRD 13.8: the header painted for the reserved "All Apps" category must be
+  // localized, but the stored name it is looked up by must not change — that
+  // stored name is what the dock search, `AppsService` and the database
+  // migrations in `database.dart` all compare against. Locale is forced to
+  // Spanish here (tests otherwise run in en_US, see AGENTS.md) specifically to
+  // tell "translated at paint time" apart from "just printed the stored value".
+  testWidgets("Home page paints the localized label for a reserved category name, without touching the stored name",
+      (tester) async {
+    final appsService = mkAppService();
+    final favoritesCategory = fakeCategory(name: "Favorites", order: 0, type: CategoryType.row);
+    favoritesCategory.applications.add(fakeApp(packageName: "me.efesser.flauncher.1", name: "FLauncher 1"));
+    final allAppsCategory = fakeCategory(name: "All Apps", order: 1);
+    allAppsCategory.applications.add(fakeApp(packageName: "me.efesser.flauncher.2", name: "FLauncher 2"));
+    mockSections(appsService, [favoritesCategory, allAppsCategory]);
+
+    await _pumpWidgetWith(tester, appsService, locale: const Locale('es'));
+
+    await tester.scrollUntilVisible(
+        find.text("Todas las aplicaciones"), 300, scrollable: find.byType(Scrollable).first);
+    expect(find.text("Todas las aplicaciones"), findsOneWidget, reason: "the painted header is localized");
+    expect(find.text("All Apps"), findsNothing, reason: "the untranslated literal is not what gets shown");
+
+    // The value someone would be tempted to "fix" after seeing English on
+    // screen. Translating it instead of just the label would empty the dock
+    // in silence (AGENTS.md) and break the "All Apps" auto-populated category.
+    expect(allAppsCategory.name, "All Apps");
+    expect(favoritesCategory.name, "Favorites");
+    expect(find.byType(CategoryCleanRow), findsOneWidget,
+        reason: "Favorites is still found by its literal stored name and rendered as the dock");
+  });
+
   // This launcher is the device's only home screen, so an unhandled section type
   // must never reach the `as Category` cast in _buildSectionSlivers: that would
   // throw on the one screen the user cannot navigate away from. Until the
@@ -636,6 +667,7 @@ Future<void> _pumpWidgetWith(
   WidgetTester tester,
   AppsService appsService, {
   ScenesService? scenesService,
+  Locale? locale,
 }) async {
   return _pumpWidgetWithProviders(
     tester,
@@ -643,6 +675,7 @@ Future<void> _pumpWidgetWith(
     appsService,
     mkSettingsService(),
     scenesService: scenesService,
+    locale: locale,
   );
 }
 
@@ -652,6 +685,7 @@ Future<void> _pumpWidgetWithProviders(
   AppsService appsService,
   SettingsService settingsService, {
   ScenesService? scenesService,
+  Locale? locale,
 }) async {
   await tester.pumpWidget(
     MultiProvider(
@@ -669,6 +703,9 @@ Future<void> _pumpWidgetWithProviders(
         ChangeNotifierProvider<ContentShortcutArtworkService>.value(value: mkArtworkService()),
       ],
       builder: (_, __) => MaterialApp(
+        // Left null except where a test cares (e.g. PRD 13.8): otherwise this
+        // resolves from the test binding, which AGENTS.md pins at en_US.
+        locale: locale,
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         home: FLauncher(),

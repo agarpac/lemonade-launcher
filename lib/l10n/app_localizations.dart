@@ -386,6 +386,12 @@ abstract class AppLocalizations {
   /// **'All Apps'**
   String get allApplications;
 
+  /// No description provided for @favorites.
+  ///
+  /// In en, this message translates to:
+  /// **'Favorites'**
+  String get favorites;
+
   /// No description provided for @nonTvApplications.
   ///
   /// In en, this message translates to:
