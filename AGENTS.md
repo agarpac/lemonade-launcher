@@ -162,6 +162,13 @@ so plainly instead.
   exact key parity.
 - Comments explain **why**, not what. The codebase is dense with rationale for decisions that look
   arbitrary; keep that up rather than stripping it.
+- **Keep this file current — in the same change that earns it.** When a development alters the build,
+  the release process, the architecture, a workflow a future agent must follow, or uncovers a new
+  trap, record it here as part of that change, not as a later chore. Keep the boundary clean:
+  AGENTS.md holds what an agent needs to work the code safely (build, traps, conventions, workflow);
+  `docs/PRD.md` holds product decisions. Each fact lives in exactly one of them — never mirror the
+  same information across both. This file is the fork's institutional memory: a trap left unwritten
+  here has already cost real bugs, and the next agent starts blind.
 
 ## Architecture
 
@@ -201,9 +208,28 @@ free; introducing a **new** sigma allocates another full-screen image.
 silently. And `autofocus` only fires when nothing in the scope holds focus — a list that appears
 *because* a text field was submitted needs an explicit `focusNode` and `requestFocus`.
 
+**A focused `TextField` swallows the D-pad's up/down** — the arrows move the caret, not the focus —
+so on a remote the user cannot leave the field to reach the buttons below it. To let them out,
+intercept arrow up/down on the enclosing `FocusScopeNode.onKeyEvent` while the field holds focus and
+call `previousFocus()`/`nextFocus()` yourself, guarding against the key firing on both key-down and
+key-up (which would move two steps). `LauncherSectionPanelPage` and `ContentShortcutPanelPage` both
+do this; a settings page with a text field above its buttons needs it, or the buttons are
+unreachable — this is what made an existing content shortcut impossible to delete.
+
+**A shared `FocusNode` reassigned to a different widget during a rebuild drops the focus instead of
+moving it.** In a reorderable list, keying the initial-focus node to "whichever item sits at index 0"
+tears the node away from the item the remote is actually on the moment the order changes. Capture the
+initial-focus target once, by stable id, so the node keeps the same widget identity for the widget's
+whole lifetime. This cost a real bug fixing PRD 13.6.
+
 **The hidden top bar is reached by a programmatic intent**, not by directional traversal, and that
 works at zero height. Never make its reachability depend on geometry, or a collapsed bar traps the
 user with no way into Settings.
+
+**The scenes master switch must stay reachable when scenes are off.** `scenesEnabled == false` hides
+the scenes icon from the home bar, but the switch that turns it back on lives on the Scenes settings
+page. Gate the home icon on the flag, never the Interface-menu tile that reaches that page — gate
+both and the user can never re-enable scenes.
 
 **Migrations are stepped and gated on both `from` and `to`**, with literal SQL pinned to the schema
 as it was at that version — never the live Dart tables. `test/generated_migrations/` holds snapshots

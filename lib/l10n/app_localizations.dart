@@ -386,6 +386,12 @@ abstract class AppLocalizations {
   /// **'All Apps'**
   String get allApplications;
 
+  /// No description provided for @favorites.
+  ///
+  /// In en, this message translates to:
+  /// **'Favorites'**
+  String get favorites;
+
   /// No description provided for @nonTvApplications.
   ///
   /// In en, this message translates to:
@@ -451,6 +457,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Scenes'**
   String get scenes;
+
+  /// No description provided for @scenesEnable.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable scenes'**
+  String get scenesEnable;
 
   /// No description provided for @sceneNormal.
   ///
@@ -848,12 +860,6 @@ abstract class AppLocalizations {
   /// **'Check again'**
   String get watchNextCheckPermission;
 
-  /// No description provided for @miscellaneous.
-  ///
-  /// In en, this message translates to:
-  /// **'Miscellaneous'**
-  String get miscellaneous;
-
   /// No description provided for @interface.
   ///
   /// In en, this message translates to:
@@ -865,6 +871,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'System'**
   String get system;
+
+  /// No description provided for @contentSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Content'**
+  String get contentSettings;
+
+  /// No description provided for @settingsSectionDock.
+  ///
+  /// In en, this message translates to:
+  /// **'Dock'**
+  String get settingsSectionDock;
+
+  /// No description provided for @settingsSectionEffects.
+  ///
+  /// In en, this message translates to:
+  /// **'Effects'**
+  String get settingsSectionEffects;
+
+  /// No description provided for @settingsSectionColor.
+  ///
+  /// In en, this message translates to:
+  /// **'Color'**
+  String get settingsSectionColor;
+
+  /// No description provided for @settingsSectionBrightness.
+  ///
+  /// In en, this message translates to:
+  /// **'Brightness'**
+  String get settingsSectionBrightness;
+
+  /// No description provided for @settingsSectionScreensaver.
+  ///
+  /// In en, this message translates to:
+  /// **'Screensaver'**
+  String get settingsSectionScreensaver;
+
+  /// No description provided for @settingsSectionDateTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Date & time'**
+  String get settingsSectionDateTime;
+
+  /// No description provided for @settingsSectionBehavior.
+  ///
+  /// In en, this message translates to:
+  /// **'Behavior'**
+  String get settingsSectionBehavior;
+
+  /// No description provided for @settingsSectionNetwork.
+  ///
+  /// In en, this message translates to:
+  /// **'Network'**
+  String get settingsSectionNetwork;
+
+  /// No description provided for @settingsSectionData.
+  ///
+  /// In en, this message translates to:
+  /// **'Data'**
+  String get settingsSectionData;
 
   /// No description provided for @brightnessScheduler.
   ///
@@ -1465,6 +1531,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Channel or address'**
   String get contentShortcutAddress;
+
+  /// No description provided for @contentShortcutNameOptional.
+  ///
+  /// In en, this message translates to:
+  /// **'Name (optional)'**
+  String get contentShortcutNameOptional;
 
   /// No description provided for @contentShortcutAddressPrompt.
   ///

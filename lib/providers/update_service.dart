@@ -74,6 +74,26 @@ bool isAbiSplitApk(String name) {
   return null;
 }
 
+/// Removes any already-downloaded APK from [directory]. Called before writing a
+/// freshly downloaded installer so a box that updates repeatedly does not pile
+/// up ~60 MB files in application support that the user cannot clear from the
+/// launcher — an older installer is useless the moment a newer one exists. A
+/// leftover that cannot be deleted is not worth failing the update for.
+Future<void> clearDownloadedApks(Directory directory) async {
+  if (!await directory.exists()) {
+    return;
+  }
+  await for (final entity in directory.list()) {
+    if (entity is File && entity.path.toLowerCase().endsWith(".apk")) {
+      try {
+        await entity.delete();
+      } catch (_) {
+        // Ignore: keeping the update flow alive matters more than the leftover.
+      }
+    }
+  }
+}
+
 class UpdateService {
   static const String _owner = kUpdateRepoOwner;
   static const String _repo = kUpdateRepoName;
@@ -131,6 +151,8 @@ class UpdateService {
       if (!await updatesDirectory.exists()) {
         await updatesDirectory.create(recursive: true);
       }
+      // Only ever keep the installer we are about to download.
+      await clearDownloadedApks(updatesDirectory);
 
       final fileName =
           update.apkName ?? "$kApkNamePrefix-${update.latestVersion}.apk";

@@ -109,6 +109,8 @@ Decisiones registradas para que nadie las «arregle» sin contexto:
 
 Ya existen 23 páginas en `lib/widgets/settings/`, incluidas selección de fondo, gestión de categorías y aplicaciones, colores de acento y formatos de fecha/hora.
 
+**Organización por intención (07/08/2026).** El menú se agrupa por lo que el usuario quiere hacer, no como una lista plana: **Interfaz** reúne Secciones, Fondo, Barra de estado, Apariencia (con subgrupos Dock / Efectos / Color, donde Color absorbe el acento), Contenido (títulos de categoría, nombres bajo iconos, `@handle` en vez de nombre, «Continuar viendo») y Escenas; **Sistema** va con subencabezados Brillo / Salvapantallas / Fecha y hora / Comportamiento / Red / Datos. Se eliminó el cajón de sastre «Varios» repartiendo sus interruptores a su sitio. Regla para el futuro: **no reintroducir un cajón misceláneo**; cada ajuste nuevo entra en el grupo cuya intención comparte. Reorganizar es solo presentación — no cambia ninguna clave de `SettingsService`.
+
 ✅ **Implementado:** página de clima (`lib/widgets/settings/weather_panel_page.dart`, en Ajustes → Interfaz → Barra de estado) — interruptor de visibilidad y buscador de ciudad.
 ❌ **Eliminado de la v1:** el campo para la API key de OpenWeatherMap. Open-Meteo no necesita clave, así que este requisito desaparece por completo.
 
@@ -248,6 +250,8 @@ El PIN se guarda como SHA-256 con sal aleatoria por escritura, se compara en tie
 
 Conviene no romper eso: si algún día ese camino pasara a depender de la travesía direccional, un widget de altura cero tiene un rectángulo degenerado y la barra podría volverse imposible de alcanzar — dejando al usuario encerrado en la escena.
 
+**Interruptor maestro de escenas — desactivado por defecto (07/08/2026).** La función completa se enciende o apaga con un único interruptor en Ajustes (`SettingsService.scenesEnabled`, clave `scenes_enabled`, lectura protegida). Nace **desactivado**, para que una instalación limpia no muestre las escenas hasta que el usuario las pida; una caja ya instalada, que no tiene esa clave, lee el mismo valor por defecto al actualizar y verá las escenas ocultas hasta que active el interruptor. Apagado, **oculta el icono de escenas de la barra superior del home** (el botón y su nodo de foco no se llegan a montar); no borra ninguna escena —es presentación pura— y se reactiva con un toque. El interruptor vive en la propia página de Escenas de Ajustes, que sigue siendo accesible desde el menú de Interfaz aunque la función esté apagada.
+
 ### 9.1.2 El PIN queda aplazado
 
 El bloqueo por PIN **no forma parte del alcance actual**. La capacidad está implementada y probada en el servicio, pero es opcional: sin PIN configurado no interviene en nada, y ninguna escena se siembra con uno.
@@ -374,7 +378,7 @@ Ambas cosas cambian el diseño de raíz, así que se anota el porqué:
 - Un catálogo cerrado de destinos verificados no puede contener **los canales del usuario**, que es el caso principal. La entrada manual es obligatoria, no un extra.
 
 1. **Un acceso directo es un tercer tipo de `LauncherSection`**, junto a `Category` y `LauncherSpacer`, con su **propia tabla**, siguiendo exactamente el patrón que ya usa el separador: tabla propia fusionada en la lista ordenada de secciones (`AppsService.launcherSections`). El usuario coloca la sección donde quiera desde Ajustes → Secciones del launcher, igual que cualquier otra. Añadir una tabla es aditivo y no toca ni un dato existente, al contrario que añadir una columna a `Apps`.
-2. **El caso principal es el canal.** El campo de entrada acepta un identificador corto (`@handle`), una URL completa o un id de canal (`UC…`), y lo normaliza. Teclear `@handle` con un mando direccional es viable; teclear una URL entera no lo es, así que el formato corto es el camino principal y la URL completa el de respaldo.
+2. **El caso principal es el canal.** El campo de entrada acepta un identificador corto (`@handle`), una URL completa o un id de canal (`UC…`), y lo normaliza. Teclear `@handle` con un mando direccional es viable; teclear una URL entera no lo es, así que el formato corto es el camino principal y la URL completa el de respaldo. Al **crear** uno nuevo, el campo de dirección nace con un `@` y el cursor detrás, para que buscar la arroba en el teclado del mando no sea el paso lento; un `@` a secas se sigue tratando como dirección inválida, así que es solo un punto de partida. El foco arranca en ese campo de dirección (no en el nombre), porque es lo que dispara el flujo: sugiere el nombre y resuelve los destinos. Y el **nombre es opcional**: si se deja en blanco, se deriva del `@handle` —o de la dirección— al guardar, de modo que añadir un canal no obliga a teclear un nombre con el mando. Sigue pudiéndose escribir uno propio cuando hace falta distinguir varios accesos al mismo canal.
 3. **El paquete de destino lo resuelve el `PackageManager`, no se fija a mano.** Se construye el intent y se pregunta al sistema **qué aplicaciones instaladas declaran un `intent-filter` público** para esa URI; el usuario elige entre las que aparezcan. Esto es exactamente «solo contratos declarados públicamente»: se leen los filtros declarados en lugar de adivinar un `packageName`. Requiere ampliar el bloque `<queries>` del manifest con un `<intent>` de `VIEW` y esquema `https`, porque con `targetSdk 35` aplica el filtrado de visibilidad de paquetes de Android 11.
 4. **El intent fija el paquete elegido.** Nunca se deja que Android muestre el selector: en una televisión sería un diálogo de «elige aplicación» que hay que resolver con el mando **cada vez**.
 5. **Validación al crear y al restaurar.** Si el paquete de destino no está instalado, el acceso directo se marca como no disponible en lugar de fallar al pulsarlo.
@@ -458,6 +462,8 @@ Descubierto el 30/07/2026 al preparar las capturas del README. Es lo primero que
 
 `lib/widgets/settings/content_shortcuts_panel_page.dart`
 
+✅ **Resuelto el 07/08/2026** (commit `8a62349`). Un `FocusNode` explícito, pedido en un `addPostFrameCallback`, toma el primer acceso directo al abrir —o el tile «Añadir» si la sección está vacía—; el objetivo se captura una sola vez por id, para que reordenar la lista no le arranque el foco.
+
 Al abrir la lista de accesos directos de una sección, **ningún elemento tiene el foco**: pulsar OK no hace nada y hay que pulsar abajo primero. Con un mando eso se percibe como que la aplicación se ha colgado.
 
 Es la trampa del `autofocus` que el `AGENTS.md` documenta: solo actúa si nada del ámbito tiene ya el foco, y aquí el panel se abre desde otro panel que lo retiene. El arreglo es un `focusNode` explícito con `requestFocus`, como ya se hizo para la lista de resultados del buscador de canales.
@@ -466,9 +472,13 @@ Es la trampa del `autofocus` que el `AGENTS.md` documenta: solo actúa si nada d
 
 `lib/widgets/settings/content_shortcut_panel_page.dart`
 
+✅ **Resuelto el 07/08/2026** (commit `67fce76`). El campo usa `minLines`/`maxLines`, de modo que una dirección larga se ajusta en varias líneas en lugar de cortarse sin aviso.
+
 El campo «Canal o dirección» muestra `https://www.youtube.com/@hia…` y el texto se sale del borde del panel sin puntos suspensivos ni salto de línea. Cosmético, pero impide comprobar de un vistazo que la dirección guardada es la correcta.
 
 ### 13.8 Los títulos de categoría se muestran en inglés
+
+✅ **Resuelto el 07/08/2026** (commit `ef6df7b`). Una función pura mapea solo los dos nombres reservados a su cadena localizada en el momento de pintar; el valor almacenado no se toca, cubierto por un test que fija ambos lados (lo mostrado se localiza, lo guardado sigue siendo `'Favorites'`/`'All Apps'`).
 
 Los encabezados de sección se leen «All Apps» y «Favorites» en una interfaz cuyo idioma por defecto es el español. **El valor almacenado no se puede traducir**: se compara por igualdad contra la base de datos y contra una migración, y el dock localiza su fila buscando literalmente `'Favorites'` (ver la sección de trampas del `AGENTS.md`), así que traducirlo vaciaría el dock en silencio.
 

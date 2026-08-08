@@ -161,6 +161,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get allApplications => 'All Apps';
 
   @override
+  String get favorites => 'Favorites';
+
+  @override
   String get nonTvApplications => 'Non-TV Apps';
 
   @override
@@ -194,6 +197,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get scenes => 'Scenes';
+
+  @override
+  String get scenesEnable => 'Enable scenes';
 
   @override
   String get sceneNormal => 'Normal';
@@ -412,13 +418,40 @@ class AppLocalizationsEn extends AppLocalizations {
   String get watchNextCheckPermission => 'Check again';
 
   @override
-  String get miscellaneous => 'Miscellaneous';
-
-  @override
   String get interface => 'Interface';
 
   @override
   String get system => 'System';
+
+  @override
+  String get contentSettings => 'Content';
+
+  @override
+  String get settingsSectionDock => 'Dock';
+
+  @override
+  String get settingsSectionEffects => 'Effects';
+
+  @override
+  String get settingsSectionColor => 'Color';
+
+  @override
+  String get settingsSectionBrightness => 'Brightness';
+
+  @override
+  String get settingsSectionScreensaver => 'Screensaver';
+
+  @override
+  String get settingsSectionDateTime => 'Date & time';
+
+  @override
+  String get settingsSectionBehavior => 'Behavior';
+
+  @override
+  String get settingsSectionNetwork => 'Network';
+
+  @override
+  String get settingsSectionData => 'Data';
 
   @override
   String get brightnessScheduler => 'Brightness Scheduler';
@@ -763,6 +796,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get contentShortcutAddress => 'Channel or address';
+
+  @override
+  String get contentShortcutNameOptional => 'Name (optional)';
 
   @override
   String get contentShortcutAddressPrompt =>

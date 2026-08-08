@@ -1970,6 +1970,12 @@ class MockSettingsService extends _i1.Mock implements _i22.SettingsService {
       ) as bool);
 
   @override
+  bool get scenesEnabled => (super.noSuchMethod(
+        Invocation.getter(#scenesEnabled),
+        returnValue: false,
+      ) as bool);
+
+  @override
   bool get showWeather => (super.noSuchMethod(
         Invocation.getter(#showWeather),
         returnValue: false,
@@ -2252,6 +2258,16 @@ class MockSettingsService extends _i1.Mock implements _i22.SettingsService {
       (super.noSuchMethod(
         Invocation.method(
           #setShowContentShortcutHandle,
+          [value],
+        ),
+        returnValue: _i12.Future<void>.value(),
+        returnValueForMissingStub: _i12.Future<void>.value(),
+      ) as _i12.Future<void>);
+
+  @override
+  _i12.Future<void> setScenesEnabled(bool? value) => (super.noSuchMethod(
+        Invocation.method(
+          #setScenesEnabled,
           [value],
         ),
         returnValue: _i12.Future<void>.value(),

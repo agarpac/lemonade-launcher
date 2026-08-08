@@ -111,4 +111,75 @@ void main() {
       findsNothing,
     );
   });
+
+  /// Regression test for the defect where the focus outline drew *inside*
+  /// the frosted card: a `Border.all` inside the `ClipRRect` gets clipped
+  /// against this card's own radius and reads as an inner stroke rather than
+  /// an outline hugging the card. `focused: true` must draw an outline layer
+  /// that sits *outside* the clip; `focused: false` (the default, used by
+  /// every non-focusable caller like the weather card) must paint no border
+  /// and no shadow at all — the overlay slot itself always exists (see the
+  /// comment above the `Stack` in the widget for why: swapping the slot's
+  /// widget *type* between focused states is what remounted a caller's
+  /// `Focus` node and broke directional traversal), but it is visually a
+  /// no-op when unfocused.
+  group("focus outline overlay", () {
+    Future<void> pumpFocusableCard(WidgetTester tester, {required bool focused}) async {
+      final settingsService = MockSettingsService();
+      when(settingsService.dockBackdropFilterDisabled).thenReturn(true);
+
+      await tester.pumpWidget(
+        MultiProvider(
+          providers: [
+            ChangeNotifierProvider<SettingsService>.value(value: settingsService),
+            ChangeNotifierProvider<WallpaperService>.value(value: mkWallpaperService()),
+          ],
+          builder: (_, __) => MaterialApp(
+            home: Scaffold(
+              body: StatusBarGlassCard(
+                focused: focused,
+                child: Text("content", key: const Key("card_content")),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets("focused renders an outline layer outside the clipped card", (tester) async {
+      await pumpFocusableCard(tester, focused: true);
+
+      // The clipped surface (blur/translucency) must still be there...
+      expect(find.descendant(of: find.byType(StatusBarGlassCard), matching: find.byType(ClipRRect)), findsOneWidget);
+
+      // ...and the outline must be a sibling of that `ClipRRect`, not a
+      // descendant of it: that is what keeps it from being clipped away.
+      final outlineFinder = find.byKey(const Key("status_bar_glass_card_focus_outline"));
+      expect(outlineFinder, findsOneWidget);
+      expect((tester.widget(outlineFinder) as DecoratedBox).decoration, isA<BoxDecoration>());
+      final outlineDecoration = (tester.widget(outlineFinder) as DecoratedBox).decoration as BoxDecoration;
+      expect(outlineDecoration.border, isNotNull);
+      expect(
+        find.descendant(of: find.byType(ClipRRect), matching: outlineFinder),
+        findsNothing,
+        reason: "the outline must not be clipped by the card's own ClipRRect",
+      );
+
+      // Never intercepts input, and never on the focused child's own render
+      // pass: same shape as the home grid's `_HighlightOutline`.
+      expect(find.descendant(of: find.byType(StatusBarGlassCard), matching: find.byType(IgnorePointer)), findsOneWidget);
+    });
+
+    testWidgets("unfocused (the default) paints no border and no shadow", (tester) async {
+      await pumpFocusableCard(tester, focused: false);
+
+      final outlineFinder = find.byKey(const Key("status_bar_glass_card_focus_outline"));
+      expect(outlineFinder, findsOneWidget);
+      final outlineDecoration = (tester.widget(outlineFinder) as DecoratedBox).decoration as BoxDecoration;
+      expect(outlineDecoration.border, isNull);
+      expect(outlineDecoration.boxShadow, isNull);
+      expect(find.byKey(const Key("card_content")), findsOneWidget);
+    });
+  });
 }

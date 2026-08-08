@@ -51,7 +51,7 @@ void main() {
     binding.platformDispatcher.views.first.devicePixelRatio = 1.0;
   });
 
-  MockSettingsService mkSettingsService({bool autoHide = false}) {
+  MockSettingsService mkSettingsService({bool autoHide = false, bool scenesEnabled = true}) {
     final settingsService = MockSettingsService();
     when(settingsService.autoHideAppBarEnabled).thenReturn(autoHide);
     when(settingsService.showNetworkIndicatorInStatusBar).thenReturn(true);
@@ -64,6 +64,10 @@ void main() {
     // Not what these tests are about: keep the live blur off so none of them
     // need to depend on the blur snapshot's async build.
     when(settingsService.dockBackdropFilterDisabled).thenReturn(true);
+    // On by default: several tests below (e.g. the scene picker button's
+    // glass card, and the left-to-right focus order test) exercise the
+    // scenes icon, which only exists when this master switch is on.
+    when(settingsService.scenesEnabled).thenReturn(scenesEnabled);
     return settingsService;
   }
 
@@ -88,14 +92,15 @@ void main() {
     return wallpaperService;
   }
 
-  Future<FocusAwareAppBarState> pumpBar(WidgetTester tester, {bool autoHide = false}) async {
+  Future<FocusAwareAppBarState> pumpBar(WidgetTester tester, {bool autoHide = false, bool scenesEnabled = true}) async {
     final scenesService = MockScenesService();
     when(scenesService.activeSceneKey).thenReturn(SceneKeys.normal);
 
     await tester.pumpWidget(
       MultiProvider(
         providers: [
-          ChangeNotifierProvider<SettingsService>.value(value: mkSettingsService(autoHide: autoHide)),
+          ChangeNotifierProvider<SettingsService>.value(
+              value: mkSettingsService(autoHide: autoHide, scenesEnabled: scenesEnabled)),
           ChangeNotifierProvider<ScenesService>.value(value: scenesService),
           ChangeNotifierProvider<NetworkService>.value(value: mkNetworkService()),
           ChangeNotifierProvider<WallpaperService>.value(value: mkWallpaperService()),
@@ -138,6 +143,14 @@ void main() {
         find.ancestor(of: find.byIcon(Icons.home_outlined), matching: find.byType(StatusBarGlassCard)),
         findsOneWidget,
       );
+    });
+
+    testWidgets("the scene picker button is absent when scenesEnabled is off", (tester) async {
+      await pumpBar(tester, scenesEnabled: false);
+
+      // Nothing for the scene icon: no icon, and no glass card that would
+      // otherwise wrap it. See `SettingsService.scenesEnabled`'s default.
+      expect(find.byIcon(Icons.home_outlined), findsNothing);
     });
 
     testWidgets("the network indicator", (tester) async {

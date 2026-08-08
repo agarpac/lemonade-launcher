@@ -21,6 +21,7 @@ import 'dart:ui' as ui;
 
 import 'package:collection/collection.dart';
 import 'package:flauncher/actions.dart';
+import 'package:flauncher/category_display_name.dart';
 import 'package:flauncher/custom_traversal_policy.dart';
 import 'package:flauncher/providers/apps_service.dart';
 import 'package:flauncher/providers/launcher_state.dart';
@@ -303,7 +304,11 @@ class _FLauncherState extends State<FLauncher> with WidgetsBindingObserver {
           : () => _onAppGridFocused();
       firstBuiltSectionFound = true;
 
-      slivers.add(SliverToBoxAdapter(child: _sectionTitle(context, category.name)));
+      // The painted title only: `category.name` itself is never touched, because
+      // it is still what the database, the dock lookup and the migrations in
+      // `database.dart` compare against (see AGENTS.md and PRD 13.8).
+      final displayName = localizedCategoryDisplayName(AppLocalizations.of(context)!, category.name);
+      slivers.add(SliverToBoxAdapter(child: _sectionTitle(context, displayName)));
 
       switch (category.type) {
         case CategoryType.row:

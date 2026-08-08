@@ -18,8 +18,8 @@
 
 import 'package:flauncher/l10n/app_localizations.dart';
 import 'package:flauncher/providers/settings_service.dart';
+import 'package:flauncher/widgets/settings/content_panel_page.dart';
 import 'package:flauncher/widgets/settings/focusable_settings_tile.dart';
-import 'package:flauncher/widgets/settings/misc_panel_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
@@ -28,6 +28,9 @@ import 'package:provider/provider.dart';
 import '../../mocks.mocks.dart';
 
 const _handleSettingLabel = "Show the channel handle instead of the shortcut name";
+const _categoryTitlesLabel = "Show category titles";
+const _appNamesLabel = "Show app names below icons";
+const _watchNextLabel = "Show Watch Next Section";
 
 void main() {
   setUpAll(() async {
@@ -36,6 +39,17 @@ void main() {
     binding.platformDispatcher.views.first.devicePixelRatio = 1.0;
     // Scale-down the font size because the font 'Ahem' used when running tests is much wider than Roboto
     binding.platformDispatcher.textScaleFactorTestValue = 0.8;
+  });
+
+  testWidgets("Shows all four content controls moved from the Miscellaneous page", (tester) async {
+    final settingsService = _mkSettingsService();
+
+    await _pumpPage(tester, settingsService);
+
+    expect(find.text(_categoryTitlesLabel), findsOneWidget);
+    expect(find.text(_appNamesLabel), findsOneWidget);
+    expect(find.text(_handleSettingLabel), findsOneWidget);
+    expect(find.text(_watchNextLabel), findsOneWidget);
   });
 
   testWidgets("The handle switch reflects the default: on, i.e. the handle", (tester) async {
@@ -88,18 +102,12 @@ MockSettingsService _mkSettingsService({
   bool showContentShortcutHandle = true,
 }) {
   final settingsService = MockSettingsService();
-  when(settingsService.appHighlightAnimationEnabled).thenReturn(false);
-  when(settingsService.appKeyClickEnabled).thenReturn(true);
   when(settingsService.userShowCategoryTitles).thenReturn(false);
   when(settingsService.userShowAppNamesBelowIcons).thenReturn(false);
-  when(settingsService.showFocusBorders).thenReturn(true);
   when(settingsService.userShowWatchNextSection).thenReturn(false);
   when(settingsService.showContentShortcutHandle).thenReturn(showContentShortcutHandle);
-  when(settingsService.setAppHighlightAnimationEnabled(any)).thenAnswer((_) async {});
-  when(settingsService.setAppKeyClickEnabled(any)).thenAnswer((_) async {});
   when(settingsService.setShowCategoryTitles(any)).thenAnswer((_) async {});
   when(settingsService.setShowAppNamesBelowIcons(any)).thenAnswer((_) async {});
-  when(settingsService.setShowFocusBorders(any)).thenAnswer((_) async {});
   when(settingsService.setShowWatchNextSection(any)).thenAnswer((_) async {});
   when(settingsService.setShowContentShortcutHandle(any)).thenAnswer((_) async {});
   return settingsService;
@@ -112,7 +120,7 @@ Future<void> _pumpPage(WidgetTester tester, MockSettingsService settingsService)
       builder: (_, __) => MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
-        home: const Scaffold(body: MiscPanelPage()),
+        home: const Scaffold(body: ContentPanelPage()),
       ),
     ),
   );

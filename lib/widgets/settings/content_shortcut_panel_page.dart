@@ -22,6 +22,7 @@ import 'package:flauncher/models/category.dart';
 import 'package:flauncher/providers/apps_service.dart';
 import 'package:flauncher/widgets/settings/focusable_settings_tile.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 /// What the results area of the page is showing. There is always exactly one of
@@ -80,6 +81,15 @@ class _ContentShortcutPanelPageState extends State<ContentShortcutPanelPage> {
   /// field still does — it is what was just submitted.
   final FocusNode _firstTargetFocusNode = FocusNode();
 
+  /// The two text fields need their own nodes so the D-pad escape below can tell
+  /// when one of them holds the focus.
+  final FocusNode _nameFocusNode = FocusNode();
+  final FocusNode _addressFocusNode = FocusNode();
+
+  /// Guards against up/down firing on both the key-down and key-up event and so
+  /// moving the focus two steps at once. Same guard as `LauncherSectionPanelPage`.
+  bool _ignoreTextFieldKeyEvent = false;
+
   _ResolveStatus _status = _ResolveStatus.prompt;
   List<Map<String, dynamic>> _targets = const [];
 
@@ -103,9 +113,52 @@ class _ContentShortcutPanelPageState extends State<ContentShortcutPanelPage> {
   void initState() {
     super.initState();
     _labelController = TextEditingController(text: _shortcut?.label ?? "");
-    _addressController = TextEditingController(text: _shortcut?.uri ?? "");
+    // Creating a channel shortcut almost always starts with a YouTube @handle,
+    // and hunting for "@" on a D-pad keyboard is the slow part of the job. Seed
+    // the field with it and drop the caret just after, so the user types the
+    // handle straight away. `normalizeContentShortcutUri` turns "@handle" into
+    // the channel URL; a lone "@" is still rejected as invalid, so this is only
+    // ever a starting point, never a value that can be saved on its own.
+    final String initialAddress = _shortcut?.uri ?? "@";
+    _addressController = TextEditingController.fromValue(
+      TextEditingValue(
+        text: initialAddress,
+        selection: TextSelection.collapsed(offset: initialAddress.length),
+      ),
+    );
     _uri = _shortcut?.uri;
     _targetPackage = _shortcut?.targetPackage;
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // A focused TextField swallows the D-pad's up and down, so on a remote the
+    // user cannot leave the name or address field to reach the resolved targets
+    // or the Save/Delete buttons below — the bug that made an existing shortcut
+    // impossible to delete. Same escape hatch as `LauncherSectionPanelPage`:
+    // when a text field holds the focus, translate up/down into a focus move.
+    final FocusScopeNode focusScopeNode = FocusScope.of(context);
+    focusScopeNode.onKeyEvent = (node, keyEvent) {
+      final FocusNode? active = _nameFocusNode.hasFocus
+          ? _nameFocusNode
+          : (_addressFocusNode.hasFocus ? _addressFocusNode : null);
+      final bool isUpDown = keyEvent.logicalKey == LogicalKeyboardKey.arrowUp ||
+          keyEvent.logicalKey == LogicalKeyboardKey.arrowDown;
+      if (active != null && isUpDown) {
+        if (!_ignoreTextFieldKeyEvent) {
+          if (keyEvent.logicalKey == LogicalKeyboardKey.arrowUp) {
+            active.previousFocus();
+          } else {
+            active.nextFocus();
+          }
+        }
+        _ignoreTextFieldKeyEvent = false;
+      } else {
+        _ignoreTextFieldKeyEvent = true;
+      }
+      return KeyEventResult.ignored;
+    };
   }
 
   @override
@@ -113,6 +166,8 @@ class _ContentShortcutPanelPageState extends State<ContentShortcutPanelPage> {
     _labelController.dispose();
     _addressController.dispose();
     _firstTargetFocusNode.dispose();
+    _nameFocusNode.dispose();
+    _addressFocusNode.dispose();
     super.dispose();
   }
 
@@ -193,20 +248,24 @@ class _ContentShortcutPanelPageState extends State<ContentShortcutPanelPage> {
     });
   }
 
-  /// Whether there is enough to store: a name, an address, and an application to
-  /// pin the intent to. The package is picked, never guessed (PRD 12.3, point 3),
-  /// so no default is filled in here.
-  bool get _canSave =>
-      _labelController.text.trim().isNotEmpty &&
-      (_uri?.isNotEmpty ?? false) &&
-      (_targetPackage?.isNotEmpty ?? false);
+  /// Whether there is enough to store: an address and an application to pin the
+  /// intent to. The name is optional — an empty one is derived from the handle
+  /// (or the address) in [_save], so a channel can be added without typing a
+  /// name at all. The package is picked, never guessed (PRD 12.3, point 3).
+  bool get _canSave => (_uri?.isNotEmpty ?? false) && (_targetPackage?.isNotEmpty ?? false);
 
   Future<void> _save() async {
-    final String label = _labelController.text.trim();
     final String? uri = _uri;
     final String? targetPackage = _targetPackage;
-    if (label.isEmpty || uri == null || targetPackage == null) {
+    if (uri == null || targetPackage == null) {
       return;
+    }
+    // The name is optional. Left blank, it falls back to the handle the address
+    // names — or the address itself — so the card and the settings list always
+    // have something to show, without making the user type a name with a remote.
+    String label = _labelController.text.trim();
+    if (label.isEmpty) {
+      label = contentShortcutLabelSuggestion(uri) ?? uri;
     }
 
     final AppsService appsService = context.read<AppsService>();
@@ -280,11 +339,11 @@ class _ContentShortcutPanelPageState extends State<ContentShortcutPanelPage> {
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   child: TextField(
                     controller: _labelController,
-                    autofocus: _creating,
+                    focusNode: _nameFocusNode,
                     textInputAction: TextInputAction.next,
                     onChanged: (_) => setState(() {}),
                     decoration: InputDecoration(
-                      labelText: localizations.name,
+                      labelText: localizations.contentShortcutNameOptional,
                       prefixIcon: const Icon(Icons.label_outline),
                     ),
                   ),
@@ -293,10 +352,23 @@ class _ContentShortcutPanelPageState extends State<ContentShortcutPanelPage> {
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   child: TextField(
                     controller: _addressController,
+                    focusNode: _addressFocusNode,
+                    // Focus starts here when creating: the field already holds
+                    // "@", so the remote lands ready to type the handle, and the
+                    // name below is optional (derived on save when left blank).
+                    autofocus: _creating,
                     // The query waits for an explicit submit. Never one per
                     // keystroke: there is no `onChanged` here on purpose.
                     onSubmitted: _resolve,
                     textInputAction: TextInputAction.search,
+                    // A single line clips a long URL with no visible sign that
+                    // there is more of it, which is exactly the part the user
+                    // most needs to check. Wrapping keeps the whole stored
+                    // value on screen instead. `textInputAction` still governs
+                    // the IME action button regardless of `maxLines`, so the
+                    // submit-on-confirm behaviour above is unaffected.
+                    minLines: 1,
+                    maxLines: 3,
                     decoration: InputDecoration(
                       labelText: localizations.contentShortcutAddress,
                       prefixIcon: const Icon(Icons.link),

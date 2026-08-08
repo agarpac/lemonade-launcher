@@ -50,21 +50,66 @@ class ContentShortcutsPanelPage extends StatefulWidget {
 class _ContentShortcutsPanelPageState extends State<ContentShortcutsPanelPage> {
   int? _movingIndex;
 
+  /// Focus target for the first shortcut, or for "Add shortcut" when the
+  /// section is empty, requested once when the panel opens. `autofocus` cannot
+  /// do this job: this panel is pushed from another panel that still holds the
+  /// focus, so nothing here would ever be "the only thing in the scope with
+  /// nothing focused". Same pattern as `WeatherPanelPage._firstResultFocusNode`
+  /// and `ContentShortcutPanelPage._firstTargetFocusNode`.
+  final FocusNode _initialFocusNode = FocusNode();
+
+  /// The shortcut [_initialFocusNode] belongs to, captured from whichever one
+  /// was first when the panel opened — or null when the section started empty,
+  /// in which case "Add shortcut" owns the node instead. Fixed for the life of
+  /// the widget rather than recomputed as "whatever is at index 0 now": a
+  /// reorder changes who sits at index 0, and reassigning the node to a
+  /// *different* tile's `Focus` widget on that rebuild tears it away from
+  /// whichever tile the remote's focus is actually on mid-move, dropping the
+  /// focus instead of moving it. Matching by id rather than by the
+  /// `ContentShortcutSection` object also survives the shortcut being pushed
+  /// through a fresh model instance on the next database read.
+  int? _initialFocusShortcutId;
+  bool _initialFocusCaptured = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _initialFocusNode.requestFocus();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _initialFocusNode.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final AppLocalizations localizations = AppLocalizations.of(context)!;
 
-    return Column(
-      children: [
-        Text(localizations.contentShortcuts, style: Theme.of(context).textTheme.titleLarge),
-        const Divider(),
-        Consumer<AppsService>(
-          builder: (context, service, __) {
-            final ContentShortcutSection? section =
-                service.contentShortcutSections.firstWhereOrNull((s) => s.id == widget.sectionId);
-            final List<ContentShortcut> shortcuts = section?.shortcuts ?? const [];
+    // One Consumer around the whole page rather than just the list: the "Add
+    // shortcut" tile below needs to know whether the section is empty too, to
+    // take the initial focus when there is no shortcut to give it to.
+    return Consumer<AppsService>(
+      builder: (context, service, __) {
+        final ContentShortcutSection? section =
+            service.contentShortcutSections.firstWhereOrNull((s) => s.id == widget.sectionId);
+        final List<ContentShortcut> shortcuts = section?.shortcuts ?? const [];
 
-            return Expanded(
+        if (!_initialFocusCaptured) {
+          _initialFocusCaptured = true;
+          _initialFocusShortcutId = shortcuts.isNotEmpty ? shortcuts.first.id : null;
+        }
+
+        return Column(
+          children: [
+            Text(localizations.contentShortcuts, style: Theme.of(context).textTheme.titleLarge),
+            const Divider(),
+            Expanded(
               // A Column inside a scroll view rather than a ListView: a lazy list
               // only builds the children that happen to be on screen, and both
               // reordering and the focus that follows a moved shortcut need every
@@ -86,24 +131,32 @@ class _ContentShortcutsPanelPageState extends State<ContentShortcutsPanelPage> {
                         ),
                       ),
                     for (int i = 0; i < shortcuts.length; i++)
-                      _shortcutTile(context, section!, shortcuts[i], i, shortcuts.length),
+                      _shortcutTile(
+                        context,
+                        section!,
+                        shortcuts[i],
+                        i,
+                        shortcuts.length,
+                        focusNode: shortcuts[i].id == _initialFocusShortcutId ? _initialFocusNode : null,
+                      ),
                   ],
                 ),
               ),
-            );
-          },
-        ),
-        const SizedBox(height: 4),
-        FocusableSettingsTile(
-          leading: const Icon(Icons.add),
-          title: Text(localizations.contentShortcutAdd, style: Theme.of(context).textTheme.bodyMedium),
-          onPressed: () => Navigator.pushNamed(
-            context,
-            ContentShortcutPanelPage.routeName,
-            arguments: ContentShortcutPanelPageArguments(sectionId: widget.sectionId),
-          ),
-        ),
-      ],
+            ),
+            const SizedBox(height: 4),
+            FocusableSettingsTile(
+              leading: const Icon(Icons.add),
+              title: Text(localizations.contentShortcutAdd, style: Theme.of(context).textTheme.bodyMedium),
+              focusNode: _initialFocusShortcutId == null ? _initialFocusNode : null,
+              onPressed: () => Navigator.pushNamed(
+                context,
+                ContentShortcutPanelPage.routeName,
+                arguments: ContentShortcutPanelPageArguments(sectionId: widget.sectionId),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -112,8 +165,9 @@ class _ContentShortcutsPanelPageState extends State<ContentShortcutsPanelPage> {
     ContentShortcutSection section,
     ContentShortcut shortcut,
     int index,
-    int totalCount,
-  ) {
+    int totalCount, {
+    FocusNode? focusNode,
+  }) {
     final AppLocalizations localizations = AppLocalizations.of(context)!;
     final bool isMoving = _movingIndex == index;
     final bool available = shortcut.available && shortcut.launchable;
@@ -122,6 +176,7 @@ class _ContentShortcutsPanelPageState extends State<ContentShortcutsPanelPage> {
       // The shortcut object itself, so the focused element follows a shortcut
       // that the user is moving rather than staying on a list position.
       key: ObjectKey(shortcut),
+      focusNode: focusNode,
       onKeyEvent: (node, event) {
         if (event is! KeyDownEvent) {
           return KeyEventResult.ignored;
